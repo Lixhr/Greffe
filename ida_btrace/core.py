@@ -28,7 +28,7 @@ class BinTrace:
         
         ea   = obj.cur_func.start_ea
         name = idaapi.get_func_name(ea) or hex(ea)
-        if ea in self._tracepoints:
+        if ea in self._Targets:
             print(f"[BinTrace] Already traced: {ea}")
             return False
         print(f"{ea} traced")

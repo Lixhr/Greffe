@@ -1,14 +1,14 @@
 from __future__ import annotations
 from btrace.CLI.idaserver import IdaIPC
 from btrace.ProjectInfo import ProjectInfo
-from btrace.target import TracePoint
+from btrace.target import Target
 import json
 import os
 from btrace.core.asm.AsmEngine import AsmEngine
 
 class BTraceContext:
     _instance = None
-    traced : list[TracePoint] = []
+    traced : list[Target] = []
     srv: IdaIPC = None
     info : ProjectInfo = None
     
@@ -35,7 +35,7 @@ class BTraceContext:
         self._initialized = True
 
     def trace(self, obj):
-        new = TracePoint(obj, self.info)
+        new = Target(obj, self.info)
 
         for i, func in enumerate(self.traced):
             if new.ea == func.ea: 
@@ -70,14 +70,7 @@ class BTraceContext:
             "project": {
                 "img_base": img_seg.start
             },
-            "traced": [
-                {
-                    "name":    tp.name,
-                    "ea":      tp.ea,
-                    "context": tp.asm_ctx,
-                }
-                for tp in self.traced
-            ]
+            "traced": [tp.to_dict() for tp in self.traced],
         }
         if not data["traced"]:
             raise Exception("nothing to save")
@@ -98,5 +91,5 @@ class BTraceContext:
         if not data:
             return
         for tp_data in data.get("traced", []):
-            tp = TracePoint.from_dict(tp_data, self.info)
+            tp = Target.from_dict(tp_data, self.info)
             self.traced.append(tp)

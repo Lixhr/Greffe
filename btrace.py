@@ -22,6 +22,8 @@ if __name__ == "__main__":
         else:
             BTraceCLI(commands).run()
     except OSError as e:
-        print(f"Error: {e.strerror}")
+        # print(f"Error: {e.strerror}")
+        raise
     except Exception as e:
-        print(f"Error: {e}")
+        # print(f"Error: {e}")
+        raise

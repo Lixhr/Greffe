@@ -194,4 +194,7 @@ class PatchCommand(ACommand):
 
     def execute(self, argv: list[str]) -> None:
         for target in self.ctx.traced:
-            print(target.ea)
+            for instr in target.get_target_instructions():
+                print(instr)
+
+## Pour chaque target, on a son addresse, l'instruction a executer, e

@@ -1,80 +1,93 @@
-from prompt_toolkit.formatted_text import FormattedText 
+from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit import print_formatted_text
 from btrace.ProjectInfo import ProjectInfo
 from btrace.core.asm.AsmEngine import AsmEngine
+from btrace.core.asm.AsmInstr import AsmInstr
 import os
 
-class TracePoint:
-    c_filename : str  =""
+class Target:
+    c_filename: str = ""
 
     def __init__(self, obj: dict, pinfo: ProjectInfo, *, _skip_setup=False):
         self.name    = obj.get("name")
         self.ea      = obj.get("ea")
         self.end_ea  = obj.get("end_ea")
-        self.asm_ctx = obj.get("context")
         self.asm     = AsmEngine.get()
+        self.asm_ctx = self._build_ctx(obj.get("context", []))
         if not _skip_setup:
-            self.check_bounds(obj)
-            self.create_handler(pinfo.btrace_workdir)
+            self._check_bounds()
+            self._create_handler(pinfo.btrace_workdir)
 
     @classmethod
-    def from_dict(cls, data: dict, info: ProjectInfo) -> "TracePoint":
+    def from_dict(cls, data: dict, info: ProjectInfo) -> "Target":
         return cls(data, info, _skip_setup=True)
-    
-    def check_bounds(self, obj) -> None:
-        callsize = self.asm.arch.call_size()
 
-        if self.ea + callsize > self.end_ea:
-            raise Exception(f"Patched tracepoint {self.name} \
-                            overlaps with another function (call size {hex(callsize)})")
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "ea": self.ea,
+            "context": [i.to_dict() for i in self.asm_ctx]
+        }
 
+    def _build_ctx(self, raw_ctx: list[dict]) -> list[AsmInstr]:
+        if not raw_ctx:
+            return []
 
-    def get_cfile_content(self, func_name: str):
-        return f"""\
-#include "btrace.h"
+        result = []
+        for entry in raw_ctx:
+            instrs = self.asm.arch.disassemble(entry["raw"], entry["ea"], entry.get("mode"))
 
-void {func_name}(void) {{
-        
-}}
+            for cs_instr in instrs:
+                instr = AsmInstr(cs_instr, entry.get("mode"))
+                instr.patched = self.ea <= instr.ea < self.ea + self.asm.arch.call_size(instr.mode)
+                result.append(instr)
 
-REGISTER_HANDLER(
-    {func_name},
-    {hex(self.asm_ctx[-1]['ea'])}
-);
-"""
+        return result
 
-    def create_handler(self, btrace_workdir: str):
+    def get_target_instructions(self) -> list[AsmInstr]:
+        return [i for i in self.asm_ctx if i.patched]
+
+    def _check_bounds(self) -> None:
+        if self.ea is None or self.end_ea is None:
+            raise Exception(f"{self.name}: missing ea or end_ea ??")
+        if self.ea + self.asm.arch.call_size() >= self.end_ea:
+            raise Exception(f"can't add {hex(self.ea)}: end of function")
+
+    def _create_handler(self, btrace_workdir: str):
         c_name = self.name.replace("+", "_")
-
         self.c_filename = f"{btrace_workdir}/handlers/{c_name}.c"
         try:
             if not os.path.isfile(self.c_filename):
-                with open(self.c_filename, "w") as file:
-                    file.write(self.get_cfile_content(c_name))
-                    print(f"Handler created: {os.path.basename(self.c_filename)}")
-
+                with open(self.c_filename, "w") as f:
+                    f.write(self._get_cfile_content(c_name))
+                print(f"Handler created: {os.path.basename(self.c_filename)}")
         except OSError as e:
             raise Exception(f"{e.strerror} {e.filename}")
 
-    def _is_patched(self, instr: dict) -> bool:
-        return self.ea <= instr["ea"] < self.ea + self.asm.arch.call_size(instr["mode"])
+    def _get_cfile_content(self, func_name: str) -> str:
+        return f"""\
+#include "btrace.h"
+void {func_name}(void) {{
+}}
+REGISTER_HANDLER(
+    {func_name},
+    {self.ea + self.asm.arch.call_size()}
+);
+"""
 
-    def _instr_colors(self, instr: dict) -> tuple[str, str, str]:
-        if self._is_patched(instr):
+    ## display
+
+    def _instr_colors(self, instr: AsmInstr) -> tuple[str, str, str]:
+        if instr.patched:
             return ("ansicyan bold", "ansigreen bold", "")
         return ("ansiblack", "ansiblack", "ansiblack")
 
-    def _format_disasm(self, instr: dict) -> str:
-        disasm = self.asm.arch.disassemble(instr["raw"], instr["ea"], instr["mode"])
-        return " ; ".join(f"{i.mnemonic} {i.op_str}" for i in disasm)
-
-    def _print_instr(self, instr: dict):
-        addr, raw, disasm = hex(instr["ea"]), instr["raw"], self._format_disasm(instr)
+    def _print_instr(self, instr: AsmInstr):
         c0, c1, c2 = self._instr_colors(instr)
         print_formatted_text(FormattedText([
-            (c0, f"  {addr}  "),
-            (c1, f"{raw:<10}"),
-            (c2, f"  {disasm}"),
+            (c0, f"  {hex(instr.ea)}  "),
+            (c1, f"{instr.raw:<10}"),
+            (c2, f"  {instr}"),
         ]))
 
     def print_line(self, i: int):
