@@ -5,6 +5,7 @@ from prompt_toolkit.formatted_text import FormattedText
 from btrace.CLI.args import Arg, ParsedArgs, parse_args
 from btrace.CLI.errors import InvalidArg, IdaError
 from btrace.CLI.utils import DEV_LOG
+from btrace.core.patch import Patch
 # from btrace.core.patch import Patch
 
 ## Abstract Command Classes ##
@@ -193,8 +194,4 @@ class PatchCommand(ACommand):
     desc = "Patch the targets"
 
     def execute(self, argv: list[str]) -> None:
-        for target in self.ctx.traced:
-            for instr in target.get_target_instructions():
-                print(instr)
-
-## Pour chaque target, on a son addresse, l'instruction a executer, e
+        Patch(self.ctx.info, self.ctx.asm, self.ctx.traced)

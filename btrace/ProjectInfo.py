@@ -37,6 +37,7 @@ class ProjectInfo:
     conf: str
     segments : list[Segment]
     base_addr : int
+    patch_base: int | None = None
 
     def __init__(self, srv):
         try:
@@ -52,7 +53,6 @@ class ProjectInfo:
 
         except IdaError as e:
             print(f"ProjectInfo error: {e}")
-
 
     def get_image_segment(self) -> Segment:
         img_seg = next((s for s in self.segments if s.is_image), None)
@@ -99,35 +99,21 @@ class ProjectInfo:
         self.btrace_workdir.mkdir(parents=True, exist_ok=True)
 
 
-        handlers_dir = self.btrace_workdir / "handlers"
-        core_dest = self.btrace_workdir / "core"
+        trace_dir = self.btrace_workdir / "trace"
+        coverage_dir = self.btrace_workdir / "coverage"
 
-        handlers_dir.mkdir(parents=True, exist_ok=True)
-        core_dest.mkdir(parents=True, exist_ok=True)
+        trace_dir.mkdir(parents=True, exist_ok=True)
+        coverage_dir.mkdir(parents=True, exist_ok=True)
 
-        self._copy_core_files(core_dest)
-
-    def _copy_core_files(self, dest):
-        core_src = Path(os.getcwd()) / "btrace" / "core" / "c_files"
+        core_src = Path(os.getcwd()) / "btrace" / "core" / "c_core"
 
         if not core_src.exists():
             print(f"Core source not found: {core_src}")
             return
 
         for item in core_src.iterdir():
-            if item.is_file():
-                shutil.copy(item, dest / item.name)
+            shutil.copy(item, self.btrace_workdir / item.name)
 
-    def _get_btrace_workdir(self):
-        proj_name = os.path.basename(self.bin_path)
-        ida_workdir = os.path.dirname(self.bin_path)
-
-        self.btrace_workdir = ida_workdir / "__btrace_" + proj_name
-        if not os.path.isdir(self.btrace_workdir):
-            self.init_project()
-
-
-        print(f"Workdir: {self.btrace_workdir}")
 
     def _fetch(self, srv) -> dict | None:
         resp = srv.send({"action": "info"})
@@ -135,7 +121,7 @@ class ProjectInfo:
             body = resp.get("body")
             if (not resp.get("ok")):
                 raise IdaError(body)
-            return (body)
+            return body
         else:
             raise IdaError("failed to query db")
             

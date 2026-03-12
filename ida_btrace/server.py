@@ -24,7 +24,7 @@ def get_func_by_name(name: str):
     return ida_funcs.get_func(ea)
 
 def get_func_by_address(ea: int):
-    return (idaapi.get_func(ea))
+    return idaapi.get_func(ea)
 
 def get_mode_context(ea: int) -> str | None:
     arch = ida_idp.get_idp_name().lower()
@@ -32,7 +32,7 @@ def get_mode_context(ea: int) -> str | None:
     match arch:
         case "arm":
             return ("thumb" if idc.get_sreg(ea, "T") else None)
-    return (None)
+    return None
 
 def get_instruction(ea: int):
     insn = idaapi.insn_t()
@@ -129,7 +129,7 @@ def get_segments():
             "start":  hex(seg.start_ea),
             "end": hex(seg.end_ea)
         })
-    return (segments)
+    return segments
 
 class IPCProjectInfo(AIPCCommand):
     action = "info"

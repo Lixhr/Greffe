@@ -16,11 +16,13 @@ def get_endian_modes(endian: str):
 
 # capstone, keystone pair
 class AsmMode:
-    def __init__(self, cs_arch: int, cs_mode: int, ks_arch: int, ks_mode: int, call_size: int):
+    def __init__(self, cs_arch: int, cs_mode: int, ks_arch: int, ks_mode: int,
+                 call_size: int, gcc_flags: list[str] = []):
         self.cs = Cs(cs_arch, cs_mode)
         self.cs.detail = True
-        self.ks = Ks(ks_arch, ks_mode)
-        self.call_size = call_size 
+        self.ks        = Ks(ks_arch, ks_mode)
+        self.call_size = call_size
+        self.gcc_flags = gcc_flags
 
     def assemble(self, asm: str, addr: int = 0) -> bytes:
         encoding, _ = self.ks.asm(asm, addr)
@@ -37,24 +39,25 @@ class AArch:
     CS_ARCH: int
     KS_ARCH: int
     DEFAULT_MODE: str
-    SUB_MODES: dict[str, tuple[int, int, int]] = {}  # (cs_flags, ks_flags, call_size)
+    BASE_MODES: dict[str, tuple[int, int, int, list[str]]]
+    SUB_MODES:  dict[str, tuple[int, int, int, list[str]]] = {}
 
     def __init__(self, project_info: ProjectInfo):
         cs_endian, ks_endian = get_endian_modes(project_info.endianness)
 
-        cs_flags, ks_flags, call_size = self.BASE_MODES[self.DEFAULT_MODE]
+        cs_flags, ks_flags, call_size, gcc_flags = self.BASE_MODES[self.DEFAULT_MODE]
         self._default = AsmMode(
             self.CS_ARCH, cs_flags | cs_endian,
             self.KS_ARCH, ks_flags | ks_endian,
-            call_size,
+            call_size, gcc_flags,
         )
         self._sub_modes: dict[str, AsmMode] = {
             name: AsmMode(
                 self.CS_ARCH, cs_f | cs_endian,
                 self.KS_ARCH, ks_f | ks_endian,
-                call_sz,
+                call_sz, gcc_f,
             )
-            for name, (cs_f, ks_f, call_sz) in self.SUB_MODES.items()
+            for name, (cs_f, ks_f, call_sz, gcc_f) in self.SUB_MODES.items()
         }
 
     def _get_mode(self, mode: bool | str) -> AsmMode:
@@ -63,6 +66,10 @@ class AArch:
         if mode not in self._sub_modes:
             raise ValueError(f"Unknown sub-mode '{mode}' for {type(self).__name__}.")
         return self._sub_modes[mode]
+
+    @abstractmethod
+    def gcc_flags(self, mode: bool | str = False) -> list[str] | None:
+        pass
 
     def assemble(self, asm: str, addr: int = 0, mode: bool | str = False) -> bytes:
         return self._get_mode(mode).assemble(asm, addr)
@@ -81,18 +88,21 @@ class AArch:
         pass
 
 class Arm(AArch):
-    CS_ARCH = CS_ARCH_ARM
-    KS_ARCH = KS_ARCH_ARM
+    CS_ARCH      = CS_ARCH_ARM
+    KS_ARCH      = KS_ARCH_ARM
     DEFAULT_MODE = "arm"
-    BASE_MODES = {
-        "arm":   (CS_MODE_ARM,   KS_MODE_ARM,   4),
+    BASE_MODES   = {
+        "arm":   (CS_MODE_ARM,   KS_MODE_ARM,   4, ["-mthumb-interwork"]),
     }
-    SUB_MODES = {
-        "thumb": (CS_MODE_THUMB, KS_MODE_THUMB, 4),
+    SUB_MODES    = {
+        "thumb": (CS_MODE_THUMB, KS_MODE_THUMB, 4, ["-mthumb", "-mthumb-interwork"]),
     }
 
     def _call_instr(self, pc_offset: int) -> str:
         return f"bl {pc_offset}"
+    
+    def gcc_flags(self, mode: bool | str = False) -> list[str] | None:
+        return self._get_mode("thumb").gcc_flags
 
 
 _ARCH_MAP: dict[str, type[AArch]] = {

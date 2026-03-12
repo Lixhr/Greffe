@@ -78,13 +78,14 @@ class BTraceCLI:
         try:
             if cmd:
                 cmd.execute(parts[1:])
-                return (True)
-            else:
-                raise Exception(f"unknown command")
+                return True
+            # else:
+                # raise Exception(f"unknown command")
         except IdaError as e:
             print(f"IdaError: {e}")
         except EOFError:
             raise
         except Exception as e:
+            raise
             print(f"Error: {parts[0]}: {e}")
 

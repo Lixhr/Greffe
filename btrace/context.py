@@ -81,7 +81,7 @@ class BTraceContext:
         try:
             with open(path, "r") as f:
                 data = json.load(f)
-                return (data)
+                return data
         except FileNotFoundError:
             pass
         except OSError as e:
