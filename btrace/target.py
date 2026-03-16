@@ -18,7 +18,7 @@ class Target:
         if not _skip_setup:
             self._check_bounds()
             self._create_handler(pinfo.btrace_workdir)
-        self._check_relocations()
+        self._set_relocators()
 
     @classmethod
     def from_dict(cls, data: dict, info: ProjectInfo) -> "Target":
@@ -49,10 +49,10 @@ class Target:
     def get_target_instructions(self) -> list[AsmInstr]:
         return [i for i in self.asm_ctx if i.patched]
 
-    def _check_relocations(self):
+    def _set_relocators(self):
         for instr in self.get_target_instructions():
             if self.asm.arch.is_pc_relative(instr):
-                self.asm.arch.get_relocator(instr) # throws if unimplemented
+                instr.relocator = self.asm.arch.get_relocator(instr) # throws if unimplemented
                 instr.pc_relative = True
 
     def _check_bounds(self) -> None:
@@ -73,7 +73,7 @@ class Target:
         except OSError as e:
             raise Exception(f"{e.strerror} {e.filename}")
 
-    def _get_ret_addr(self) -> int:
+    def get_ret_addr(self) -> int:
         instr = next((i for i in reversed(self.asm_ctx) if i.patched), None)
         if instr is None:
             raise Exception("No patched instruction found")

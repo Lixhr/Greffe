@@ -1,17 +1,35 @@
 from typing import Callable
 
-from capstone.arm import ARM_OP_REG, ARM_OP_MEM, ARM_REG_PC, ARM_INS_LDR
+from capstone.arm import ARM_OP_REG, ARM_OP_MEM, ARM_REG_PC, ARM_INS_LDR, ARM_OP_IMM
 from btrace.core.asm.AsmInstr import AsmInstr
 from capstone import CS_MODE_ARM, CS_ARCH_ARM, CS_MODE_THUMB
 from keystone import KS_MODE_ARM, KS_MODE_THUMB, KS_ARCH_ARM
 from btrace.core.asm.AArch import AArch
 
-def relocate_ldr(instr : AsmInstr) -> bytes:
-    pass
+def reloc_get_target(instr: AsmInstr) -> int:
+    for op in instr._instr.operands:
+        if op.type == ARM_OP_MEM and op.mem.base == ARM_REG_PC:
+            pc = (instr.ea + 4)
+            if instr.mode == "thumb":
+                pc &= ~3
+            return pc + op.mem.disp
 
-handlers = {
-        ARM_INS_LDR: relocate_ldr,
-}
+        if op.type == ARM_OP_IMM:
+            return op.imm
+        
+def relocate_ldr(instr: AsmInstr) -> tuple[str, int]:
+    target = reloc_get_target(instr)
+    dst    = instr._instr.reg_name(instr._instr.operands[0].reg)
+    alignment = "2" if instr.mode == "thumb" else "4"
+
+    asm = (
+        f"ldr {dst}, pool\n"
+        f"b end\n"
+        f".align {alignment}\n"
+        f"pool: .word 0x{target:08x}\n"
+        f"end:\n"
+    )
+    return asm
 
 class Arm(AArch):
     CS_ARCH      = CS_ARCH_ARM
@@ -22,6 +40,10 @@ class Arm(AArch):
     }
     SUB_MODES    = {
         "thumb": (CS_MODE_THUMB, KS_MODE_THUMB, 4, ["-mthumb", "-mthumb-interwork"]),
+    }
+
+    relocators = {
+            ARM_INS_LDR: relocate_ldr,
     }
 
     def _jmp_instr(self, pc_offset: int) -> str:
@@ -35,13 +57,6 @@ class Arm(AArch):
 
     def restore_context(self, mode: bool | str = False) -> bytes:
         return self._get_mode(mode).assemble("pop {r0-r12, lr}")
-
-    ## relocates a pc-relative instruction
-    def get_relocator(self, instr : AsmInstr) -> Callable | None:
-        handler = handlers.get(instr.id)
-        if handler is None:
-            raise Exception(f"No relocator for pc-relative instruction: {instr.mnemonic} ({hex(instr.ea)})")
-        return handler
 
     def is_pc_relative(self, instr : AsmInstr) -> bool:
         for op in instr._instr.operands:

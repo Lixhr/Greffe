@@ -5,7 +5,7 @@ from capstone import *
 from btrace.ProjectInfo import ProjectInfo
 from abc import ABC, abstractmethod
 from btrace.core.asm.AsmInstr import AsmInstr
-
+from typing import Dict
 
 # For Abstract Arch 
 def get_endian_modes(endian: str):
@@ -46,6 +46,7 @@ class AArch:
     DEFAULT_MODE: str
     BASE_MODES: dict[str, tuple[int, int, int, list[str]]]
     SUB_MODES:  dict[str, tuple[int, int, int, list[str]]] = {}
+    relocators: Dict[int, Callable[[AsmInstr], bytes]] = {}
 
     def __init__(self, project_info: ProjectInfo):
         cs_endian, ks_endian = get_endian_modes(project_info.endianness)
@@ -104,9 +105,12 @@ class AArch:
     def is_pc_relative(self, instr : AsmInstr) -> bool:
         pass
 
-    @abstractmethod
+    ## relocates a pc-relative instruction
     def get_relocator(self, instr : AsmInstr) -> Callable | None:
-        pass
+        handler = self.relocators.get(instr.id)
+        if handler is None:
+            raise Exception(f"No relocator for pc-relative instruction: {instr.mnemonic} ({hex(instr.ea)})")
+        return handler
 
     @abstractmethod
     def relocate_instr(self, instr : AsmInstr):

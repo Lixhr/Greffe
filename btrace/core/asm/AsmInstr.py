@@ -1,9 +1,11 @@
 
 from capstone import CsInsn
 from capstone.arm import ARM_OP_REG, ARM_OP_MEM, ARM_REG_PC
+from typing import Callable
 
 class AsmInstr:
     pc_relative : bool = False
+    relocator : Callable | None = None
 
     def __init__(self, cs_instr: CsInsn, mode: str | None = None, patched: bool = False):
         self._instr   = cs_instr

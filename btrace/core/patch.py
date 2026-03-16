@@ -158,41 +158,47 @@ class BinTraceMode(AInstrumentationMode):
     def append_ofiles(self): # append the compiled cfiles at patch_base
         self.img.append(self.get_patched_bin())
 
+    def _append_instr(self, instr: AsmInstr):
+        if instr.pc_relative:
+            asm_str = self.asm.arch.get_relocator(instr)(instr)
+            self.img.append(self.asm.arch.assemble(asm_str, addr=self.img.tell(), mode=instr.mode))
+        else:
+            self.img.append(instr.raw_bytes)
+
     def redirect_flow(self):
         for t in self.targets:
-            # todo : one instruction sample -> can't handle the transition between cpu modes.
-            target_instr = t.get_target_instructions()[0] 
+            # todo: handle the transition between cpu modes
+            target_instr = t.get_target_instructions()[0]
 
-            src_ea = target_instr.ea
-
-            # replaces the targets to jump on our handler 
-            jmp = self.asm.arch.assemble(
+            # the targets are replaced by a jmp to our handler
+            self.img.write(target_instr.ea, self.asm.arch.assemble(
                 self.asm.arch._jmp_instr(self.img.tell()),
-                addr=src_ea,
+                addr=target_instr.ea,
                 mode=target_instr.mode
-            )
-            self.img.write(src_ea, jmp)
-            
+            ))
 
+            # saving registers
             self.img.append(self.asm.arch.save_context(target_instr.mode))
-            for instr in t.asm_ctx:
-                if instr.patched: 
-                    if instr.pc_relative:
-                        from btrace.CLI.utils import DEV_LOG
-                        DEV_LOG("PC RELATIVE")
-                        self.asm.arch.relocate_instr(instr)
-                        # new_addr = self.img.tell()
-                        # relocated = self.asm.arch.assemble(instr.asm_str, addr=new_addr, mode=instr.mode)
-                        # self.img.append(relocated)
-                    else:
-                        DEV_LOG("NOT PC RELATIVE")
-                        # self.img.append(instr.raw_bytes)
 
 
+            # calls the handler
+            ## ... todo
 
+            # restore registers
             self.img.append(self.asm.arch.restore_context(target_instr.mode))
-            
-            
+
+            # original instructions
+            for instr in filter(lambda i: i.patched, t.asm_ctx):
+                self._append_instr(instr)
+
+
+
+            # go back to the original code
+            self.img.append(self.asm.arch.assemble(
+                self.asm.arch._jmp_instr(t.get_ret_addr()),
+                addr=self.img.tell(),
+                mode=target_instr.mode
+            ))
 
 
     def close(self):
