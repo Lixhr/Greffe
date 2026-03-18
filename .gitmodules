@@ -1,0 +1,3 @@
+[submodule "btrace_cli/third_party/frida-gum"]
+	path = btrace_cli/third_party/frida-gum
+	url = https://github.com/frida/frida-gum.git
