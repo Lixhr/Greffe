@@ -1,5 +1,7 @@
 import threading
-import zmq
+import socket
+import struct
+import json
 import idaapi
 import ida_funcs
 from abc import ABC, abstractmethod
@@ -9,8 +11,9 @@ import idc
 import ida_bytes
 import ida_idp
 import ida_segment
+import time
 
-SOCKET_ADDR = "ipc:///tmp/btrace.ipc"
+SOCKET_PATH = "/tmp/btrace.sock"
 
 class IDAException(Exception):
     def __init__(self, message):
@@ -51,6 +54,19 @@ def get_instruction(ea: int):
         "mode": get_mode_context(ea)
     }
 
+def get_segments():
+    segments = []
+    for i in range(ida_segment.get_segm_qty()):
+        seg = ida_segment.getnseg(i)
+
+        segments.append({
+            "name": ida_segment.get_segm_name(seg),
+            "start":  seg.start_ea,
+            "end": seg.end_ea
+        })
+
+    return segments
+
 ## Get instructions before / after target 
 ## Ensure the context is large enough to hande x86 6 bytes longjmp
 def get_asm_context(func, ea: int):
@@ -82,6 +98,25 @@ def get_asm_context(func, ea: int):
 
     return before + target + after
 
+def recv_msg(conn) -> dict:
+    raw_len = conn.recv(4)
+    if not raw_len or len(raw_len) < 4:
+        raise ConnectionError("disconnected")
+    length = struct.unpack(">I", raw_len)[0]
+
+    data = b""
+    while len(data) < length:
+        chunk = conn.recv(length - len(data))
+        if not chunk:
+            raise ConnectionError("disconnected")
+        data += chunk
+
+    return json.loads(data.decode())
+
+def send_msg(conn, msg: dict):
+    data = json.dumps(msg).encode()
+    conn.sendall(struct.pack(">I", len(data)) + data)
+
 class AIPCCommand(ABC):
     action: str
 
@@ -94,13 +129,12 @@ class IPCAdd(AIPCCommand):
     def handle(self, body: list[str]) -> dict:
         body_rsp = []
         for target in body:
-            if target.startswith("0x"): # hex instr address
+            if target.startswith("0x"):
                 addr = int(target, 16)
                 func = get_func_by_address(addr)
                 if func is None:
                     raise IDAException(f"{target} does not exist")
                 target = f"{func.name}+{addr - func.start_ea}"
-
             else:
                 func = get_func_by_name(target)
                 if func is None:
@@ -113,60 +147,78 @@ class IPCAdd(AIPCCommand):
             body_rsp.append({
                 "name":    target,
                 "ea":      addr,
-                "end_ea": func.end_ea,
+                "end_ea":  func.end_ea,
                 "context": get_asm_context(func, addr),
             })
-        print(body_rsp)
         return {"ok": True, "body": body_rsp}
-
-def get_segments():
-    segments = []
-    for i in range(ida_segment.get_segm_qty()):
-        seg = ida_segment.getnseg(i)
-
-        segments.append({
-            "name": ida_segment.get_segm_name(seg),
-            "start":  hex(seg.start_ea),
-            "end": hex(seg.end_ea)
-        })
-    return segments
 
 class IPCProjectInfo(AIPCCommand):
     action = "info"
 
     def handle(self, body):
-        body_rsp = {
-            "bin_path": idaapi.get_input_file_path(),
-            "arch": ida_idp.get_idp_name().lower(),
+        return {"ok": True, "body": {
+            "bin_path":   idaapi.get_input_file_path(),
+            "arch":       ida_idp.get_idp_name().lower(),
             "endianness": "be" if idaapi.inf_is_be() else "le",
-            "bits": 64 if idaapi.inf_is_64bit() else 32,
-            "segments": get_segments()
-        }
-        return {"ok": True, "body": body_rsp}
+            "bits":       64 if idaapi.inf_is_64bit() else 32,
+            "segments":   get_segments()
+        }}
+
+class IPCRefresh(AIPCCommand):
+    action = "refresh"
+
+    def handle(self, body):
+        return {"ok": True, "body": {}}
+
 
 class Server(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
-        self._stop = threading.Event()
-        self._ctx  = zmq.Context()
+        self._stop     = threading.Event()
         self._commands = {cmd.action: cmd for cmd in [
             IPCAdd(),
             IPCProjectInfo(),
+            IPCRefresh(),
         ]}
+
     def stop(self):
         self._stop.set()
-        self._ctx.term()
 
     def run(self):
-        sock = self._ctx.socket(zmq.PAIR)
-        sock.bind(SOCKET_ADDR)
-        sock.setsockopt(zmq.RCVTIMEO, 500)
+        time.sleep(1)
+        import os
+        if os.path.exists(SOCKET_PATH):
+            os.unlink(SOCKET_PATH)
+
+        srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        srv.bind(SOCKET_PATH)
+        srv.listen(1)
+        srv.settimeout(0.5)
 
         print("[btrace] server started")
 
         while not self._stop.is_set():
             try:
-                msg = sock.recv_json()
+                conn, _ = srv.accept()
+            except TimeoutError:
+                continue
+
+            print("[btrace] client connected")
+            try:
+                self._handle_client(conn)
+            except ConnectionError:
+                print("[btrace] client disconnected")
+            finally:
+                conn.close()
+
+        srv.close()
+        os.unlink(SOCKET_PATH)
+        print("[btrace] server stopped")
+
+    def _handle_client(self, conn):
+        while not self._stop.is_set():
+            try:
+                msg = recv_msg(conn)
                 print(f"[btrace] recv: {msg}")
 
                 response = {}
@@ -174,28 +226,25 @@ class Server(threading.Thread):
                     lambda: response.update(self._dispatch(msg)),
                     idaapi.MFF_READ
                 )
-                sock.send_json(response)
-            except zmq.Again:
-                continue
-            except zmq.ZMQError as e:
-                print(f"[btrace] ZMQError: {e}")
-                break
+                send_msg(conn, response)
+
+            except ConnectionError:
+                raise
+
             except Exception as e:
-                print(f"[btrace] error: {e}")
-
-        sock.close()
-        print("[btrace] server stopped")
-
+                print(f"[btrace] internal error: {e}")
+                try:
+                    send_msg(conn, {"ok": False, "body": str(e)})
+                except:
+                    raise
 
     def _dispatch(self, msg: dict) -> dict:
         action = msg.get("action")
         body   = msg.get("body")
-
         try:
             cmd = self._commands.get(action)
             if not cmd:
                 raise IDAException(f"unknown action: {action}")
-
             return cmd.handle(body)
         except IDAException as e:
             return {"ok": False, "body": e.message}
