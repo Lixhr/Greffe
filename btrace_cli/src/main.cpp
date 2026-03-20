@@ -6,10 +6,12 @@
 #include "CompositeCommand.hpp"
 #include "ICommand.hpp"
 
-
-
+extern "C" {
+#include <gum/gum.h>
+}
 
 int main() {
+    gum_init_embedded();
     try {
         IdaIPC      client;
         ProjectInfo pinfo(client);

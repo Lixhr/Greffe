@@ -43,7 +43,6 @@ static json recv_line(int fd, int timeout_ms) {
 	tv.tv_usec = (timeout_ms % 1000) * 1000;
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-	// header's length
 	uint32_t len = 0;
 	ssize_t bytes_read = read(fd, &len, 4);
 	if (bytes_read <= 0)
@@ -92,7 +91,6 @@ void IdaIPC::start(CLIContext& ctx) {
     thread_ = std::thread([this, &ctx]{ run(ctx); });
 }
 
-// refresh loop
 void IdaIPC::run(CLIContext &ctx) {
     (void)ctx;
 	while (!stop_.load()) {

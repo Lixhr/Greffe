@@ -36,7 +36,7 @@ json ProjectInfo::fetchInfo(IdaIPC& client) {
 void ProjectInfo::setupProjectDir() {
 	project_dir = bin_path.parent_path() / "__btrace_workdir";
 
-	if (!std::filesystem::exists(project_dir)) { // first opened, creating the workdir
+	if (!std::filesystem::exists(project_dir)) {
 		std::filesystem::create_directory(project_dir );
 	}
 	std::cout << "Working directory: " << project_dir.string() << "/" << std::endl;

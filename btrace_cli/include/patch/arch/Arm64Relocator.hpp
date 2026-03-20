@@ -1,0 +1,11 @@
+#pragma once
+#include "IRelocator.hpp"
+
+class Arm64Relocator final : public IRelocator {
+public:
+    RelocatedCode    relocate(const std::vector<uint8_t>& input_bytes,
+                              size_t   n_bytes,
+                              uint64_t original_ea,
+                              uint64_t trampoline_addr) override;
+    std::string_view name() const override;
+};

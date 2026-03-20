@@ -1,8 +1,11 @@
 #include "TargetCommands.hpp"
 #include "CLIContext.hpp"
 #include "Target.hpp"
+#include "HandlerBin.hpp"
+#include "PatchSession.hpp"
 #include "cli_fmt.hpp"
 #include "colors.hpp"
+#include <filesystem>
 #include <iostream>
 #include <stdexcept>
 
@@ -66,4 +69,25 @@ void ListCommand::execute(CLIContext& ctx, const Args&) {
     int bits = ctx.pinfo.getBits();
     for (const auto& t : targets)
         std::cout << TargetView{ t, bits };
+}
+
+std::string_view PatchCommand::name()        const { return "patch"; }
+std::string_view PatchCommand::description() const { return "Patch all registered targets: write trampolines and hooks to the binary"; }
+
+void PatchCommand::execute(CLIContext& ctx, const Args&) {
+    if (ctx.targets.targets().empty()) {
+        cli_error("nothing to patch");
+        return;
+    }
+
+    auto outfile = std::filesystem::path(ctx.pinfo.getBinPath().string() + ".patched_");
+    HandlerBin handler_bin;
+
+    try {
+        PatchSession::run(ctx.targets.targets(), handler_bin,
+                          ctx.patch_base, ctx.bin_base,
+                          ctx.pinfo, outfile);
+    } catch (const std::exception& e) {
+        cli_error(e.what());
+    }
 }

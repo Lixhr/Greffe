@@ -39,6 +39,9 @@ struct ProjectInfo {
 
 		int getBits() const { return bits; }
 	const std::filesystem::path& getProjectDir() const { return project_dir; }
+	const std::filesystem::path& getBinPath()    const { return bin_path; }
+	const std::string&           getArch()       const { return arch; }
+	const std::string&           getEndianness() const { return endianness; }
 };
 
 	

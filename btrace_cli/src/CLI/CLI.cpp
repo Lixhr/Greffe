@@ -10,14 +10,6 @@
 #include "cli_fmt.hpp"
 #include "colors.hpp"
 
-// group("func", "Function ", {
-//     leaf(std::make_unique<FuncListCommand>()),
-//     leaf(std::make_unique<FuncRenameCommand>()),
-//     group("xref", "desc", {
-//         leaf(std::make_unique<XrefInCommand>()),
-//         leaf(std::make_unique<XrefOutCommand>()),
-//     }),
-// }),
 CLI::CLI(CLIContext& ctx) : _ctx(ctx) {
     CompletionRegistry::instance().install(_dispatcher);
     register_tree({
@@ -25,8 +17,8 @@ CLI::CLI(CLIContext& ctx) : _ctx(ctx) {
     leaf(std::make_unique<DelCommand>()),
     leaf(std::make_unique<ListCommand>()),
     leaf(std::make_unique<SaveCommand>()),
+    leaf(std::make_unique<PatchCommand>()),
     leaf(std::make_unique<QuitCommand>()),
-    // leaf(std::make_unique<InfoCommand>()),
 
 
 

@@ -11,7 +11,25 @@ TARGET   := $(BUILD)/btrace
 
 FRIDA_DIR     := third_party/frida-gum
 FRIDA_LIB     := $(FRIDA_DIR)/build/gum/libfrida-gum-1.0.a
-FRIDA_LDFLAGS := -lresolv -lm -ldl -pthread
+FRIDA_SDK     := $(FRIDA_DIR)/deps/sdk-linux-x86_64/lib
+
+FRIDA_STATIC_LIBS := \
+    $(FRIDA_LIB) \
+    $(FRIDA_SDK)/libglib-2.0.a \
+    $(FRIDA_SDK)/libgobject-2.0.a \
+    $(FRIDA_SDK)/libgio-2.0.a \
+    $(FRIDA_SDK)/libgmodule-2.0.a \
+    $(FRIDA_SDK)/libcapstone.a \
+    $(FRIDA_SDK)/libffi.a \
+    $(FRIDA_SDK)/liblzma.a \
+    $(FRIDA_SDK)/libunwind.a \
+    $(FRIDA_SDK)/libdwarf.a \
+    $(FRIDA_SDK)/libelf.a \
+    $(FRIDA_SDK)/libpcre2-8.a \
+    $(FRIDA_SDK)/libz.a
+
+FRIDA_LDFLAGS := -Wl,--start-group $(FRIDA_STATIC_LIBS) -Wl,--end-group \
+                 -lresolv -lm -ldl -pthread
 
 # Sources
 SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.cpp' -o -name '*.cc' \))
@@ -28,10 +46,10 @@ FRIDA_INCS     := -I$(FRIDA_DIR) \
                   -I$(FRIDA_DEPS)/include/capstone \
                   -I$(FRIDA_DEPS)/lib/glib-2.0/include
 
-INCS     := -I$(INC_DIR) -I$(INC_DIR)/CLI $(FRIDA_INCS)
+INCS     := -I$(INC_DIR) -I$(INC_DIR)/CLI -I$(INC_DIR)/patch -I$(INC_DIR)/patch/arch $(FRIDA_INCS)
 
 CXXFLAGS := $(STD) $(WARNS) $(INCS)
-LDFLAGS  := $(PKG_LIBS) -lreadline -lzmq $(FRIDA_LIB) $(FRIDA_LDFLAGS)
+LDFLAGS  := $(PKG_LIBS) -lreadline -lzmq $(FRIDA_LDFLAGS)
 
 all: $(TARGET)
 
@@ -59,7 +77,6 @@ clean:
 fclean: clean
 	@echo "[RM]  $(BUILD)"
 	@rm -rf $(BUILD)
-	@$(MAKE) -C $(FRIDA_DIR) fclean
 
 re: fclean all
 
