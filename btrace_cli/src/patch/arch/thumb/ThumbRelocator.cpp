@@ -12,7 +12,8 @@ std::string_view ThumbRelocator::name() const { return "Thumb"; }
 RelocatedCode ThumbRelocator::relocate(const std::vector<uint8_t>& input_bytes,
                                        size_t   n_bytes,
                                        uint64_t original_ea,
-                                       uint64_t trampoline_addr)
+                                       uint64_t trampoline_addr,
+                                       const std::vector<uint8_t>& trailer)
 {
     if (input_bytes.empty() || n_bytes == 0)
         throw std::runtime_error("ThumbRelocator: empty input");
@@ -41,6 +42,13 @@ RelocatedCode ThumbRelocator::relocate(const std::vector<uint8_t>& input_bytes,
 
     while (gum_thumb_relocator_write_one(&rl)) {}
 
+    size_t insns_size = reinterpret_cast<uint8_t*>(writer.code)
+                      - reinterpret_cast<uint8_t*>(writer.base);
+
+    if (!trailer.empty())
+        gum_thumb_writer_put_bytes(&writer, trailer.data(),
+                                   static_cast<guint>(trailer.size()));
+
     gum_thumb_writer_flush(&writer);
 
     size_t written = reinterpret_cast<uint8_t*>(writer.code)
@@ -50,5 +58,5 @@ RelocatedCode ThumbRelocator::relocate(const std::vector<uint8_t>& input_bytes,
     gum_thumb_writer_clear(&writer);
 
     output.resize(written);
-    return { std::move(output), n_insns };
+    return { std::move(output), insns_size, n_insns };
 }
