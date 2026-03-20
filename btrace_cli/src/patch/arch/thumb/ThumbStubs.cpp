@@ -1,4 +1,4 @@
-#include "arch/ThumbStubs.hpp"
+#include "thumb/ThumbStubs.hpp"
 
 extern "C" {
 #include <gum/arch-arm/gumthumbwriter.h>

@@ -1,13 +1,46 @@
 #include "TargetCommands.hpp"
 #include "CLIContext.hpp"
 #include "Target.hpp"
-#include "HandlerBin.hpp"
+#include "HandlerCompiler.hpp"
 #include "PatchSession.hpp"
+#include "patch_utils.hpp"
 #include "cli_fmt.hpp"
 #include "colors.hpp"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
+
+static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
+    namespace fs = std::filesystem;
+
+    auto dir = pinfo.getProjectDir() / "handlers";
+    fs::create_directories(dir);
+
+    auto path = dir / (sanitize(t.name()) + ".c");
+    if (fs::exists(path))
+        return;
+
+    static const std::pair<std::string_view, std::string_view> attr_table[] = {
+        { "thumb", "__attribute__((target(\"thumb\")))" },
+    };
+
+    std::string_view attr;
+    for (const auto& c : t.context()) {
+        if (c.ea != t.ea()) continue;
+        for (const auto& [mode, a] : attr_table)
+            if (c.mode == mode) { attr = a; break; }
+        break;
+    }
+
+    std::ofstream f(path);
+    if (!f)
+        throw std::runtime_error("cannot create " + path.string());
+
+    if (!attr.empty())
+        f << attr << '\n';
+    f << "void handler_" << sanitize(t.name()) << "(void)\n{\n}\n";
+}
 
 std::string_view AddCommand::name()        const { return "add"; }
 std::string_view AddCommand::description() const { return "Add one or more trace targets"; }
@@ -20,7 +53,9 @@ void AddCommand::execute(CLIContext& ctx, const Args& args) {
 
     for (const auto& arg : args) {
         try {
-            std::cout << TargetView{ ctx.targets.add(arg), ctx.pinfo.getBits() };
+            const Target& t = ctx.targets.add(arg);
+            std::cout << TargetView{ t, ctx.pinfo.getBits() };
+            create_handler_stub(t, ctx.pinfo);
         } catch (const std::exception& e) {
             cli_error(std::string(arg) + ": " + e.what());
         }
@@ -81,9 +116,9 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     }
 
     auto outfile = std::filesystem::path(ctx.pinfo.getBinPath().string() + ".patched_");
-    HandlerBin handler_bin;
 
     try {
+        HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
         PatchSession::run(ctx.targets.targets(), handler_bin,
                           ctx.patch_base, ctx.bin_base,
                           ctx.pinfo, outfile);

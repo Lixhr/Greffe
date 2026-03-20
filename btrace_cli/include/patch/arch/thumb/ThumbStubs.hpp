@@ -1,7 +1,7 @@
 #pragma once
-#include "IArchStubs.hpp"
+#include "../IArchStubs.hpp"
 
-class Arm64Stubs final : public IArchStubs {
+class ThumbStubs final : public IArchStubs {
 public:
     std::vector<uint8_t> save_ctx   (uint64_t at) override;
     std::vector<uint8_t> restore_ctx(uint64_t at) override;

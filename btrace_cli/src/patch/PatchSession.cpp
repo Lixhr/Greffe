@@ -1,6 +1,7 @@
 #include "PatchSession.hpp"
 #include "TrampolineBuilder.hpp"
 #include "BinaryPatcher.hpp"
+#include "patch_utils.hpp"
 #include "arch/StubsFactory.hpp"
 #include "arch/RelocatorFactory.hpp"
 #include "colors.hpp"
@@ -32,6 +33,9 @@ void PatchSession::run(const std::vector<Target>&   targets,
     std::filesystem::copy_file(pinfo.getBinPath(), outfile,
                                std::filesystem::copy_options::overwrite_existing);
 
+    if (!handler_bin.bytes().empty())
+        BinaryPatcher::patch(outfile, patch_base - bin_base, handler_bin.bytes());
+
     uint64_t current_addr = patch_base + static_cast<uint64_t>(handler_bin.size());
 
     for (size_t i = 0; i < targets.size(); ++i) {
@@ -42,7 +46,7 @@ void PatchSession::run(const std::vector<Target>&   targets,
 
         auto trampoline = TrampolineBuilder::build(
             t,
-            handler_bin.handler_addr(i, patch_base),
+            handler_bin.handler_addr("handler_" + sanitize(t.name()), patch_base),
             current_addr,
             *stubs,
             *relocator);

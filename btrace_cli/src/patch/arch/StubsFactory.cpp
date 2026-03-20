@@ -1,22 +1,30 @@
 #include "arch/StubsFactory.hpp"
-#include "arch/ArmStubs.hpp"
-#include "arch/ThumbStubs.hpp"
-#include "arch/Arm64Stubs.hpp"
+#include "arch/arm/ArmStubs.hpp"
+#include "arch/thumb/ThumbStubs.hpp"
+#include "arch/arm64/Arm64Stubs.hpp"
 
+#include <functional>
 #include <stdexcept>
+#include <string_view>
+#include <tuple>
 
 std::unique_ptr<IArchStubs> StubsFactory::create(const Target& t,
                                                   const ProjectInfo& pi)
 {
-    if (pi.getBits() == 64)
-        return std::make_unique<Arm64Stubs>();
+    using Ctor = std::function<std::unique_ptr<IArchStubs>()>;
+    static const std::tuple<int, std::string_view, Ctor> table[] = {
+        { 32, "arm",   [] { return std::make_unique<ArmStubs>(); } },
+        { 32, "thumb", [] { return std::make_unique<ThumbStubs>(); } },
+        { 64, "arm64", [] { return std::make_unique<Arm64Stubs>(); } },
+    };
 
     for (const auto& c : t.context()) {
         if (c.ea != t.ea())
             continue;
-        if (c.mode == "thumb")
-            return std::make_unique<ThumbStubs>();
-        return std::make_unique<ArmStubs>();
+        for (const auto& [bits, mode, ctor] : table)
+            if (pi.getBits() == bits && c.mode == mode) return ctor();
+        throw std::runtime_error("StubsFactory: unknown arch "
+                                 + std::to_string(pi.getBits()) + "/" + c.mode);
     }
 
     throw std::runtime_error("StubsFactory: no context entry found for ea 0x"

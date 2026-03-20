@@ -1,6 +1,9 @@
 #include "ProjectInfo.hpp"
+#include "MakefileTemplates.hpp"
 #include "utils.hpp"
 #include <filesystem>
+#include <fstream>
+#include <stdexcept>
 
 Segment::Segment(const json &json_seg)
 	: start (json_get<uint64_t>(json_seg, "start")),
@@ -36,9 +39,17 @@ json ProjectInfo::fetchInfo(IdaIPC& client) {
 void ProjectInfo::setupProjectDir() {
 	project_dir = bin_path.parent_path() / "__btrace_workdir";
 
-	if (!std::filesystem::exists(project_dir)) {
-		std::filesystem::create_directory(project_dir );
+	if (!std::filesystem::exists(project_dir))
+		std::filesystem::create_directory(project_dir);
+
+	std::filesystem::path dest_mk = project_dir / "Makefile";
+	if (!std::filesystem::exists(dest_mk)) {
+		std::ofstream f(dest_mk);
+		if (!f)
+			throw std::runtime_error("cannot create " + dest_mk.string());
+		f << MakefileTemplates::get(arch);
 	}
+
 	std::cout << "Working directory: " << project_dir.string() << "/" << std::endl;
 }
 

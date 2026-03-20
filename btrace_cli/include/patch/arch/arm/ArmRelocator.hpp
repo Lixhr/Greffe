@@ -1,5 +1,5 @@
 #pragma once
-#include "IRelocator.hpp"
+#include "../IRelocator.hpp"
 
 class ArmRelocator final : public IRelocator {
 public:

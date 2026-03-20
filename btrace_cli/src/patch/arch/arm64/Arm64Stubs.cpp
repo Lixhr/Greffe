@@ -1,4 +1,4 @@
-#include "arch/Arm64Stubs.hpp"
+#include "arm64/Arm64Stubs.hpp"
 
 extern "C" {
 #include <gum/arch-arm64/gumarm64writer.h>

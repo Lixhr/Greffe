@@ -1,7 +1,7 @@
 #pragma once
-#include "IRelocator.hpp"
+#include "../IRelocator.hpp"
 
-class ThumbRelocator final : public IRelocator {
+class Arm64Relocator final : public IRelocator {
 public:
     RelocatedCode    relocate(const std::vector<uint8_t>& input_bytes,
                               size_t   n_bytes,

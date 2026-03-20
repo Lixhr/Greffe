@@ -31,6 +31,22 @@ const Target& TargetManager::add(const std::string& target) {
 
     uint64_t ea = json_get<uint64_t>(entry, "ea");
 
+    std::string target_mode;
+    for (const auto& c : context)
+        if (c.ea == ea) { target_mode = c.mode; break; }
+
+    if (!target_mode.empty()) {
+        for (const auto& c : context) {
+            if (c.mode != target_mode) {
+                char buf[17];
+                snprintf(buf, sizeof(buf), "%lx", c.ea);
+                throw std::runtime_error(
+                    target + ": cpu mode mismatch at 0x" + buf +
+                    " (" + c.mode + " vs " + target_mode + ")");
+            }
+        }
+    }
+
     auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
         [](const Target& t, uint64_t val) { return t.ea() < val; });
 

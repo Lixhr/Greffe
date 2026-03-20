@@ -1,4 +1,4 @@
-#include "arch/ThumbRelocator.hpp"
+#include "thumb/ThumbRelocator.hpp"
 
 extern "C" {
 #include <gum/arch-arm/gumthumbrelocator.h>

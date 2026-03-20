@@ -1,4 +1,4 @@
-#include "arch/ArmRelocator.hpp"
+#include "arm/ArmRelocator.hpp"
 
 extern "C" {
 #include <gum/arch-arm/gumarmrelocator.h>
