@@ -57,6 +57,7 @@ RelocatedCode ThumbRelocator::relocate(const std::vector<uint8_t>& input_bytes,
     gum_thumb_relocator_clear(&rl);
     gum_thumb_writer_clear(&writer);
 
+    bool ends_with_branch = static_cast<bool>(rl.eob);
     output.resize(written);
-    return { std::move(output), insns_size, n_insns };
+    return { std::move(output), insns_size, n_insns, ends_with_branch };
 }

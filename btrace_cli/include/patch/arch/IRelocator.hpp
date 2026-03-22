@@ -8,6 +8,7 @@ struct RelocatedCode {
     std::vector<uint8_t> bytes;
     size_t               insns_size;
     size_t               n_insns;
+    bool                 ends_with_branch;
 };
 
 class IRelocator {

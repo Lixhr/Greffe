@@ -42,22 +42,25 @@ std::vector<uint8_t> TrampolineBuilder::build(const Target& t,
     append(stubs.restore_ctx(cur),        "restore_ctx");
 
     size_t branch_size = stubs.branch(cur, cur).size();
-    std::vector<uint8_t> placeholder(branch_size, 0);
 
     auto input = Patcher::collect_input(t);
-    auto reloc  = relocator.relocate(input, n_bytes, t.ea(), cur, placeholder);
+    auto reloc  = relocator.relocate(input, n_bytes, t.ea(), cur,
+                                     std::vector<uint8_t>(branch_size, 0));
     if (reloc.bytes.empty())
         throw std::runtime_error("TrampolineBuilder: relocation produced no bytes for " + t.name());
-    if (reloc.insns_size + branch_size > reloc.bytes.size())
-        throw std::runtime_error("TrampolineBuilder: relocation layout inconsistency for " + t.name());
 
-    uint64_t branch_addr = cur + static_cast<uint64_t>(reloc.insns_size);
-    auto branch_bytes = stubs.branch(branch_addr, return_ea);
-    if (branch_bytes.size() != branch_size)
-        throw std::runtime_error("TrampolineBuilder: branch size mismatch for " + t.name());
+    if (!reloc.ends_with_branch) {
+        if (reloc.insns_size + branch_size > reloc.bytes.size())
+            throw std::runtime_error("TrampolineBuilder: relocation layout inconsistency for " + t.name());
 
-    std::copy(branch_bytes.begin(), branch_bytes.end(),
-              reloc.bytes.begin() + static_cast<ptrdiff_t>(reloc.insns_size));
+        uint64_t branch_addr = cur + static_cast<uint64_t>(reloc.insns_size);
+        auto branch_bytes = stubs.branch(branch_addr, return_ea);
+        if (branch_bytes.size() != branch_size)
+            throw std::runtime_error("TrampolineBuilder: branch size mismatch for " + t.name());
+
+        std::copy(branch_bytes.begin(), branch_bytes.end(),
+                  reloc.bytes.begin() + static_cast<ptrdiff_t>(reloc.insns_size));
+    }
 
     cur += reloc.bytes.size();
     result.insert(result.end(),
