@@ -32,7 +32,7 @@ static void pop_pair(GumArm64Writer& w, arm64_reg a, arm64_reg b, const char* ct
 }
 
 std::vector<uint8_t> Arm64Stubs::save_ctx(uint64_t at) {
-    std::vector<uint8_t> buf(256, 0);
+    std::vector<uint8_t> buf(320, 0);
     GumArm64Writer w;
     gum_arm64_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
@@ -52,16 +52,20 @@ std::vector<uint8_t> Arm64Stubs::save_ctx(uint64_t at) {
     push_pair(w, ARM64_REG_X24, ARM64_REG_X25, "Arm64Stubs::save_ctx");
     push_pair(w, ARM64_REG_X26, ARM64_REG_X27, "Arm64Stubs::save_ctx");
     push_pair(w, ARM64_REG_X28, ARM64_REG_LR,  "Arm64Stubs::save_ctx");
+    gum_arm64_writer_put_mov_reg_nzcv(&w, ARM64_REG_X0);
+    push_pair(w, ARM64_REG_X0,  ARM64_REG_X1,  "Arm64Stubs::save_ctx");
 
     return arm64_collect(w, buf, "Arm64Stubs::save_ctx");
 }
 
 std::vector<uint8_t> Arm64Stubs::restore_ctx(uint64_t at) {
-    std::vector<uint8_t> buf(256, 0);
+    std::vector<uint8_t> buf(320, 0);
     GumArm64Writer w;
     gum_arm64_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
 
+    pop_pair(w, ARM64_REG_X0,  ARM64_REG_X1,  "Arm64Stubs::restore_ctx");
+    gum_arm64_writer_put_mov_nzcv_reg(&w, ARM64_REG_X0);
     pop_pair(w, ARM64_REG_X28, ARM64_REG_LR,  "Arm64Stubs::restore_ctx");
     pop_pair(w, ARM64_REG_X26, ARM64_REG_X27, "Arm64Stubs::restore_ctx");
     pop_pair(w, ARM64_REG_X24, ARM64_REG_X25, "Arm64Stubs::restore_ctx");

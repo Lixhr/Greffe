@@ -22,7 +22,7 @@ static std::vector<uint8_t> arm_collect(GumArmWriter& w,
 }
 
 std::vector<uint8_t> ArmStubs::save_ctx(uint64_t at) {
-    std::vector<uint8_t> buf(64, 0);
+    std::vector<uint8_t> buf(128, 0);
     GumArmWriter w;
     gum_arm_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
@@ -31,14 +31,18 @@ std::vector<uint8_t> ArmStubs::save_ctx(uint64_t at) {
         ARM_REG_R4,  ARM_REG_R5,  ARM_REG_R6,  ARM_REG_R7,
         ARM_REG_R8,  ARM_REG_R9,  ARM_REG_R10, ARM_REG_R11,
         ARM_REG_R12, ARM_REG_LR);
+    gum_arm_writer_put_mov_reg_cpsr(&w, ARM_REG_R0);
+    gum_arm_writer_put_push_regs(&w, 1, ARM_REG_R0);
     return arm_collect(w, buf, "ArmStubs::save_ctx");
 }
 
 std::vector<uint8_t> ArmStubs::restore_ctx(uint64_t at) {
-    std::vector<uint8_t> buf(64, 0);
+    std::vector<uint8_t> buf(128, 0);
     GumArmWriter w;
     gum_arm_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
+    gum_arm_writer_put_pop_regs(&w, 1, ARM_REG_R0);
+    gum_arm_writer_put_mov_cpsr_reg(&w, ARM_REG_R0);
     gum_arm_writer_put_pop_regs(&w, 14,
         ARM_REG_R0,  ARM_REG_R1,  ARM_REG_R2,  ARM_REG_R3,
         ARM_REG_R4,  ARM_REG_R5,  ARM_REG_R6,  ARM_REG_R7,

@@ -20,5 +20,8 @@ public:
                                    uint64_t                     trampoline_addr,
                                    const std::vector<uint8_t>&  trailer) = 0;
 
+    virtual bool             is_branch(const std::vector<uint8_t>& bytes,
+                                       uint64_t                     ea) const = 0;
+
     virtual std::string_view name() const = 0;
 };

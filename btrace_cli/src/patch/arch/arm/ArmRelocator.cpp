@@ -9,6 +9,22 @@ extern "C" {
 
 std::string_view ArmRelocator::name() const { return "ARM"; }
 
+bool ArmRelocator::is_branch(const std::vector<uint8_t>& bytes, uint64_t ea) const {
+    if (bytes.empty()) return false;
+    uint8_t buf[8] = {};
+    GumArmWriter writer;
+    gum_arm_writer_init(&writer, buf);
+    GumArmRelocator rl;
+    gum_arm_relocator_init(&rl, bytes.data(), &writer);
+    rl.input_pc = static_cast<GumAddress>(ea);
+    const cs_insn* insn = nullptr;
+    gum_arm_relocator_read_one(&rl, &insn);
+    bool result = static_cast<bool>(rl.eob);
+    gum_arm_relocator_clear(&rl);
+    gum_arm_writer_clear(&writer);
+    return result;
+}
+
 RelocatedCode ArmRelocator::relocate(const std::vector<uint8_t>& input_bytes,
                                      size_t   n_bytes,
                                      uint64_t original_ea,
