@@ -37,7 +37,7 @@ class GUITracerHook(idaapi.UI_Hooks):
             self.ACTION_ID,
             "Add Greffe tracepoint",
             TraceFunctionAction(),
-            "Shift+B",
+            "Shift+G",
             "Add a tracepoint at the current address",
             -1,
         )
