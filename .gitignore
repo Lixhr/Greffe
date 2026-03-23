@@ -1,7 +1,7 @@
 __pycache__
 **/__pycache__*
-btrace_cli/build/
+greffe_cli/build/
 *.o
 *.a
 .*
-btrace_cli/third_party/frida-gum/build/
+greffe_cli/third_party/frida-gum/build/
