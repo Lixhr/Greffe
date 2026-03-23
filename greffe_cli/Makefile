@@ -35,6 +35,10 @@ FRIDA_LDFLAGS := -Wl,--start-group $(FRIDA_STATIC_LIBS) -Wl,--end-group \
 SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.cpp' -o -name '*.cc' \))
 OBJS := $(patsubst $(SRC_DIR)/%,$(OBJ_DIR)/%.o,$(SRCS))
 
+PKG_DEPS     := libzmq readline
+PKG_CFLAGS   := $(shell pkg-config --cflags $(PKG_DEPS))
+PKG_LIBS     := $(shell pkg-config --libs   $(PKG_DEPS))
+
 STD      := -std=c++17
 WARNS    := -Wall -Wextra -Werror
 
@@ -48,8 +52,8 @@ FRIDA_INCS     := -I$(FRIDA_DIR) \
 
 INCS     := -I$(INC_DIR) -I$(INC_DIR)/CLI -I$(INC_DIR)/patch -I$(INC_DIR)/patch/arch $(FRIDA_INCS)
 
-CXXFLAGS := $(STD) $(WARNS) $(INCS)
-LDFLAGS  := $(PKG_LIBS) -lreadline -lzmq $(FRIDA_LDFLAGS)
+CXXFLAGS := $(STD) $(WARNS) $(INCS) $(PKG_CFLAGS)
+LDFLAGS  := $(PKG_LIBS) $(FRIDA_LDFLAGS)
 
 all: $(TARGET)
 

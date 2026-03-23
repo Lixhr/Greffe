@@ -10,13 +10,17 @@ Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-
 
 ## Installation
 
+```
+git clone --recursive https://github.com/Lixhr/Greffe.git
+```
+
 **IDA plugin** 
 
 Copy `ida_greffe/` and `ida_entry.py` into your IDA plugins directory.
 
 **CLI**
 ```sh
-sudo apt-get install libreadline-dev libzmq3-dev nlohmann-json3-dev libelf-dev
+sudo apt-get install make g++ libreadline-dev libzmq3-dev nlohmann-json3-dev libelf-dev libglib2.0-dev
 cd greffe_cli && make
 ```
 
@@ -93,7 +97,7 @@ Use `save` to persist the tracepoint list. It is automatically reloaded on the n
 
 **Executable spare region** - trampolines and compiled handlers are injected at `patch_base`. This region must be mapped as executable at runtime. Typical candidates: padding between sections, unused flash pages, a region reserved in the linker script.
 
-**Output channel** - Greffe only patches the binary, it provides no data collection mechanism. Handlers need a way to exfiltrate results: UART, PWM, a very attentive oscilloscope, whatever the target exposes.
+**Output channel** - Greffe only patches the binary, it provides no data collection mechanism. Handlers need a way to exfiltrate results: UART, PWM, a very attentive oscilloscope, ... Whatever the target exposes.
 
 **No libc, no OS** - handlers are compiled with `-nostdlib`. Any helper (logging, memory access) must be self-contained or reference existing firmware symbols explicitly. (beware of the ABI)
 
