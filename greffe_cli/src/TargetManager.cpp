@@ -8,6 +8,8 @@ TargetManager::TargetManager(IdaIPC& ipc)
     : _ipc(ipc) {}
 
 const Target& TargetManager::add(const std::string& target) {
+    // Call IPC outside the lock — IPC acquires sock_mutex_,
+    // add_direct() acquires _mutex; holding both in opposite order would deadlock.
     json req = {
         {"action", "add"},
         {"body",   json::array({target})},
@@ -47,6 +49,8 @@ const Target& TargetManager::add(const std::string& target) {
         }
     }
 
+    std::lock_guard<std::mutex> lk(_mutex);
+
     auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
         [](const Target& t, uint64_t val) { return t.ea() < val; });
 
@@ -63,7 +67,37 @@ const Target& TargetManager::add(const std::string& target) {
     return *it;
 }
 
+bool TargetManager::add_direct(const json& entry) {
+    uint64_t ea = json_get<uint64_t>(entry, "ea");
+
+    std::lock_guard<std::mutex> lk(_mutex);
+
+    auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
+        [](const Target& t, uint64_t val) { return t.ea() < val; });
+
+    if (it != _targets.end() && it->ea() == ea)
+        return false;
+
+    std::vector<ContextEntry> context;
+    for (const auto& c : entry.at("context")) {
+        context.push_back({
+            json_get<uint64_t>(c, "ea"),
+            json_get<std::string>(c, "raw"),
+            json_get<std::string>(c, "mode"),
+        });
+    }
+
+    _targets.emplace(it,
+        json_get<std::string>(entry, "name"),
+        ea,
+        json_get<uint64_t>(entry, "end_ea"),
+        std::move(context)
+    );
+    return true;
+}
+
 void TargetManager::remove(const std::string& target) {
+    std::lock_guard<std::mutex> lk(_mutex);
     decltype(_targets)::iterator it;
 
     if (target.size() > 2 && target[0] == '0' && (target[1] == 'x' || target[1] == 'X')) {
@@ -81,11 +115,13 @@ void TargetManager::remove(const std::string& target) {
     _targets.erase(it);
 }
 
-const std::vector<Target>& TargetManager::targets() const {
+std::vector<Target> TargetManager::targets() const {
+    std::lock_guard<std::mutex> lk(_mutex);
     return _targets;
 }
 
 void TargetManager::save(const std::filesystem::path& path) const {
+    std::lock_guard<std::mutex> lk(_mutex);
     json traced = json::array();
     for (const auto& t : _targets) {
         json ctx_arr = json::array();
@@ -112,6 +148,7 @@ void TargetManager::save(const std::filesystem::path& path) const {
 }
 
 void TargetManager::load(const std::filesystem::path& path) {
+    std::lock_guard<std::mutex> lk(_mutex);
     std::ifstream f(path);
     if (!f)
         throw std::runtime_error("cannot open " + path.string());

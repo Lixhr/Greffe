@@ -43,7 +43,7 @@ static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
 }
 
 std::string_view AddCommand::name()        const { return "add"; }
-std::string_view AddCommand::description() const { return "Add one or more trace targets"; }
+std::string_view AddCommand::description() const { return "Register a greffe"; }
 
 void AddCommand::execute(CLIContext& ctx, const Args& args) {
     if (args.empty()) {
@@ -63,7 +63,7 @@ void AddCommand::execute(CLIContext& ctx, const Args& args) {
 }
 
 std::string_view DelCommand::name()        const { return "del"; }
-std::string_view DelCommand::description() const { return "Remove one or more trace targets"; }
+std::string_view DelCommand::description() const { return "Remove a greffe"; }
 
 void DelCommand::execute(CLIContext& ctx, const Args& args) {
     if (args.empty()) {
@@ -82,7 +82,7 @@ void DelCommand::execute(CLIContext& ctx, const Args& args) {
 }
 
 std::string_view SaveCommand::name()        const { return "save"; }
-std::string_view SaveCommand::description() const { return "Save targets to workdir/.greffe"; }
+std::string_view SaveCommand::description() const { return "Save greffes"; }
 
 void SaveCommand::execute(CLIContext& ctx, const Args&) {
     auto path = ctx.pinfo.getProjectDir() / ".greffe";
@@ -91,7 +91,7 @@ void SaveCommand::execute(CLIContext& ctx, const Args&) {
 }
 
 std::string_view ListCommand::name()        const { return "list"; }
-std::string_view ListCommand::description() const { return "List all registered targets"; }
+std::string_view ListCommand::description() const { return "List registered greffes"; }
 
 void ListCommand::execute(CLIContext& ctx, const Args&) {
     const auto& targets = ctx.targets.targets();
@@ -107,7 +107,7 @@ void ListCommand::execute(CLIContext& ctx, const Args&) {
 }
 
 std::string_view PatchCommand::name()        const { return "patch"; }
-std::string_view PatchCommand::description() const { return "Patch all registered targets: write trampolines and hooks to the binary"; }
+std::string_view PatchCommand::description() const { return "Compile handlers and apply all greffes"; }
 
 void PatchCommand::execute(CLIContext& ctx, const Args&) {
     if (ctx.targets.targets().empty()) {

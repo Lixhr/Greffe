@@ -1,4 +1,6 @@
 #include "IdaIPC.hpp"
+#include "CLIContext.hpp"
+#include "colors.hpp"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -92,7 +94,6 @@ void IdaIPC::start(CLIContext& ctx) {
 }
 
 void IdaIPC::run(CLIContext &ctx) {
-    (void)ctx;
 	while (!stop_.load()) {
 		try {
 			json resp;
@@ -100,10 +101,25 @@ void IdaIPC::run(CLIContext &ctx) {
 				std::lock_guard<std::mutex> lk(sock_mutex_);
 				resp = do_send({ {"action", "refresh"} }, 2000);
 			}
-		} 
+			if (resp.value("ok", false)) {
+				const auto& body = resp["body"];
+				if (body.contains("targets")) {
+					for (const auto& entry : body["targets"]) {
+						try {
+							if (ctx.targets.add_direct(entry)) {
+								std::cout << Color::GREEN << "\n[greffe] tracepoint: "
+								          << entry.value("name", "?") << Color::RST << "\n";
+							}
+						} catch (const std::exception& e) {
+							std::cerr << "[IdaIPC] add_direct: " << e.what() << "\n";
+						}
+					}
+				}
+			}
+		}
 		catch (const IdaIPCError& e) {
 			std::cerr << "[IdaIPC] refresh error: " << e.what() << "\n";
-		} 
+		}
 		catch (const json::exception& e) {
 			std::cerr << "[IdaIPC] json error: " << e.what() << "\n";
 		}

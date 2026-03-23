@@ -13,7 +13,7 @@ import ida_idp
 import ida_segment
 import time
 
-SOCKET_PATH = "/tmp/btrace.sock"
+SOCKET_PATH = "/tmp/greffe.sock"
 
 class IDAException(Exception):
     def __init__(self, message):
@@ -67,8 +67,6 @@ def get_segments():
 
     return segments
 
-## Get instructions before / after target 
-## Ensure the context is large enough to hande x86 6 bytes longjmp
 def get_asm_context(func, ea: int):
     before = []
     target = []
@@ -168,7 +166,30 @@ class IPCRefresh(AIPCCommand):
     action = "refresh"
 
     def handle(self, body):
-        return {"ok": True, "body": {}}
+        from ida_greffe.core import Greffe
+        pending = Greffe().pop_pending()
+        if not pending:
+            return {"ok": True, "body": {"targets": []}}
+
+        targets = []
+        for ea in pending:
+            func = get_func_by_address(ea)
+            if func is None:
+                print(f"[greffe] refresh: no function at {hex(ea)}, skipping")
+                continue
+            base_name = idaapi.get_func_name(func.start_ea) or hex(func.start_ea)
+            name = base_name if ea == func.start_ea else f"{base_name}+{ea - func.start_ea:#x}"
+            try:
+                targets.append({
+                    "name":    name,
+                    "ea":      ea,
+                    "end_ea":  func.end_ea,
+                    "context": get_asm_context(func, ea),
+                })
+            except Exception as e:
+                print(f"[greffe] refresh: error for {hex(ea)}: {e}")
+
+        return {"ok": True, "body": {"targets": targets}}
 
 
 class Server(threading.Thread):
@@ -195,7 +216,7 @@ class Server(threading.Thread):
         srv.listen(1)
         srv.settimeout(0.5)
 
-        print("[btrace] server started")
+        print("[greffe] server started")
 
         while not self._stop.is_set():
             try:
@@ -203,23 +224,22 @@ class Server(threading.Thread):
             except TimeoutError:
                 continue
 
-            print("[btrace] client connected")
+            print("[greffe] client connected")
             try:
                 self._handle_client(conn)
             except ConnectionError:
-                print("[btrace] client disconnected")
+                print("[greffe] client disconnected")
             finally:
                 conn.close()
 
         srv.close()
         os.unlink(SOCKET_PATH)
-        print("[btrace] server stopped")
+        print("[greffe] server stopped")
 
     def _handle_client(self, conn):
         while not self._stop.is_set():
             try:
                 msg = recv_msg(conn)
-                print(f"[btrace] recv: {msg}")
 
                 response = {}
                 idaapi.execute_sync(
@@ -232,7 +252,7 @@ class Server(threading.Thread):
                 raise
 
             except Exception as e:
-                print(f"[btrace] internal error: {e}")
+                print(f"[greffe] internal error: {e}")
                 try:
                     send_msg(conn, {"ok": False, "body": str(e)})
                 except:

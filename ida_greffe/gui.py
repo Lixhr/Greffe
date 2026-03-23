@@ -7,17 +7,19 @@ class TraceFunctionAction(idaapi.action_handler_t):
         super().__init__()
 
     def activate(self, obj):
-        if obj.cur_func:
-            from ida_btrace.core import BinTrace
-            BinTrace().traceFunc(obj)
+        ea = obj.cur_ea
+        if ea != idaapi.BADADDR:
+            from ida_greffe.core import Greffe
+            Greffe().add_pending(ea)
+            print(f"[greffe] tracepoint queued: {hex(ea)}")
         return 1
 
     def update(self, obj):
-        return idaapi.AST_ENABLE if obj.cur_func else idaapi.AST_DISABLE
+        return idaapi.AST_ENABLE_ALWAYS
 
 
 class GUITracerHook(idaapi.UI_Hooks):
-    ACTION_ID = "BinTrace:trace"
+    ACTION_ID = "greffe:trace"
 
     def __init__(self):
         super().__init__()
@@ -33,10 +35,10 @@ class GUITracerHook(idaapi.UI_Hooks):
             return
         self.action = idaapi.action_desc_t(
             self.ACTION_ID,
-            "Trace function",
+            "Add Greffe tracepoint",
             TraceFunctionAction(),
             "Shift+B",
-            "Adds the function to the BinTrace list",
+            "Add a tracepoint at the current address",
             -1,
         )
         idaapi.register_action(self.action)

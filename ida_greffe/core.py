@@ -1,10 +1,10 @@
 import idaapi
 import idc
 import ida_kernwin
-from ida_btrace import server
-import time
+import threading
+from ida_greffe import server
 
-class BinTrace:
+class Greffe:
     _instance = None
 
     def __new__(cls):
@@ -16,24 +16,23 @@ class BinTrace:
         if hasattr(self, "_initialized"):
             return
         self._initialized  = True
+        self._pending      = []
+        self._pending_lock = threading.Lock()
         self.server = server.Server()
         self.server.start()
-        print("BinTrace init")
+        print("Greffe init")
 
+    def add_pending(self, ea: int):
+        with self._pending_lock:
+            if ea not in self._pending:
+                self._pending.append(ea)
 
-    def traceFunc(self, obj) -> bool:
-        if not obj.cur_func:
-            print("[BinTrace] No function under cursor")
-            return False
-        
-        ea   = obj.cur_func.start_ea
-        name = idaapi.get_func_name(ea) or hex(ea)
-        if ea in self._Targets:
-            print(f"[BinTrace] Already traced: {ea}")
-            return False
-        print(f"{ea} traced")
-        return True
-    
+    def pop_pending(self) -> list:
+        with self._pending_lock:
+            pending = list(self._pending)
+            self._pending.clear()
+        return pending
+
     def term(self):
         self.server.stop()
-        print("BinTrace killed")
+        print("Greffe killed")
