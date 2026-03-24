@@ -10,18 +10,20 @@
 #include <iostream>
 #include <stdexcept>
 
+
 static std::string hex(uint64_t v) {
     char buf[19];
     snprintf(buf, sizeof(buf), "0x%lx", v);
     return buf;
 }
- 
-void PatchSession::run(const std::vector<Target>&   targets,
-                       const HandlerBin&             handler_bin,
-                       uint64_t                      patch_base,
-                       uint64_t                      bin_base,
-                       const ProjectInfo&            pinfo,
-                       const std::filesystem::path&  outfile) {
+
+
+void PatchSession::run(const std::vector<Target>&  targets,
+                       const HandlerBin&            handler_bin,
+                       uint64_t                     patch_base,
+                       uint64_t                     bin_base,
+                       const ProjectInfo&           pinfo,
+                       const std::filesystem::path& outfile) {
     if (targets.empty())
         throw std::runtime_error("PatchSession: no targets");
 
@@ -37,9 +39,7 @@ void PatchSession::run(const std::vector<Target>&   targets,
 
     uint64_t current_addr = patch_base + static_cast<uint64_t>(handler_bin.size());
 
-    for (size_t i = 0; i < targets.size(); ++i) {
-        const Target& t = targets[i];
-
+    for (const auto& t : targets) {
         auto stubs     = StubsFactory::create(t, pinfo);
         auto relocator = RelocatorFactory::create(t, pinfo);
 
@@ -50,12 +50,10 @@ void PatchSession::run(const std::vector<Target>&   targets,
             *stubs,
             *relocator);
 
-        uint64_t trampoline_offset = current_addr - bin_base;
-        BinaryPatcher::patch(outfile, trampoline_offset, trampoline);
+        BinaryPatcher::patch(outfile, current_addr - bin_base, trampoline);
 
         auto hook = stubs->branch(t.ea(), current_addr);
-        uint64_t hook_offset = t.ea() - bin_base;
-        BinaryPatcher::patch(outfile, hook_offset, hook);
+        BinaryPatcher::patch(outfile, t.ea() - bin_base, hook);
 
         std::cout << Color::CYAN << t.name() << Color::RST
                   << "  trampoline @ " << hex(current_addr)
@@ -65,6 +63,5 @@ void PatchSession::run(const std::vector<Target>&   targets,
         current_addr += trampoline.size();
     }
 
-    std::cout << Color::GREEN << "written to " << outfile.string()
-              << Color::RST << '\n';
+    std::cout << Color::GREEN << "written to " << outfile.string() << Color::RST << '\n';
 }

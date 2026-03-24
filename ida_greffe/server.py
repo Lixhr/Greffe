@@ -83,7 +83,6 @@ def get_asm_context(func, ea: int):
     cur_ea = int(ea + target_instr["size"])
     first_after = True
     while first_after or collected < 10:
-        print(collected)
         if cur_ea >= func.end_ea:
             break
         if ida_bytes.is_data(ida_bytes.get_full_flags(cur_ea)):

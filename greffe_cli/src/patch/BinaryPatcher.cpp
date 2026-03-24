@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 
+
 void BinaryPatcher::patch(const std::filesystem::path& bin_path,
                           uint64_t                     write_offset,
                           const std::vector<uint8_t>&  bytes) {
@@ -15,16 +16,15 @@ void BinaryPatcher::patch(const std::filesystem::path& bin_path,
         throw std::runtime_error("BinaryPatcher: cannot open " + bin_path.string());
 
     f.seekg(0, std::ios::end);
-    std::streampos pos = f.tellg();
+    auto pos = f.tellg();
     if (pos < 0)
         throw std::runtime_error("BinaryPatcher: cannot determine size of " + bin_path.string());
+
     uint64_t file_size = static_cast<uint64_t>(pos);
 
-    // padding with zeroes
-    if (write_offset > file_size) { 
+    if (write_offset > file_size) {
         f.seekp(0, std::ios::end);
         std::vector<uint8_t> padding(write_offset - file_size, 0);
-
         f.write(reinterpret_cast<const char*>(padding.data()),
                 static_cast<std::streamsize>(padding.size()));
         if (!f)
@@ -34,8 +34,10 @@ void BinaryPatcher::patch(const std::filesystem::path& bin_path,
     f.seekp(static_cast<std::streamoff>(write_offset), std::ios::beg);
     f.write(reinterpret_cast<const char*>(bytes.data()),
             static_cast<std::streamsize>(bytes.size()));
-    if (!f)
-        throw std::runtime_error("BinaryPatcher: write failed at offset 0x"
-                                 + [&]{ char buf[17]; snprintf(buf, sizeof(buf), "%lx", write_offset);
-                                        return std::string(buf); }());
+
+    if (!f) {
+        char buf[17];
+        snprintf(buf, sizeof(buf), "%lx", write_offset);
+        throw std::runtime_error("BinaryPatcher: write failed at offset 0x" + std::string(buf));
+    }
 }
