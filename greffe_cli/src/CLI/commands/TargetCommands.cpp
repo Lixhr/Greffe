@@ -6,9 +6,12 @@
 #include "patch_utils.hpp"
 #include "cli_fmt.hpp"
 #include "colors.hpp"
+#include <cinttypes>
 #include <filesystem>
+#include <iomanip>
 #include <fstream>
 #include <iostream>
+#include <readline/readline.h>
 #include <stdexcept>
 
 static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
@@ -86,7 +89,7 @@ std::string_view SaveCommand::description() const { return "Save greffes"; }
 
 void SaveCommand::execute(CLIContext& ctx, const Args&) {
     auto path = ctx.pinfo.getProjectDir() / ".greffe";
-    ctx.targets.save(path);
+    ctx.targets.save(path, ctx.bin_base, ctx.patch_base);
     std::cout << Color::GREY << "saved to " << path.string() << Color::RST << '\n';
 }
 
@@ -115,14 +118,81 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         return;
     }
 
+    if (!ctx.patch_base) {
+        cli_error("patch_base is not set (use: set patch_base <addr>)");
+        return;
+    }
+
+    int      bits = ctx.pinfo.getBits();
+    unsigned w    = static_cast<unsigned>(bits / 4);
+
+    std::cout << "  bin_base   : 0x" << std::hex << std::setfill('0')
+              << std::setw(w) << ctx.bin_base   << '\n'
+              << "  patch_base : 0x" << std::setw(w) << *ctx.patch_base
+              << std::dec << '\n';
+
+    char* raw = readline("Proceed? [y/N] ");
+    std::string answer;
+    if (raw) { answer = raw; free(raw); }
+
+    if (answer != "y" && answer != "Y") {
+        std::cout << Color::GREY << "aborted" << Color::RST << '\n';
+        return;
+    }
+
     auto outfile = std::filesystem::path(ctx.pinfo.getBinPath().string() + ".greffé");
 
     try {
         HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
         PatchSession::run(ctx.targets.targets(), handler_bin,
-                          ctx.patch_base, ctx.bin_base,
+                          *ctx.patch_base, ctx.bin_base,
                           ctx.pinfo, outfile);
     } catch (const std::exception& e) {
         cli_error(e.what());
     }
+}
+
+std::string_view SetCommand::name()        const { return "set"; }
+std::string_view SetCommand::description() const { return "Set bin_base or patch_base"; }
+
+void SetCommand::execute(CLIContext& ctx, const Args& args) {
+    if (args.size() != 2) {
+        cli_error("usage: set [bin_base|patch_base] <addr>");
+        return;
+    }
+
+    const std::string& field = args[0];
+    uint64_t value;
+    try {
+        value = std::stoull(args[1], nullptr, 0);
+    } catch (const std::exception&) {
+        cli_error("invalid address: " + args[1]);
+        return;
+    }
+
+    if (field == "bin_base") {
+        ctx.bin_base = value;
+        std::cout << Color::GREY << "bin_base = 0x" << std::hex << value
+                  << std::dec << Color::RST << '\n';
+    } else if (field == "patch_base") {
+        ctx.patch_base = value;
+        std::cout << Color::GREY << "patch_base = 0x" << std::hex << value
+                  << std::dec << Color::RST << '\n';
+    } else {
+        cli_error("unknown field '" + field + "' (use: bin_base or patch_base)");
+    }
+}
+
+std::vector<std::string> SetCommand::complete(const Args& args) const {
+    static const std::vector<std::string> fields = {"bin_base", "patch_base"};
+    if (args.empty())
+        return fields;
+    if (args.size() == 1) {
+        std::vector<std::string> result;
+        for (const auto& f : fields)
+            if (f.rfind(args[0], 0) == 0)
+                result.push_back(f);
+        return result;
+    }
+    return {};
 }

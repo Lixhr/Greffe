@@ -36,3 +36,11 @@ class PatchCommand final : public ICommand {
         std::string_view description() const override;
         void execute(CLIContext& ctx, const Args& args) override;
 };
+
+class SetCommand final : public ICommand {
+    public:
+        std::string_view name()        const override;
+        std::string_view description() const override;
+        void execute(CLIContext& ctx, const Args& args) override;
+        std::vector<std::string> complete(const Args& args) const override;
+};

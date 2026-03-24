@@ -2,10 +2,16 @@
 
 #include <filesystem>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 #include "Target.hpp"
 #include "IdaIPC.hpp"
+
+struct SavedProject {
+    std::optional<uint64_t> bin_base;
+    std::optional<uint64_t> patch_base;
+};
 
 class TargetManager {
     public:
@@ -16,8 +22,10 @@ class TargetManager {
         void                remove(const std::string& target);
         std::vector<Target> targets() const;
 
-        void save(const std::filesystem::path& path) const;
-        void load(const std::filesystem::path& path);
+        void         save(const std::filesystem::path& path,
+                          uint64_t                     bin_base,
+                          std::optional<uint64_t>      patch_base) const;
+        SavedProject load(const std::filesystem::path& path);
 
     private:
         IdaIPC&              _ipc;

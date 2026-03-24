@@ -128,7 +128,9 @@ std::vector<Target> TargetManager::targets() const {
     return _targets;
 }
 
-void TargetManager::save(const std::filesystem::path& path) const {
+void TargetManager::save(const std::filesystem::path& path,
+                         uint64_t                     bin_base,
+                         std::optional<uint64_t>      patch_base) const {
     std::lock_guard<std::mutex> lk(_mutex);
     json traced = json::array();
     for (const auto& t : _targets) {
@@ -144,8 +146,12 @@ void TargetManager::save(const std::filesystem::path& path) const {
         });
     }
 
+    json project;
+    project["bin_base"]   = bin_base;
+    project["patch_base"] = patch_base ? json(*patch_base) : json(nullptr);
+
     json root = {
-        {"project", { {"img_base", 0} }},
+        {"project", std::move(project)},
         {"traced",  std::move(traced)},
     };
 
@@ -155,13 +161,23 @@ void TargetManager::save(const std::filesystem::path& path) const {
     f << root.dump(2) << '\n';
 }
 
-void TargetManager::load(const std::filesystem::path& path) {
+SavedProject TargetManager::load(const std::filesystem::path& path) {
     std::lock_guard<std::mutex> lk(_mutex);
     std::ifstream f(path);
     if (!f)
         throw std::runtime_error("cannot open " + path.string());
 
     json root = json::parse(f);
+
+    SavedProject cfg;
+    if (root.contains("project")) {
+        const auto& proj = root["project"];
+        if (proj.contains("bin_base") && proj["bin_base"].is_number())
+            cfg.bin_base = proj["bin_base"].get<uint64_t>();
+        if (proj.contains("patch_base") && proj["patch_base"].is_number())
+            cfg.patch_base = proj["patch_base"].get<uint64_t>();
+    }
+
     for (const auto& entry : root.at("traced")) {
         std::vector<ContextEntry> context;
         for (const auto& c : entry.at("context"))
@@ -185,4 +201,6 @@ void TargetManager::load(const std::filesystem::path& path) {
             std::move(context)
         );
     }
+
+    return cfg;
 }

@@ -28,10 +28,8 @@ CLI::CLI(CLIContext& ctx) : _ctx(ctx) {
     leaf(std::make_unique<ListCommand>()),
     leaf(std::make_unique<SaveCommand>()),
     leaf(std::make_unique<PatchCommand>()),
+    leaf(std::make_unique<SetCommand>()),
     leaf(std::make_unique<QuitCommand>()),
-
-
-
 });
 }
 
