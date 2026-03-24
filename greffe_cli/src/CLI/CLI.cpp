@@ -109,6 +109,7 @@ void CLI::run() {
             }
         }
         free(raw);
+        raw = nullptr;
         signal(SIGINT, sigint_handler);
     }
     free(raw);
