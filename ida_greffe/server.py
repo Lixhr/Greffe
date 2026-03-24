@@ -159,6 +159,7 @@ class IPCProjectInfo(AIPCCommand):
             "arch":       ida_idp.get_idp_name().lower(),
             "endianness": "be" if idaapi.inf_is_be() else "le",
             "bits":       64 if idaapi.inf_is_64bit() else 32,
+            "bin_base":   idaapi.get_imagebase(),
             "segments":   get_segments()
         }}
 

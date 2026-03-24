@@ -22,6 +22,7 @@ void ProjectInfo::populateFromJson(const json& body) {
 	arch = json_get<std::string>(body, "arch");
 	endianness = json_get<std::string>(body, "endianness");
 	bits = json_get<int>(body, "bits");
+	bin_base = json_get<uint64_t>(body, "bin_base");
 
 	for (const json& seg : json_get<json>(body, "segments"))
 		segments.emplace_back(seg);

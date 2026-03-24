@@ -31,13 +31,15 @@ struct ProjectInfo {
 		std::string arch;
 		std::string endianness;
 		int bits;
+		uint64_t bin_base;
 		std::vector<Segment>	segments;
 	public:
 
 		ProjectInfo(IdaIPC& client);
 		~ProjectInfo();
 
-		int getBits() const { return bits; }
+		int                          getBits()       const { return bits; }
+	uint64_t                     getBinBase()    const { return bin_base; }
 	const std::filesystem::path& getProjectDir() const { return project_dir; }
 	const std::filesystem::path& getBinPath()    const { return bin_path; }
 	const std::string&           getArch()       const { return arch; }
