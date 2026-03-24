@@ -4,11 +4,21 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <cstdlib>
+#include <csignal>
+#include <unistd.h>
 #include "CompositeCommand.hpp"
 #include "BuiltinCommands.hpp"
 #include "TargetCommands.hpp"
 #include "cli_fmt.hpp"
 #include "colors.hpp"
+
+static void sigint_handler(int)
+{
+    rl_on_new_line();
+    rl_replace_line("", 0);
+    write(STDOUT_FILENO, "\n", 1);
+    rl_redisplay();
+}
 
 CLI::CLI(CLIContext& ctx) : _ctx(ctx) {
     CompletionRegistry::instance().install(_dispatcher);
@@ -83,6 +93,9 @@ static void print_banner() {
 void CLI::run() {
     print_banner();
 
+    signal(SIGINT,  sigint_handler);
+    signal(SIGQUIT, SIG_IGN);
+
     static constexpr auto prompt = "\001\033[34m\002greffe>\001\033[0m\002 ";
     char* raw = nullptr;
     while (_ctx.running && (raw = readline(prompt)) != nullptr) {
@@ -96,6 +109,8 @@ void CLI::run() {
             }
         }
         free(raw);
+        signal(SIGINT, sigint_handler);
     }
+    free(raw);
     std::cout << '\n';
 }

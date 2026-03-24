@@ -17,9 +17,11 @@ void BinaryPatcher::patch(const std::filesystem::path& bin_path,
     f.seekg(0, std::ios::end);
     uint64_t file_size = static_cast<uint64_t>(f.tellg());
 
-    if (write_offset > file_size) {
+    // padding with zeroes
+    if (write_offset > file_size) { 
         f.seekp(0, std::ios::end);
         std::vector<uint8_t> padding(write_offset - file_size, 0);
+
         f.write(reinterpret_cast<const char*>(padding.data()),
                 static_cast<std::streamsize>(padding.size()));
         if (!f)
