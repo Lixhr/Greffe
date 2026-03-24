@@ -24,7 +24,7 @@ sudo apt-get install make g++ libreadline-dev libzmq3-dev nlohmann-json3-dev lib
 cd greffe_cli && make
 ```
 
-A cross-compiler (`arm-none-eabi-gcc` or `aarch64-none-elf-gcc`) must be available in your `$PATH`.
+Depending on your target, a cross-compiler must be available in your `$PATH`.
 
 ---
 
@@ -42,7 +42,7 @@ This starts the IDA-side socket server. Then, in a separate terminal, run the CL
 
 The CLI connects to IDA and creates `__greffe_workdir/` next to the binary.
 
-> **`patch_base` and `bin_base`** are currently hardcoded in `greffe_cli/include/CLI/CLIContext.hpp`. Set them to match your target's memory layout before building.
+> **`patch_base` is currently hardcoded in `greffe_cli/include/CLI/CLIContext.hpp`. TODO: ask the patch_base.
 
 ### 2. Add tracepoints
 
