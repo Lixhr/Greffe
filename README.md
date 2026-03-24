@@ -42,8 +42,6 @@ This starts the IDA-side socket server. Then, in a separate terminal, run the CL
 
 The CLI connects to IDA and creates `__greffe_workdir/` next to the binary.
 
-> **`patch_base` is currently hardcoded in `greffe_cli/include/CLI/CLIContext.hpp`. TODO: ask the patch_base.
-
 ### 2. Add tracepoints
 
 **From IDA** - right-click any instruction -> *Add Greffe tracepoint* (or `Shift+G`). The tracepoint then appears in the CLI.

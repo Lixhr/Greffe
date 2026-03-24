@@ -4,7 +4,6 @@
 #include "HandlerCompiler.hpp"
 #include "PatchSession.hpp"
 #include "patch_utils.hpp"
-#include "cli_fmt.hpp"
 #include "colors.hpp"
 #include <cinttypes>
 #include <filesystem>
@@ -49,19 +48,13 @@ std::string_view AddCommand::name()        const { return "add"; }
 std::string_view AddCommand::description() const { return "Register a greffe"; }
 
 void AddCommand::execute(CLIContext& ctx, const Args& args) {
-    if (args.empty()) {
-        cli_error("usage: add <target> [target ...]");
-        return;
-    }
+    if (args.empty())
+        throw std::runtime_error("usage: add <target> [target ...]");
 
     for (const auto& arg : args) {
-        try {
-            const Target& t = ctx.targets.add(arg);
-            std::cout << TargetView{ t, ctx.pinfo.getBits() };
-            create_handler_stub(t, ctx.pinfo);
-        } catch (const std::exception& e) {
-            cli_error(std::string(arg) + ": " + e.what());
-        }
+        const Target& t = ctx.targets.add(arg);
+        std::cout << TargetView{ t, ctx.pinfo.getBits() };
+        create_handler_stub(t, ctx.pinfo);
     }
 }
 
@@ -69,18 +62,12 @@ std::string_view DelCommand::name()        const { return "del"; }
 std::string_view DelCommand::description() const { return "Remove a greffe"; }
 
 void DelCommand::execute(CLIContext& ctx, const Args& args) {
-    if (args.empty()) {
-        cli_error("usage: del <target> [target ...]");
-        return;
-    }
+    if (args.empty())
+        throw std::runtime_error("usage: del <target> [target ...]");
 
     for (const auto& arg : args) {
-        try {
-            ctx.targets.remove(arg);
-            std::cout << Color::GREY << "removed " << arg << Color::RST << '\n';
-        } catch (const std::exception& e) {
-            cli_error(std::string(arg) + ": " + e.what());
-        }
+        ctx.targets.remove(arg);
+        std::cout << Color::GREY << "removed " << arg << Color::RST << '\n';
     }
 }
 
@@ -113,15 +100,11 @@ std::string_view PatchCommand::name()        const { return "patch"; }
 std::string_view PatchCommand::description() const { return "Compile handlers and apply all greffes"; }
 
 void PatchCommand::execute(CLIContext& ctx, const Args&) {
-    if (ctx.targets.targets().empty()) {
-        cli_error("nothing to patch");
-        return;
-    }
+    if (ctx.targets.targets().empty())
+        throw std::runtime_error("nothing to patch");
 
-    if (!ctx.patch_base) {
-        cli_error("patch_base is not set (use: set patch_base <addr>)");
-        return;
-    }
+    if (!ctx.patch_base)
+        throw std::runtime_error("patch_base is not set (use: set patch_base <addr>)");
 
     int      bits = ctx.pinfo.getBits();
     unsigned w    = static_cast<unsigned>(bits / 4);
@@ -142,32 +125,28 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
 
     auto outfile = std::filesystem::path(ctx.pinfo.getBinPath().string() + ".greffé");
 
-    try {
-        HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
-        PatchSession::run(ctx.targets.targets(), handler_bin,
-                          *ctx.patch_base, ctx.bin_base,
-                          ctx.pinfo, outfile);
-    } catch (const std::exception& e) {
-        cli_error(e.what());
-    }
+    HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
+    PatchSession::run(ctx.targets.targets(), handler_bin,
+                      *ctx.patch_base, ctx.bin_base,
+                      ctx.pinfo, outfile);
 }
 
 std::string_view SetCommand::name()        const { return "set"; }
 std::string_view SetCommand::description() const { return "Set bin_base or patch_base"; }
 
 void SetCommand::execute(CLIContext& ctx, const Args& args) {
-    if (args.size() != 2) {
-        cli_error("usage: set [bin_base|patch_base] <addr>");
-        return;
-    }
+    if (args.size() != 2)
+        throw std::runtime_error("usage: set [bin_base|patch_base] <addr>");
 
     const std::string& field = args[0];
     uint64_t value;
     try {
-        value = std::stoull(args[1], nullptr, 0);
+        std::size_t pos = 0;
+        value = std::stoull(args[1], &pos, 0);
+        if (pos != args[1].size())
+            throw std::invalid_argument("");
     } catch (const std::exception&) {
-        cli_error("invalid address: " + args[1]);
-        return;
+        throw std::runtime_error("invalid address: " + args[1]);
     }
 
     if (field == "bin_base") {
@@ -179,7 +158,7 @@ void SetCommand::execute(CLIContext& ctx, const Args& args) {
         std::cout << Color::GREY << "patch_base = 0x" << std::hex << value
                   << std::dec << Color::RST << '\n';
     } else {
-        cli_error("unknown field '" + field + "' (use: bin_base or patch_base)");
+        throw std::runtime_error("unknown field '" + field + "' (use: bin_base or patch_base)");
     }
 }
 

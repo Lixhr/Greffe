@@ -1,4 +1,5 @@
 #include "CLIDispatcher.hpp"
+#include "cli_fmt.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -21,7 +22,11 @@ void CLIDispatcher::dispatch(CLIContext& ctx, const std::string& line) const {
     }
 
     Args tail(tokens.begin() + 1, tokens.end());
-    it->second->execute(ctx, tail);
+    try {
+        it->second->execute(ctx, tail);
+    } catch (const std::exception& e) {
+        cli_error(tokens[0] + ": " + e.what());
+    }
 }
 
 std::vector<std::string>

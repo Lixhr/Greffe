@@ -99,12 +99,7 @@ void CLI::run() {
     while (_ctx.running && (raw = readline(prompt)) != nullptr) {
         if (*raw) {
             add_history(raw);
-            try {
-                _dispatcher.dispatch(_ctx, raw);
-            }
-            catch (const std::exception& e) {
-                cli_error(e.what());
-            }
+            _dispatcher.dispatch(_ctx, raw);
         }
         free(raw);
         raw = nullptr;

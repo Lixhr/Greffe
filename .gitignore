@@ -1,6 +1,6 @@
 __pycache__
 **/__pycache__*
-greffe_cli/build/
+greffe_cli/build*
 *.o
 *.a
 .*
