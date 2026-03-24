@@ -10,6 +10,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 extern "C" {
 #include <libelf.h>
@@ -53,6 +54,9 @@ parse_symbols(const std::filesystem::path& elf_path) {
         if (!data)
             continue;
 
+        if (shdr.sh_entsize == 0)
+            continue;
+
         size_t n = shdr.sh_size / shdr.sh_entsize;
         for (size_t i = 0; i < n; ++i) {
             GElf_Sym sym;
@@ -77,7 +81,17 @@ HandlerBin HandlerCompiler::build(const std::vector<Target>& targets,
 
     const fs::path& workdir = pinfo.getProjectDir();
 
-    int ret = std::system(("make -C " + workdir.string() + " 2>&1").c_str());
+    pid_t pid = fork();
+    if (pid < 0)
+        throw std::runtime_error("HandlerCompiler: fork() failed");
+    if (pid == 0) {
+        execlp("make", "make", "-C", workdir.c_str(), nullptr);
+        _exit(127);
+    }
+    int status;
+    if (waitpid(pid, &status, 0) < 0)
+        throw std::runtime_error("HandlerCompiler: waitpid() failed");
+    int ret = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
     if (ret != 0)
         throw std::runtime_error("HandlerCompiler: make failed (exit " + std::to_string(ret) + ")");
 
