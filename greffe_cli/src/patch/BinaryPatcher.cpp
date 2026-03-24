@@ -15,7 +15,10 @@ void BinaryPatcher::patch(const std::filesystem::path& bin_path,
         throw std::runtime_error("BinaryPatcher: cannot open " + bin_path.string());
 
     f.seekg(0, std::ios::end);
-    uint64_t file_size = static_cast<uint64_t>(f.tellg());
+    std::streampos pos = f.tellg();
+    if (pos < 0)
+        throw std::runtime_error("BinaryPatcher: cannot determine size of " + bin_path.string());
+    uint64_t file_size = static_cast<uint64_t>(pos);
 
     // padding with zeroes
     if (write_offset > file_size) { 

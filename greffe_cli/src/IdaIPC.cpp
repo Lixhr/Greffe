@@ -53,6 +53,8 @@ static json recv_line(int fd, int timeout_ms) {
 		throw IdaIPCError("Invalid format");
 
 	len = ntohl(len);
+	if (len > 10 * 1024 * 1024)
+		throw IdaIPCError("IPC message too large (" + std::to_string(len) + " bytes)");
 	std::string buf(len, '\0');
 	size_t total = 0;
 	while (total < len) {

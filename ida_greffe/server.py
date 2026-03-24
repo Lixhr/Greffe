@@ -262,6 +262,8 @@ class Server(threading.Thread):
     def _dispatch(self, msg: dict) -> dict:
         action = msg.get("action")
         body   = msg.get("body")
+        if not isinstance(action, str):
+            return {"ok": False, "body": "action must be a string"}
         try:
             cmd = self._commands.get(action)
             if not cmd:

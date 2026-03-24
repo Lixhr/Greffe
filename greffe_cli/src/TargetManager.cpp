@@ -18,9 +18,12 @@ const Target& TargetManager::add(const std::string& target) {
     json resp = _ipc.send(req);
 
     if (!resp.value("ok", false))
-        throw std::runtime_error(resp.at("body").get<std::string>());
+        throw std::runtime_error(resp.value("body", std::string("unknown IDA error")));
 
-    const json& entry = resp.at("body").at(0);
+    const auto& body = resp.at("body");
+    if (!body.is_array() || body.empty())
+        throw std::runtime_error("IDA returned an empty response for " + target);
+    const json& entry = body.at(0);
 
     std::vector<ContextEntry> context;
     for (const auto& c : entry.at("context")) {
@@ -101,7 +104,12 @@ void TargetManager::remove(const std::string& target) {
     decltype(_targets)::iterator it;
 
     if (target.size() > 2 && target[0] == '0' && (target[1] == 'x' || target[1] == 'X')) {
-        uint64_t ea = std::stoull(target, nullptr, 16);
+        uint64_t ea;
+        try {
+            ea = std::stoull(target, nullptr, 16);
+        } catch (const std::out_of_range&) {
+            throw std::runtime_error(target + ": address out of range");
+        }
         it = std::find_if(_targets.begin(), _targets.end(),
             [ea](const Target& t) { return t.ea() == ea; });
     } else {
