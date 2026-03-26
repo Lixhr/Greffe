@@ -30,7 +30,7 @@ void CLIDispatcher::dispatch(CLIContext& ctx, const std::string& line) const {
 }
 
 std::vector<std::string>
-CLIDispatcher::complete(const std::string& line) const {
+CLIDispatcher::complete(const CLIContext *ctx, const std::string& line) const {
     auto tokens = tokenize(line);
 
     if (tokens.empty() || (tokens.size() == 1 && !ends_with_space(line))) {
@@ -53,7 +53,7 @@ CLIDispatcher::complete(const std::string& line) const {
     if (ends_with_space(line)) sub += ' ';
 
     Args tail(tokens.begin() + 1, tokens.end());
-    return it->second->complete(tail);
+    return it->second->complete(ctx, tail);
 }
 
 const std::unordered_map<std::string, std::shared_ptr<ICommand>>&

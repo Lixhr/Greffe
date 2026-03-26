@@ -15,6 +15,6 @@ class ICommand {
     
         virtual void execute(CLIContext& ctx, const Args&) = 0;
     
-        virtual std::vector<std::string> complete(const Args&) const ;
+        virtual std::vector<std::string> complete(const CLIContext *ctx, const Args&) const ;
 };
  

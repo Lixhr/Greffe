@@ -10,7 +10,7 @@ class CompletionRegistry {
     public:
         static CompletionRegistry& instance();
 
-        void install(const CLIDispatcher& dispatcher);
+        void install(const CLIDispatcher& dispatcher, const CLIContext& ctx);
 
         CompletionRegistry(const CompletionRegistry&)            = delete;
         CompletionRegistry& operator=(const CompletionRegistry&) = delete;
@@ -22,6 +22,7 @@ class CompletionRegistry {
         static char* completion_generator(const char* text, int state);
 
         const CLIDispatcher*     _dispatcher = nullptr;
+        const CLIContext*        _ctx = nullptr;
         std::vector<std::string> _candidates;
         std::size_t              _idx = 0;
 };

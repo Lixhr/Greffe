@@ -8,8 +8,9 @@ CompletionRegistry& CompletionRegistry::instance() {
     return reg;
 }
 
-void CompletionRegistry::install(const CLIDispatcher& dispatcher) {
+void CompletionRegistry::install(const CLIDispatcher& dispatcher,const CLIContext& ctx) {
     _dispatcher = &dispatcher;
+    _ctx = &ctx;
     rl_attempted_completion_function = &CompletionRegistry::readline_completion;
 }
 
@@ -24,7 +25,7 @@ char** CompletionRegistry::readline_completion(const char* text,
     std::string line(rl_line_buffer, static_cast<std::size_t>(start));
     line += text;
 
-    reg._candidates = reg._dispatcher->complete(line);
+    reg._candidates = reg._dispatcher->complete(reg._ctx, line);
     reg._idx        = 0;
 
     if (reg._candidates.empty()) return nullptr;

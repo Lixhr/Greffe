@@ -14,7 +14,7 @@ class CLIDispatcher {
 
         void dispatch(CLIContext& ctx, const std::string& line) const;
 
-        std::vector<std::string> complete(const std::string& line) const;
+        std::vector<std::string> complete(const CLIContext *ctx, const std::string& line) const;
         const std::unordered_map<std::string, std::shared_ptr<ICommand>>&
         commands() const;
 

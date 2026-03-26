@@ -14,6 +14,7 @@ class DelCommand final : public ICommand {
         std::string_view name()        const override;
         std::string_view description() const override;
         void execute(CLIContext& ctx, const Args& args) override;
+        std::vector<std::string> complete(const CLIContext *ctx, const Args& args) const override;
 };
 
 class ListCommand final : public ICommand {
@@ -42,5 +43,5 @@ class SetCommand final : public ICommand {
         std::string_view name()        const override;
         std::string_view description() const override;
         void execute(CLIContext& ctx, const Args& args) override;
-        std::vector<std::string> complete(const Args& args) const override;
+        std::vector<std::string> complete(const CLIContext *ctx, const Args& args) const override;
 };

@@ -21,7 +21,7 @@ static void sigint_handler(int)
 }
 
 CLI::CLI(CLIContext& ctx) : _ctx(ctx) {
-    CompletionRegistry::instance().install(_dispatcher);
+    CompletionRegistry::instance().install(_dispatcher, ctx);
     register_tree({
     leaf(std::make_unique<AddCommand>()),
     leaf(std::make_unique<DelCommand>()),

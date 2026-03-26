@@ -31,13 +31,13 @@ void CompositeCommand::execute(CLIContext& ctx, const Args& args) {
 }
 
 std::vector<std::string>
-CompositeCommand::complete(const Args& args) const {
+CompositeCommand::complete(const CLIContext *ctx, const Args& args) const {
     std::string sub_line;
     for (std::size_t i = 0; i < args.size(); ++i) {
         if (i > 0) sub_line += ' ';
         sub_line += args[i];
     }
-    return _dispatcher.complete(sub_line);
+    return _dispatcher.complete(ctx, sub_line);
 }
 
 void CompositeCommand::print_usage() const {

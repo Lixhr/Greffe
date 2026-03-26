@@ -18,7 +18,7 @@ public:
 
     void execute(CLIContext& ctx, const Args& args) override;
 
-    std::vector<std::string> complete(const Args& args) const override;
+    std::vector<std::string> complete(const CLIContext *ctx, const Args& args) const override;
 
     CLIDispatcher&       dispatcher();
     const CLIDispatcher& dispatcher() const;

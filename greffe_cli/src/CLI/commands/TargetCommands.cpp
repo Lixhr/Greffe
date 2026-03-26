@@ -71,6 +71,24 @@ void DelCommand::execute(CLIContext& ctx, const Args& args) {
     }
 }
 
+std::vector<std::string>
+DelCommand::complete(const CLIContext* ctx, const Args& args) const {
+    std::vector<std::string> result;
+
+    const auto& targets = ctx->targets.targets();
+    const std::string prefix = args.empty() ? "" : args.back();
+
+    for (const auto& t : targets) {
+        const std::string& name = t.name();
+
+        if (name.rfind(prefix, 0) == 0) {
+            result.push_back(name);
+        }
+    }
+
+    return result;
+}
+
 std::string_view SaveCommand::name()        const { return "save"; }
 std::string_view SaveCommand::description() const { return "Save greffes"; }
 
@@ -162,7 +180,7 @@ void SetCommand::execute(CLIContext& ctx, const Args& args) {
     }
 }
 
-std::vector<std::string> SetCommand::complete(const Args& args) const {
+std::vector<std::string> SetCommand::complete(const CLIContext* /*ctx*/, const Args& args) const {
     static const std::vector<std::string> fields = {"bin_base", "patch_base"};
     if (args.empty())
         return fields;
