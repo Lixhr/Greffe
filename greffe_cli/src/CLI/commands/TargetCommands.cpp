@@ -8,12 +8,12 @@
 #include "patch/arch/RelocatorFactory.hpp"
 #include "patch_utils.hpp"
 #include "colors.hpp"
+#include "cli_fmt.hpp"
 #include <cinttypes>
 #include <filesystem>
 #include <iomanip>
 #include <fstream>
 #include <iostream>
-#include <readline/readline.h>
 #include <stdexcept>
 
 void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
@@ -145,11 +145,7 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
               << "  patch_base : 0x" << std::setw(w) << *ctx.patch_base
               << std::dec << '\n';
 
-    char* raw = readline("Proceed? [y/N] ");
-    std::string answer;
-    if (raw) { answer = raw; free(raw); }
-
-    if (answer != "y" && answer != "Y") {
+    if (!prompt_confirm("Proceed? [y/N] ")) {
         std::cout << Color::GREY << "aborted" << Color::RST << '\n';
         return;
     }
