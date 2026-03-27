@@ -36,6 +36,9 @@ class SaveCommand final : public ICommand {
 };
 
 class PatchCommand final : public ICommand {
+    private:
+        const std::filesystem::path get_output_path(CLIContext& ctx) const;
+        bool                        confirm_output(const std::filesystem::path &out_path) const;
     public:
         std::string_view name()        const override;
         std::string_view description() const override;

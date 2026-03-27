@@ -130,6 +130,21 @@ void ListCommand::execute(CLIContext& ctx, const Args&) {
 std::string_view PatchCommand::name()        const { return "patch"; }
 std::string_view PatchCommand::description() const { return "Compile handlers and apply all greffes"; }
 
+
+const std::filesystem::path PatchCommand::get_output_path(CLIContext& ctx) const {
+    auto out_filename = ctx.pinfo.getBinPath().filename();
+    out_filename += ".greffe";
+
+    auto out_path = ctx.pinfo.getProjectDir() / out_filename;
+    return (out_path);
+}
+
+bool PatchCommand::confirm_output(const std::filesystem::path &out_path) const {
+    if (std::filesystem::exists(out_path))
+        return prompt_confirm(out_path.string() + " already exists. Overwrite? [y/N]");
+    return prompt_confirm("Proceed? [y/N]");
+}
+
 void PatchCommand::execute(CLIContext& ctx, const Args&) {
     if (ctx.targets.targets().empty())
         throw std::runtime_error("nothing to patch");
@@ -145,15 +160,12 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
               << "  patch_base : 0x" << std::setw(w) << *ctx.patch_base
               << std::dec << '\n';
 
-    if (!prompt_confirm("Proceed? [y/N] ")) {
+    auto out_path = get_output_path(ctx);
+    if (!confirm_output(out_path)) {
         std::cout << Color::GREY << "aborted" << Color::RST << '\n';
         return;
     }
 
-    auto out_filename = ctx.pinfo.getBinPath().filename();
-    out_filename += ".greffe";
-
-    auto out_path = ctx.pinfo.getProjectDir() / out_filename;
 
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
     PatchSession::run(ctx.targets.targets(), handler_bin,
