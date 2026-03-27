@@ -1,6 +1,10 @@
 #pragma once
 
 #include "ICommand.hpp"
+#include "ProjectInfo.hpp"
+#include "Target.hpp"
+
+void create_handler_stub(const Target& t, const ProjectInfo& pinfo);
 
 class AddCommand final : public ICommand {
     public:

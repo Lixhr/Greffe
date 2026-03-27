@@ -8,6 +8,8 @@
 #include "Target.hpp"
 #include "IdaIPC.hpp"
 
+class ProjectInfo;
+
 struct SavedProject {
     std::optional<uint64_t> bin_base;
     std::optional<uint64_t> patch_base;
@@ -18,7 +20,7 @@ class TargetManager {
         explicit TargetManager(IdaIPC& ipc);
 
         const Target&       add(const std::string& target);
-        bool                add_direct(const json& entry);
+        bool                add_direct(const json& entry, const ProjectInfo& pinfo);
         void                remove(const std::string& target);
         std::vector<Target> targets() const;
 

@@ -115,7 +115,7 @@ void IdaIPC::run(CLIContext& ctx) {
             if (resp.value("ok", false)) {
                 for (const auto& entry : resp["body"]["targets"]) {
                     try {
-                        if (ctx.targets.add_direct(entry)) {
+                        if (ctx.targets.add_direct(entry, ctx.pinfo)) {
                             std::cout << Color::GREEN << "\n[greffe] tracepoint: "
                                       << entry.value("name", "?") << Color::RST << '\n';
                         }

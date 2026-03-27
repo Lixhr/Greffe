@@ -1,4 +1,6 @@
 #include "TargetManager.hpp"
+#include "CLI/TargetCommands.hpp"
+#include "ProjectInfo.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <fstream>
@@ -70,7 +72,7 @@ const Target& TargetManager::add(const std::string& target) {
     return *it;
 }
 
-bool TargetManager::add_direct(const json& entry) {
+bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
     uint64_t ea = json_get<uint64_t>(entry, "ea");
 
     std::lock_guard<std::mutex> lk(_mutex);
@@ -90,12 +92,13 @@ bool TargetManager::add_direct(const json& entry) {
         });
     }
 
-    _targets.emplace(it,
+    const auto &new_target = _targets.emplace(it,
         json_get<std::string>(entry, "name"),
         ea,
         json_get<uint64_t>(entry, "end_ea"),
         std::move(context)
     );
+    create_handler_stub(*new_target, pinfo);
     return true;
 }
 

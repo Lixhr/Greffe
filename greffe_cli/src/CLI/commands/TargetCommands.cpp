@@ -13,7 +13,7 @@
 #include <readline/readline.h>
 #include <stdexcept>
 
-static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
+void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
     namespace fs = std::filesystem;
 
     auto dir = pinfo.getProjectDir() / "handlers";
@@ -75,6 +75,8 @@ std::vector<std::string>
 DelCommand::complete(const CLIContext* ctx, const Args& args) const {
     std::vector<std::string> result;
 
+    if (!ctx)
+        return result;
     const auto& targets = ctx->targets.targets();
     const std::string prefix = args.empty() ? "" : args.back();
 
@@ -176,7 +178,7 @@ void SetCommand::execute(CLIContext& ctx, const Args& args) {
         std::cout << Color::GREY << "patch_base = 0x" << std::hex << value
                   << std::dec << Color::RST << '\n';
     } else {
-        throw std::runtime_error("unknown field '" + field + "' (use: bin_base or patch_base)");
+        throw std::runtime_error("unknown field '" + field + "'");
     }
 }
 
