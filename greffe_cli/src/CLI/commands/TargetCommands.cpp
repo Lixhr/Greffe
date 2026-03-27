@@ -154,7 +154,7 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         return;
     }
 
-    auto outfile = std::filesystem::path(ctx.pinfo.getBinPath().string() + ".greffé");
+    auto outfile = std::filesystem::path(ctx.pinfo.getBinPath().string() + ".greffe");
 
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
     PatchSession::run(ctx.targets.targets(), handler_bin,
