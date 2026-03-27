@@ -13,8 +13,6 @@ TargetManager::TargetManager(IdaIPC& ipc)
     : _ipc(ipc) {}
 
 const Target& TargetManager::add(const std::string& target) {
-    // Call IPC outside the lock — IPC acquires sock_mutex_,
-    // add_direct() acquires _mutex; holding both in opposite order would deadlock.
     json req = {
         {"action", "add"},
         {"body",   json::array({target})},
