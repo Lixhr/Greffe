@@ -81,7 +81,7 @@ static void print_banner() {
     std::cout
         << BLUE << "  ╔══════════════════════════════════════╗\n"
         << BLUE << "  ║  " << BOLD << "greffe" << RST << BLUE << "                              ║\n"
-        << BLUE << "  ║  " << DIM  << "Bare-Metal Binary Tracepoints" << RST << BLUE << "       ║\n"
+        << BLUE << "  ║  " << DIM  << "Bare-Metal Binary Instrumentation" << RST << BLUE << "       ║\n"
         << BLUE << "  ╚══════════════════════════════════════╝\n"
         << RST
         << CYAN << "  Type " << BOLD << "help" << RST << CYAN << " to list available commands.\n"
