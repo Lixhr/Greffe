@@ -3,6 +3,9 @@
 #include "Target.hpp"
 #include "HandlerCompiler.hpp"
 #include "PatchSession.hpp"
+#include "patch/TrampolineBuilder.hpp"
+#include "patch/arch/StubsFactory.hpp"
+#include "patch/arch/RelocatorFactory.hpp"
 #include "patch_utils.hpp"
 #include "colors.hpp"
 #include <cinttypes>
@@ -53,6 +56,14 @@ void AddCommand::execute(CLIContext& ctx, const Args& args) {
 
     for (const auto& arg : args) {
         const Target& t = ctx.targets.add(arg);
+        auto stubs     = StubsFactory::create(t, ctx.pinfo);
+        auto relocator = RelocatorFactory::create(t, ctx.pinfo);
+        try {
+            TrampolineBuilder::validate(t, *stubs, *relocator);
+        } catch (...) {
+            ctx.targets.remove(t.name());
+            throw;
+        }
         std::cout << TargetView{ t, ctx.pinfo.getBits() };
         create_handler_stub(t, ctx.pinfo);
     }

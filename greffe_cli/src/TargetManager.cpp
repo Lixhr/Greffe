@@ -1,6 +1,9 @@
 #include "TargetManager.hpp"
 #include "CLI/TargetCommands.hpp"
 #include "ProjectInfo.hpp"
+#include "patch/TrampolineBuilder.hpp"
+#include "patch/arch/StubsFactory.hpp"
+#include "patch/arch/RelocatorFactory.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <fstream>
@@ -98,6 +101,16 @@ bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
         json_get<uint64_t>(entry, "end_ea"),
         std::move(context)
     );
+
+    auto stubs     = StubsFactory::create(*new_target, pinfo);
+    auto relocator = RelocatorFactory::create(*new_target, pinfo);
+    try {
+        TrampolineBuilder::validate(*new_target, *stubs, *relocator);
+    } catch (...) {
+        _targets.erase(new_target);
+        throw;
+    }
+
     create_handler_stub(*new_target, pinfo);
     return true;
 }

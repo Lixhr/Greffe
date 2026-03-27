@@ -47,6 +47,27 @@ static Coverage compute_coverage(const Target&              t,
 }
 
 
+void TrampolineBuilder::validate(const Target& t, IArchStubs& stubs, IRelocator& relocator) {
+    size_t target_insn_size = 0;
+    for (const auto& c : t.context()) {
+        if (c.ea == t.ea()) { target_insn_size = c.raw.size() / 2; break; }
+    }
+    if (target_insn_size == 0)
+        throw std::runtime_error("TrampolineBuilder: target instruction not found for " + t.name());
+
+    size_t hook_size = stubs.branch_size_max();
+    if (hook_size > target_insn_size) {
+        auto input = Patcher::collect_input(t);
+        std::vector<uint8_t> first_insn(input.begin(),
+                                        input.begin() + static_cast<ptrdiff_t>(target_insn_size));
+        if (relocator.is_branch(first_insn, t.ea()))
+            throw std::runtime_error(
+                "TrampolineBuilder: hook (" + std::to_string(hook_size) + " bytes) "
+                "exceeds branch instruction (" + std::to_string(target_insn_size) + " bytes) "
+                "at " + t.name());
+    }
+}
+
 std::vector<uint8_t> TrampolineBuilder::build(const Target& t,
                                                uint64_t      handler_addr,
                                                uint64_t      trampoline_addr,
