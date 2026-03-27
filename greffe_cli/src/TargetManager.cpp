@@ -12,12 +12,11 @@
 TargetManager::TargetManager(IdaIPC& ipc)
     : _ipc(ipc) {}
 
-const Target& TargetManager::add(const std::string& target) {
+json TargetManager::fetch_entry(const std::string& target) {
     json req = {
         {"action", "add"},
         {"body",   json::array({target})},
     };
-
     json resp = _ipc.send(req);
 
     if (!resp.value("ok", false))
@@ -26,8 +25,11 @@ const Target& TargetManager::add(const std::string& target) {
     const auto& body = resp.at("body");
     if (!body.is_array() || body.empty())
         throw std::runtime_error("IDA returned an empty response for " + target);
-    const json& entry = body.at(0);
 
+    return body.at(0);
+}
+
+std::vector<ContextEntry> TargetManager::parse_context(const json& entry) {
     std::vector<ContextEntry> context;
     for (const auto& c : entry.at("context")) {
         context.push_back({
@@ -36,24 +38,34 @@ const Target& TargetManager::add(const std::string& target) {
             json_get<std::string>(c, "mode"),
         });
     }
+    return context;
+}
 
-    uint64_t ea = json_get<uint64_t>(entry, "ea");
-
+void TargetManager::validate_context_modes(const std::string& target, uint64_t ea,
+                                           const std::vector<ContextEntry>& context) {
     std::string target_mode;
     for (const auto& c : context)
         if (c.ea == ea) { target_mode = c.mode; break; }
 
-    if (!target_mode.empty()) {
-        for (const auto& c : context) {
-            if (c.mode != target_mode) {
-                char buf[17];
-                snprintf(buf, sizeof(buf), "%lx", c.ea);
-                throw std::runtime_error(
-                    target + ": cpu mode mismatch at 0x" + buf +
-                    " (" + c.mode + " vs " + target_mode + ")");
-            }
+    if (target_mode.empty())
+        return;
+
+    for (const auto& c : context) {
+        if (c.mode != target_mode) {
+            char buf[17];
+            snprintf(buf, sizeof(buf), "%lx", c.ea);
+            throw std::runtime_error(
+                target + ": cpu mode mismatch at 0x" + buf +
+                " (" + c.mode + " vs " + target_mode + ")");
         }
     }
+}
+
+const Target& TargetManager::add(const std::string& target) {
+    const json entry = fetch_entry(target);
+    std::vector<ContextEntry> context = parse_context(entry);
+    const uint64_t ea = json_get<uint64_t>(entry, "ea");
+    validate_context_modes(target, ea, context);
 
     std::lock_guard<std::mutex> lk(_mutex);
 
@@ -84,14 +96,7 @@ bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
     if (it != _targets.end() && it->ea() == ea)
         return false;
 
-    std::vector<ContextEntry> context;
-    for (const auto& c : entry.at("context")) {
-        context.push_back({
-            json_get<uint64_t>(c, "ea"),
-            json_get<std::string>(c, "raw"),
-            json_get<std::string>(c, "mode"),
-        });
-    }
+    std::vector<ContextEntry> context = parse_context(entry);
 
     const auto &new_target = _targets.emplace(it,
         json_get<std::string>(entry, "name"),
@@ -193,13 +198,7 @@ SavedProject TargetManager::load(const std::filesystem::path& path) {
     }
 
     for (const auto& entry : root.at("traced")) {
-        std::vector<ContextEntry> context;
-        for (const auto& c : entry.at("context"))
-            context.push_back({
-                json_get<uint64_t>(c, "ea"),
-                json_get<std::string>(c, "raw"),
-                json_get<std::string>(c, "mode"),
-            });
+        std::vector<ContextEntry> context = parse_context(entry);
 
         uint64_t ea = json_get<uint64_t>(entry, "ea");
         auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,

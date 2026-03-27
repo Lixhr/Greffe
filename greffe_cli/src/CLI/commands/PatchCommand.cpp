@@ -2,7 +2,7 @@
 #include "CLIContext.hpp"
 #include "HandlerCompiler.hpp"
 #include "PatchSession.hpp"
-#include "patch_utils.hpp"
+#include "cli_fmt.hpp"
 #include "colors.hpp"
 #include <filesystem>
 #include <iomanip>
@@ -42,7 +42,7 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     if (!ctx.patch_base)
         throw std::runtime_error("patch_base is not set (use: set patch_base <addr>)");
 
-    print_patch_info();
+    print_patch_info(ctx);
 
     auto out_path = get_output_path(ctx);
     if (!confirm_output(out_path)) {
