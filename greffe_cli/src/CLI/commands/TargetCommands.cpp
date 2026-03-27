@@ -154,12 +154,15 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         return;
     }
 
-    auto outfile = std::filesystem::path(ctx.pinfo.getBinPath().string() + ".greffe");
+    auto out_filename = ctx.pinfo.getBinPath().filename();
+    out_filename += ".greffe";
+
+    auto out_path = ctx.pinfo.getProjectDir() / out_filename;
 
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
     PatchSession::run(ctx.targets.targets(), handler_bin,
                       *ctx.patch_base, ctx.bin_base,
-                      ctx.pinfo, outfile);
+                      ctx.pinfo, out_path);
 }
 
 std::string_view SetCommand::name()        const { return "set"; }
