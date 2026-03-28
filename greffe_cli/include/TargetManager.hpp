@@ -30,6 +30,12 @@ class TargetManager {
         SavedProject load(const std::filesystem::path& path);
 
     private:
+        json                             fetch_entry(const std::string& target);
+        static std::vector<ContextEntry> parse_context(const json& entry);
+        static void                      validate_context_modes(const std::string& target,
+                                                                uint64_t ea,
+                                                                const std::vector<ContextEntry>& context);
+
         IdaIPC&              _ipc;
         std::vector<Target>  _targets;
         mutable std::mutex   _mutex;

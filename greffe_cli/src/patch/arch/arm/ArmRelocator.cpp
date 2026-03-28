@@ -5,24 +5,29 @@ extern "C" {
 #include <gum/arch-arm/gumarmwriter.h>
 }
 
-#include <stdexcept>
+#include "GumRelocatorImpl.hpp"
+
+struct ArmTraits {
+    using Writer    = GumArmWriter;
+    using Relocator = GumArmRelocator;
+    static constexpr const char* relocator_name = "ArmRelocator";
+
+    static void writer_init(Writer* w, void* buf)                          { gum_arm_writer_init(w, buf); }
+    static void writer_flush(Writer* w)                                    { gum_arm_writer_flush(w); }
+    static void writer_clear(Writer* w)                                    { gum_arm_writer_clear(w); }
+    static void writer_put_bytes(Writer* w, const uint8_t* d, size_t n)   { gum_arm_writer_put_bytes(w, d, static_cast<guint>(n)); }
+
+    static void     relocator_init(Relocator* r, const uint8_t* in, Writer* w) { gum_arm_relocator_init(r, in, w); }
+    static guint    relocator_read_one(Relocator* r, const cs_insn** insn)      { return gum_arm_relocator_read_one(r, insn); }
+    static gboolean relocator_eoi(Relocator* r)                                 { return gum_arm_relocator_eoi(r); }
+    static gboolean relocator_write_one(Relocator* r)                           { return gum_arm_relocator_write_one(r); }
+    static void     relocator_clear(Relocator* r)                               { gum_arm_relocator_clear(r); }
+};
 
 std::string_view ArmRelocator::name() const { return "ARM"; }
 
 bool ArmRelocator::is_branch(const std::vector<uint8_t>& bytes, uint64_t ea) const {
-    if (bytes.empty()) return false;
-    uint8_t buf[8] = {};
-    GumArmWriter writer;
-    gum_arm_writer_init(&writer, buf);
-    GumArmRelocator rl;
-    gum_arm_relocator_init(&rl, bytes.data(), &writer);
-    rl.input_pc = static_cast<GumAddress>(ea);
-    const cs_insn* insn = nullptr;
-    gum_arm_relocator_read_one(&rl, &insn);
-    bool result = static_cast<bool>(rl.eob);
-    gum_arm_relocator_clear(&rl);
-    gum_arm_writer_clear(&writer);
-    return result;
+    return is_branch_impl<ArmTraits>(bytes, ea);
 }
 
 RelocatedCode ArmRelocator::relocate(const std::vector<uint8_t>& input_bytes,
@@ -30,49 +35,5 @@ RelocatedCode ArmRelocator::relocate(const std::vector<uint8_t>& input_bytes,
                                      uint64_t original_ea,
                                      uint64_t trampoline_addr,
                                      const std::vector<uint8_t>& trailer) {
-    if (input_bytes.empty() || n_bytes == 0)
-        throw std::runtime_error("ArmRelocator: empty input");
-
-    std::vector<uint8_t> output(512, 0);
-
-    GumArmWriter writer;
-    gum_arm_writer_init(&writer, output.data());
-    writer.pc = static_cast<GumAddress>(trampoline_addr);
-
-    GumArmRelocator rl;
-    gum_arm_relocator_init(&rl, input_bytes.data(), &writer);
-    rl.input_pc = static_cast<GumAddress>(original_ea);
-
-    size_t n_insns = 0;
-    const cs_insn* insn = nullptr;
-    while (gum_arm_relocator_read_one(&rl, &insn) != 0) {
-        ++n_insns;
-        size_t consumed = (size_t)(rl.input_cur - rl.input_start);
-        if (consumed >= n_bytes || gum_arm_relocator_eoi(&rl))
-            break;
-    }
-
-    if (n_insns == 0)
-        throw std::runtime_error("ArmRelocator: failed to read any instruction");
-
-    while (gum_arm_relocator_write_one(&rl)) {}
-
-    size_t insns_size = reinterpret_cast<uint8_t*>(writer.code)
-                      - reinterpret_cast<uint8_t*>(writer.base);
-
-    if (!trailer.empty())
-        gum_arm_writer_put_bytes(&writer, trailer.data(),
-                                 static_cast<guint>(trailer.size()));
-
-    gum_arm_writer_flush(&writer);
-
-    size_t written = reinterpret_cast<uint8_t*>(writer.code)
-                   - reinterpret_cast<uint8_t*>(writer.base);
-
-    gum_arm_relocator_clear(&rl);
-    gum_arm_writer_clear(&writer);
-
-    bool ends_with_branch = static_cast<bool>(rl.eob);
-    output.resize(written);
-    return { std::move(output), insns_size, n_insns, ends_with_branch };
+    return relocate_impl<ArmTraits>(input_bytes, n_bytes, original_ea, trampoline_addr, trailer);
 }
