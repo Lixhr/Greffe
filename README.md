@@ -4,7 +4,7 @@ IDA plugin for instrumenting bare-metal binaries without debugging capabilities.
 
 Select any instruction in IDA, Greffe replaces it with a branch to a user-written C handler. The original instruction is relocated and executed transparently after the handler returns.
 
-Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: ARM, Thumb, ARM64.
+Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: Thumb. (*Arm64/32 in progress*)
 
 ---
 
