@@ -71,7 +71,7 @@ You can add extra `.c` files in `handlers/`, all of them are compiled and linked
 greffe> patch
 ```
 
-Compiles all handlers and writes the patched binary alongside the original: `firmware.bin.patched_`. Flash it to your target.
+Compiles all handlers and writes the patched binary alongside the original: `firmware.bin.greffe`. Flash it to your target.
 
 Use `save` to persist the tracepoint list. It is automatically reloaded on the next CLI launch.
 
@@ -93,11 +93,11 @@ Use `save` to persist the tracepoint list. It is automatically reloaded on the n
 
 **Flashing** - Greffe produces a modified binary that must be flashed to the target. Any secure boot chain must be bypassed or disabled before.
 
-**Executable spare region** - trampolines and compiled handlers are injected at `patch_base`. This region must be mapped as executable at runtime. Typical candidates: padding between sections, unused flash pages, a region reserved in the linker script.
+**Executable spare region** - trampolines and compiled handlers are injected at `patch_base`. This region must be mapped as executable at runtime. Typical candidates: padding between sections, unused flash pages, unused code, ...
 
 **Output channel** - Greffe only patches the binary, it provides no data collection mechanism. Handlers need a way to exfiltrate results: UART, PWM, a very attentive oscilloscope, ... Whatever the target exposes.
 
-**No libc, no OS** - handlers are compiled with `-nostdlib`. Any helper (logging, memory access) must be self-contained or reference existing firmware symbols explicitly. (beware of the ABI)
+**No libc, no OS** - handlers are compiled with `-nostdlib`. Any helper must be self-contained or reference existing firmware code explicitly. (beware of the ABI)
 
 ---
 
