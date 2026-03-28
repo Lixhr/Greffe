@@ -17,7 +17,7 @@ void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
     auto dir = pinfo.getProjectDir() / "handlers";
     fs::create_directories(dir);
 
-    auto path = dir / (sanitize(t.name()) + ".c");
+    auto path = dir / (sanitize(t.name()) + ".greffe.c");
     if (fs::exists(path))
         return;
 

@@ -81,6 +81,16 @@ HandlerBin HandlerCompiler::build(const std::vector<Target>& targets,
 
     const fs::path& workdir = pinfo.getProjectDir();
 
+    {
+        std::ofstream mk(workdir / "greffe_active.mk");
+        if (!mk)
+            throw std::runtime_error("HandlerCompiler: cannot write greffe_active.mk");
+        mk << "ACTIVE_GREFFE_SRCS :=";
+        for (const auto& t : targets)
+            mk << " handlers/" << sanitize(t.name()) << ".greffe.c";
+        mk << '\n';
+    }
+
     pid_t pid = fork();
     if (pid < 0)
         throw std::runtime_error("HandlerCompiler: fork() failed");
