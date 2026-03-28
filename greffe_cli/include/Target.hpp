@@ -9,6 +9,7 @@ struct ContextEntry {
     uint64_t    ea;
     std::string raw;
     std::string mode;
+    bool        is_xref_target = false;
 };
 
 class Target {
