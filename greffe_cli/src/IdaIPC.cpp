@@ -1,7 +1,7 @@
 #include "IdaIPC.hpp"
 #include "CLIContext.hpp"
+#include "CLI/cli_fmt.hpp"
 #include "colors.hpp"
-
 #include <cerrno>
 #include <chrono>
 #include <cstring>
@@ -116,20 +116,20 @@ void IdaIPC::run(CLIContext& ctx) {
                 for (const auto& entry : resp["body"]["targets"]) {
                     try {
                         if (ctx.targets.add_direct(entry, ctx.pinfo)) {
-                            std::cout << Color::GREEN << "\n[greffe] tracepoint: "
-                                      << entry.value("name", "?") << Color::RST << '\n';
+                            async_print(std::string(Color::GREEN) + "\n[greffe] tracepoint: "
+                                        + entry.value("name", "?") + Color::RST + '\n');
                         }
                     } catch (const std::exception& e) {
-                        std::cerr << "[IdaIPC] add_direct: " << e.what() << '\n';
+                        async_print(std::string("[IdaIPC] add_direct: ") + e.what() + '\n');
                     }
                 }
             }
         }
         catch (const IdaIPCError& e) {
-            std::cerr << "[IdaIPC] refresh error: " << e.what() << '\n';
+            async_print(std::string("[IdaIPC] refresh error: ") + e.what() + '\n');
         }
         catch (const json::exception& e) {
-            std::cerr << "[IdaIPC] json error: " << e.what() << '\n';
+            async_print(std::string("[IdaIPC] json error: ") + e.what() + '\n');
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
