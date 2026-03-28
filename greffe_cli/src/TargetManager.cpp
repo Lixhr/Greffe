@@ -36,6 +36,7 @@ std::vector<ContextEntry> TargetManager::parse_context(const json& entry) {
             json_get<uint64_t>(c, "ea"),
             json_get<std::string>(c, "raw"),
             json_get<std::string>(c, "mode"),
+            c.value("is_xref_target", false),
         });
     }
     return context;
@@ -155,7 +156,8 @@ void TargetManager::save(const std::filesystem::path& path,
     for (const auto& t : _targets) {
         json ctx_arr = json::array();
         for (const auto& c : t.context())
-            ctx_arr.push_back({ {"ea", c.ea}, {"raw", c.raw}, {"mode", c.mode} });
+            ctx_arr.push_back({ {"ea", c.ea}, {"raw", c.raw}, {"mode", c.mode},
+                                 {"is_xref_target", c.is_xref_target} });
 
         traced.push_back({
             {"name",    t.name()},

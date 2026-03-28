@@ -37,6 +37,9 @@ def get_mode_context(ea: int) -> str | None:
             return ("thumb" if idc.get_sreg(ea, "T") else None)
     return None
 
+def is_code_xref_target(ea: int) -> bool:
+    return ida_xref.get_first_fcref_to(ea) != idaapi.BADADDR
+
 def get_instruction(ea: int):
     insn = idaapi.insn_t()
 
@@ -50,8 +53,9 @@ def get_instruction(ea: int):
     return {
         "ea": ea,
         "raw": raw.hex(),
-        "size": insn.size, 
-        "mode": get_mode_context(ea)
+        "size": insn.size,
+        "mode": get_mode_context(ea),
+        "is_xref_target": is_code_xref_target(ea)
     }
 
 def get_segments():

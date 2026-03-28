@@ -36,6 +36,13 @@ static Coverage compute_coverage(const Target&              t,
         if (c.ea < t.ea()) continue;
         if (c.raw.size() % 2 != 0)
             throw std::runtime_error("TrampolineBuilder: malformed raw bytes for " + t.name());
+        if (c.ea > t.ea() && n_bytes < hook_size && c.is_xref_target) {
+            char buf[19];
+            snprintf(buf, sizeof(buf), "0x%lx", c.ea);
+            throw std::runtime_error(
+                "TrampolineBuilder: hook for " + t.name() + " would overwrite "
+                + buf + " which is a code xref");
+        }
         n_bytes   += c.raw.size() / 2;
         return_ea  = c.ea + c.raw.size() / 2;
         if (n_bytes >= hook_size) break;
@@ -65,6 +72,20 @@ void TrampolineBuilder::validate(const Target& t, IArchStubs& stubs, IRelocator&
                 "TrampolineBuilder: hook (" + std::to_string(hook_size) + " bytes) "
                 "exceeds branch instruction (" + std::to_string(target_insn_size) + " bytes) "
                 "at " + t.name());
+
+        size_t n_bytes = 0;
+        for (const auto& c : t.context()) {
+            if (c.ea < t.ea()) continue;
+            if (c.ea > t.ea() && n_bytes < hook_size && c.is_xref_target) {
+                char buf[19];
+                snprintf(buf, sizeof(buf), "0x%lx", c.ea);
+                throw std::runtime_error(
+                    "TrampolineBuilder: hook for " + t.name() + " would overwrite "
+                    + buf + " which is a code xref target");
+            }
+            n_bytes += c.raw.size() / 2;
+            if (n_bytes >= hook_size) break;
+        }
     }
 }
 
