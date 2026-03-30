@@ -1,7 +1,5 @@
 #include "arch/StubsFactory.hpp"
-#include "arch/arm/ArmStubs.hpp"
 #include "arch/thumb/ThumbStubs.hpp"
-#include "arch/arm64/Arm64Stubs.hpp"
 
 #include <functional>
 #include <stdexcept>
@@ -13,9 +11,7 @@ std::unique_ptr<IArchStubs> StubsFactory::create(const Target& t, const ProjectI
     using Ctor = std::function<std::unique_ptr<IArchStubs>()>;
 
     static const std::tuple<int, std::string_view, Ctor> table[] = {
-        { 32, "arm",   [] { return std::make_unique<ArmStubs>(); }   },
         { 32, "thumb", [] { return std::make_unique<ThumbStubs>(); } },
-        { 64, "arm64", [] { return std::make_unique<Arm64Stubs>(); } },
     };
 
     for (const auto& c : t.context()) {

@@ -1,7 +1,5 @@
 #include "arch/RelocatorFactory.hpp"
-#include "arch/arm/ArmRelocator.hpp"
 #include "arch/thumb/ThumbRelocator.hpp"
-#include "arch/arm64/Arm64Relocator.hpp"
 
 #include <functional>
 #include <stdexcept>
@@ -13,9 +11,7 @@ std::unique_ptr<IRelocator> RelocatorFactory::create(const Target& t, const Proj
     using Ctor = std::function<std::unique_ptr<IRelocator>()>;
 
     static const std::tuple<int, std::string_view, Ctor> table[] = {
-        { 32, "arm",   [] { return std::make_unique<ArmRelocator>(); }   },
         { 32, "thumb", [] { return std::make_unique<ThumbRelocator>(); } },
-        { 64, "arm64", [] { return std::make_unique<Arm64Relocator>(); } },
     };
 
     for (const auto& c : t.context()) {
