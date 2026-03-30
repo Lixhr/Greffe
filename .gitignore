@@ -5,3 +5,11 @@ greffe_cli/build*
 *.a
 .*
 greffe_cli/third_party/frida-gum/build/
+tests/bin/*/build/__greffe_workdir/*.o
+*.id0
+*.id1
+*.nam
+*.mk
+*.til
+*.greffe
+*.map

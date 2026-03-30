@@ -10,7 +10,6 @@ inline void cli_error(std::string_view msg) {
     std::cerr << Color::GREY << msg << Color::RST << '\n';
 }
 
-// Print from a background thread without corrupting the readline prompt.
 inline void async_print(const std::string& msg) {
     rl_save_prompt();
     rl_clear_visible_line();
