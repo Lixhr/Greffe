@@ -36,12 +36,14 @@ static Coverage compute_coverage(const Target&              t,
         if (c.ea < t.ea()) continue;
         if (c.raw.size() % 2 != 0)
             throw std::runtime_error("TrampolineBuilder: malformed raw bytes for " + t.name());
+
         if (c.ea > t.ea() && n_bytes < hook_size && c.is_xref_target) {
             char buf[19];
             snprintf(buf, sizeof(buf), "0x%lx", c.ea);
             throw std::runtime_error(
                 "TrampolineBuilder: hook for " + t.name() + " would overwrite "
                 + buf + " which is a code xref");
+
         }
         n_bytes   += c.raw.size() / 2;
         return_ea  = c.ea + c.raw.size() / 2;
@@ -83,6 +85,7 @@ void TrampolineBuilder::validate(const Target& t, IArchStubs& stubs, IRelocator&
                     "TrampolineBuilder: hook for " + t.name() + " would overwrite "
                     + buf + " which is a code xref target");
             }
+
             n_bytes += c.raw.size() / 2;
             if (n_bytes >= hook_size) break;
         }
@@ -116,7 +119,7 @@ std::vector<uint8_t> TrampolineBuilder::build(const Target& t,
     emit(stubs.call(cur, handler_addr), "call");
     emit(stubs.restore_ctx(cur),        "restore_ctx");
 
-    size_t branch_size = stubs.branch(cur, cur).size();
+    size_t branch_size = stubs.branch_size_max();
 
     auto reloc = relocator.relocate(input, n_bytes, t.ea(), cur,
                                     std::vector<uint8_t>(branch_size, 0));
@@ -129,7 +132,7 @@ std::vector<uint8_t> TrampolineBuilder::build(const Target& t,
 
         uint64_t branch_addr  = cur + static_cast<uint64_t>(reloc.insns_size);
         auto     branch_bytes = stubs.branch(branch_addr, return_ea);
-        if (branch_bytes.size() != branch_size)
+        if (branch_bytes.size() > branch_size)
             throw std::runtime_error("TrampolineBuilder: branch size mismatch for " + t.name());
 
         std::copy(branch_bytes.begin(), branch_bytes.end(),

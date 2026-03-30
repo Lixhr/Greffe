@@ -86,11 +86,17 @@ std::vector<uint8_t> Arm64Stubs::restore_ctx(uint64_t at) {
 }
 
 std::vector<uint8_t> Arm64Stubs::branch(uint64_t from, uint64_t to) {
-    std::vector<uint8_t> buf(16, 0);
+    std::vector<uint8_t> buf(32, 0);
     GumArm64Writer w;
     gum_arm64_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(from);
-    gum_arm64_writer_put_b_imm(&w, static_cast<GumAddress>(to));
+    if (gum_arm64_writer_can_branch_directly_between(&w, from, to)) {
+        gum_arm64_writer_put_b_imm(&w, static_cast<GumAddress>(to));
+    } else {
+        gum_arm64_writer_put_ldr_reg_address(&w, ARM64_REG_X16,
+                                             static_cast<GumAddress>(to));
+        gum_arm64_writer_put_br_reg(&w, ARM64_REG_X16);
+    }
     return arm64_collect(w, buf, "Arm64Stubs::branch");
 }
 

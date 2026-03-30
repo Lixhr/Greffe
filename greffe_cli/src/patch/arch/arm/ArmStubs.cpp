@@ -56,7 +56,11 @@ std::vector<uint8_t> ArmStubs::branch(uint64_t from, uint64_t to) {
     GumArmWriter w;
     gum_arm_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(from);
-    gum_arm_writer_put_b_imm(&w, static_cast<GumAddress>(to));
+    if (gum_arm_writer_can_branch_directly_between(&w, from, to))
+        gum_arm_writer_put_b_imm(&w, static_cast<GumAddress>(to));
+    else
+        gum_arm_writer_put_ldr_reg_address(&w, ARM_REG_PC,
+                                           static_cast<GumAddress>(to));
     return arm_collect(w, buf, "ArmStubs::branch");
 }
 
