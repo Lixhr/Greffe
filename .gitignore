@@ -13,3 +13,6 @@ tests/bin/*/build/__greffe_workdir/*.o
 *.til
 *.greffe
 *.map
+*.bin
+*.elf
+*.greffe
