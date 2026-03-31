@@ -59,48 +59,21 @@ void TargetManager::validate_context_modes(const std::string& target, uint64_t e
     }
 }
 
-bool TargetManager::add_internal() {
-
-}
-
-const Target& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
-    const json entry = fetch_entry(target_str);
-    std::vector<ContextEntry> context = parse_context(entry);
-    const uint64_t ea = json_get<uint64_t>(entry, "ea");
-    validate_context_modes(target_str, ea, context);
-
-
-    std::lock_guard<std::mutex> lk(_mutex);
-
-    auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
-        [](const Target& t, uint64_t val) { return t.ea() < val; });
-
-    if (it != _targets.end() && it->ea() == ea)
-        return;
-
-    it = _targets.emplace(it,
-        json_get<std::string>(entry, "name"),
-        ea,
-        json_get<uint64_t>(entry, "end_ea"),
-        std::move(context)
-    );
-
-    create_handler_stub(*it, pinfo);
-    return *it;
-}
-
-bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
+std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
+                                                       std::vector<ContextEntry> context,
+                                                       const ProjectInfo& pinfo) {
     uint64_t ea = json_get<uint64_t>(entry, "ea");
 
     std::lock_guard<std::mutex> lk(_mutex);
 
+    // avoids cpu state changes
+    validate_context_modes(json_get<const std::string>(entry, "name"), ea, context);
+
     auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
         [](const Target& t, uint64_t val) { return t.ea() < val; });
 
     if (it != _targets.end() && it->ea() == ea)
-        return false;
-
-    std::vector<ContextEntry> context = parse_context(entry);
+        return {&*it, false};
 
     it = _targets.emplace(it,
         json_get<std::string>(entry, "name"),
@@ -110,7 +83,16 @@ bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
     );
 
     create_handler_stub(*it, pinfo);
-    return true;
+    return {&*it, true};
+}
+
+const Target& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
+    const json entry = fetch_entry(target_str);
+    return *add_internal(entry, parse_context(entry), pinfo).first;
+}
+
+bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
+    return add_internal(entry, parse_context(entry), pinfo).second;
 }
 
 void TargetManager::remove(const std::string& target) {
