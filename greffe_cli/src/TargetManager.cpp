@@ -100,8 +100,14 @@ std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
 
     auto [target, inserted] = append_target(entry, std::move(context), pinfo);
     if (inserted) {
-
-        create_handler_stub(*target, pinfo);
+        try {
+            create_handler_stub(*target, pinfo);
+        } catch (...) {
+            auto it = std::lower_bound(_targets.begin(), _targets.end(), target->ea(),
+                [](const Target& t, uint64_t val) { return t.ea() < val; });
+            _targets.erase(it);
+            throw;
+        }
     }
     return {target, inserted};
 }
