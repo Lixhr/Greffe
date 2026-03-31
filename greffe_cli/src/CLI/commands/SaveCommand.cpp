@@ -8,6 +8,6 @@ std::string_view SaveCommand::description() const { return "Save greffes"; }
 
 void SaveCommand::execute(CLIContext& ctx, const Args&) {
     auto path = ctx.pinfo.getProjectDir() / ".greffe";
-    ctx.targets.save(path, ctx.bin_base, ctx.patch_base);
+    ctx.targets.save(path, ctx.bin_base, ctx.pinfo.getPatchBase());
     std::cout << Color::GREY << "saved to " << path.string() << Color::RST << '\n';
 }

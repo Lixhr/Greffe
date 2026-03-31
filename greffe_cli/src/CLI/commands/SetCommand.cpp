@@ -34,7 +34,7 @@ void SetCommand::execute(CLIContext& ctx, const Args& args) {
         std::cout << Color::GREY << "bin_base = 0x" << std::hex << value
                   << std::dec << Color::RST << '\n';
     } else if (field == "patch_base") {
-        ctx.patch_base = value;
+        ctx.pinfo.setPatchBase(value);
         std::cout << Color::GREY << "patch_base = 0x" << std::hex << value
                   << std::dec << Color::RST << '\n';
     } else {

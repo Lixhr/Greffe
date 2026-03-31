@@ -2,6 +2,7 @@
 
 #include "IdaIPC.hpp"
 #include <filesystem>
+#include <optional>
 #include <vector>
 
 class Segment {
@@ -29,17 +30,21 @@ public:
     const std::filesystem::path& getBinPath()    const { return bin_path; }
     const std::string&           getArch()       const { return arch; }
     const std::string&           getEndianness() const { return endianness; }
+    std::optional<uint64_t>      getPatchBase()  const { return patch_base; }
+    void                         setPatchBase(uint64_t v) { patch_base = v; }
+    void                         initPatchBase(uint64_t bin_base);
 
 private:
     json fetchInfo(IdaIPC& client);
     void populateFromJson(const json& body);
     void setupProjectDir();
 
-    std::filesystem::path bin_path;
-    std::filesystem::path project_dir;
-    std::string           arch;
-    std::string           endianness;
-    int                   bits;
-    uint64_t              bin_base;
-    std::vector<Segment>  segments;
+    std::filesystem::path   bin_path;
+    std::filesystem::path   project_dir;
+    std::string             arch;
+    std::string             endianness;
+    int                     bits;
+    uint64_t                bin_base;
+    std::optional<uint64_t> patch_base;
+    std::vector<Segment>    segments;
 };
