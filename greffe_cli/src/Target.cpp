@@ -20,11 +20,15 @@ const std::string&               Target::name()    const { return _name; }
 uint64_t                         Target::ea()      const { return _ea; }
 uint64_t                         Target::end_ea()  const { return _end_ea; }
 const std::vector<ContextEntry>& Target::context() const { return _context; }
+uint64_t                         Target::trampoline_addr() const { return _trampoline_addr;}
+void                             Target::setTrampolineAddr(uint64_t addr) { 
+    _trampoline_addr = addr;
+}
+
 IArchStubs&                      Target::stubs()   const {
     if (!_stubs) throw std::runtime_error("Target: stubs not set");
     return *_stubs;
 }
-
 
 static std::vector<uint8_t> hex_decode(const std::string& hex) {
     std::vector<uint8_t> out;

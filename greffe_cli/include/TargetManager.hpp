@@ -24,10 +24,10 @@ class TargetManager {
         void                remove(const std::string& target);
         std::vector<Target> targets() const;
 
-        void         save(const std::filesystem::path& path,
-                          uint64_t                     bin_base,
-                          std::optional<uint64_t>      patch_base) const;
-        SavedProject load(const std::filesystem::path& path, const ProjectInfo& pinfo);
+        void                save(const std::filesystem::path& path,
+                                 uint64_t                     bin_base,
+                                 std::optional<uint64_t>      patch_base) const;
+        SavedProject        load(const std::filesystem::path& path, const ProjectInfo& pinfo);
 
     private:
         json                             fetch_entry(const std::string& target);
@@ -44,6 +44,8 @@ class TargetManager {
                                                        std::vector<ContextEntry> context,
                                                        const ProjectInfo& pinfo);
 
+        void                             set_trampoline_addr(Target *target, uint32_t trg_index,
+                                                        uint64_t patch_base);
         IdaIPC&              _ipc;
         std::vector<Target>  _targets;
         mutable std::mutex   _mutex;

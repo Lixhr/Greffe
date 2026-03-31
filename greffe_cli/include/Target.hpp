@@ -20,16 +20,19 @@ class Target {
                std::vector<ContextEntry> context,
                std::shared_ptr<IArchStubs> stubs);
 
-        const std::string&               name()    const;
-        uint64_t                         ea()      const;
-        uint64_t                         end_ea()  const;
-        const std::vector<ContextEntry>& context() const;
-        IArchStubs&                      stubs()   const;
+        const std::string&               name()              const;
+        uint64_t                         ea()                const;
+        uint64_t                         end_ea()            const;
+        const std::vector<ContextEntry>& context()           const;
+        IArchStubs&                      stubs()             const;
+        uint64_t                         trampoline_addr() const;
 
+        void                             setTrampolineAddr(uint64_t addr);
     private:
         std::string                 _name;
         uint64_t                    _ea;
         uint64_t                    _end_ea;
+        uint64_t                    _trampoline_addr;
         std::vector<ContextEntry>   _context;
         std::shared_ptr<IArchStubs> _stubs;
 };

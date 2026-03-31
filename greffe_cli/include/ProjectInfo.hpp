@@ -24,15 +24,16 @@ struct ProjectInfo {
 public:
     ProjectInfo(IdaIPC& client);
 
+    void                         setPatchBase(uint64_t base) { patch_base = base; };
+    void                         initPatchBase(uint64_t bin_base);
+
     int                          getBits()       const { return bits; }
     uint64_t                     getBinBase()    const { return bin_base; }
+    uint64_t                     getPatchBase()  const { return patch_base; }
     const std::filesystem::path& getProjectDir() const { return project_dir; }
     const std::filesystem::path& getBinPath()    const { return bin_path; }
     const std::string&           getArch()       const { return arch; }
     const std::string&           getEndianness() const { return endianness; }
-    std::optional<uint64_t>      getPatchBase()  const { return patch_base; }
-    void                         setPatchBase(uint64_t v) { patch_base = v; }
-    void                         initPatchBase(uint64_t bin_base);
 
 private:
     json fetchInfo(IdaIPC& client);
@@ -45,6 +46,6 @@ private:
     std::string             endianness;
     int                     bits;
     uint64_t                bin_base;
-    std::optional<uint64_t> patch_base;
+    uint64_t                patch_base = -1ULL;
     std::vector<Segment>    segments;
 };

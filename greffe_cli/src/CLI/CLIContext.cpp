@@ -10,6 +10,6 @@ CLIContext::CLIContext(IdaIPC& client, ProjectInfo& pinfo)
         if (cfg.patch_base) pinfo.setPatchBase(*cfg.patch_base);
     }
 
-    if (!pinfo.getPatchBase())
+    if (pinfo.getPatchBase() == -1ULL)
         pinfo.initPatchBase(bin_base);
 }
