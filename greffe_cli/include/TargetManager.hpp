@@ -19,7 +19,7 @@ class TargetManager {
     public:
         explicit TargetManager(IdaIPC& ipc);
 
-        const Target&       add(const std::string& target);
+        const Target&       add(const std::string& target, const ProjectInfo& pinfo);
         bool                add_direct(const json& entry, const ProjectInfo& pinfo);
         void                remove(const std::string& target);
         std::vector<Target> targets() const;
@@ -35,7 +35,9 @@ class TargetManager {
         static void                      validate_context_modes(const std::string& target,
                                                                 uint64_t ea,
                                                                 const std::vector<ContextEntry>& context);
-
+        std::pair<Target*, bool>         add_internal(const json& entry,
+                                                          std::vector<ContextEntry> context,
+                                                          const ProjectInfo& pinfo);
         IdaIPC&              _ipc;
         std::vector<Target>  _targets;
         mutable std::mutex   _mutex;

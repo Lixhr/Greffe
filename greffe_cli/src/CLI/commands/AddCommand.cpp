@@ -50,16 +50,6 @@ void AddCommand::execute(CLIContext& ctx, const Args& args) {
         throw std::runtime_error("usage: add <target> [target ...]");
 
     for (const auto& arg : args) {
-        const Target& t = ctx.targets.add(arg);
-        auto stubs     = StubsFactory::create(t, ctx.pinfo);
-        auto relocator = RelocatorFactory::create(t, ctx.pinfo);
-        try {
-            TrampolineBuilder::validate(t, *stubs, *relocator);
-        } catch (...) {
-            ctx.targets.remove(t.name());
-            throw;
-        }
-        std::cout << TargetView{ t, ctx.pinfo.getBits() };
-        create_handler_stub(t, ctx.pinfo);
+        ctx.targets.add(arg, ctx.pinfo);
     }
 }
