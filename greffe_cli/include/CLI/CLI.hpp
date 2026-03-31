@@ -18,7 +18,6 @@ CommandNode group(std::string name, std::string desc,
 class CLI {
     public:
         explicit CLI(CLIContext& ctx);
-
         void register_command(std::unique_ptr<ICommand> cmd);
 
         void run();

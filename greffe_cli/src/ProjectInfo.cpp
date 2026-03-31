@@ -1,11 +1,13 @@
 #include "ProjectInfo.hpp"
 #include "MakefileTemplates.hpp"
 #include "utils.hpp"
-
+#include "colors.hpp"
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include "cli_fmt.hpp"
 
+using namespace Color;
 
 Segment::Segment(const json& json_seg)
     : start(json_get<uint64_t>(json_seg, "start"))
@@ -23,6 +25,7 @@ void ProjectInfo::populateFromJson(const json& body) {
     endianness = json_get<std::string>(body, "endianness");
     bits       = json_get<int>        (body, "bits");
     bin_base   = json_get<uint64_t>   (body, "bin_base");
+    
 
     for (const json& seg : json_get<json>(body, "segments"))
         segments.emplace_back(seg);
@@ -51,12 +54,41 @@ void ProjectInfo::setupProjectDir() {
         f << MakefileTemplates::get(arch);
     }
 
-    std::cout << "Working directory: " << project_dir.string() << "/\n";
+    std::cout << GREY << BOLD << "Working directory: \n" << project_dir.string() \
+    << RST << "\n";
 }
 
+
+static uint64_t prompt_patch_base() {
+    char* raw = readline("patch_base (hex): ");
+    if (!raw)
+        throw std::runtime_error("patch_base is required");
+    std::string s = raw;
+    free(raw);
+    try {
+        std::size_t pos = 0;
+        uint64_t v = std::stoull(s, &pos, 0);
+        if (pos != s.size()) throw std::invalid_argument("");
+        return v;
+    } catch (...) {
+        throw std::runtime_error("invalid address: " + s);
+    }
+}
 
 ProjectInfo::ProjectInfo(IdaIPC& client) {
     json info = fetchInfo(client);
     populateFromJson(info);
     setupProjectDir();
+}
+
+void ProjectInfo::initPatchBase(uint64_t bin_base) {
+    uint64_t usr_base = prompt_patch_base();
+
+    if (usr_base < bin_base) 
+        throw std::invalid_argument("patch_base < bin_base");
+
+    if (bits == 32 && usr_base > UINT32_MAX)
+        throw std::invalid_argument("patch_base > UINT32_MAX (32 bits arch)");
+
+    patch_base = usr_base;
 }

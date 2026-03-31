@@ -76,21 +76,7 @@ CommandNode group(std::string name, std::string desc,
     return n;
 }
 
-static void print_banner() {
-    using namespace Color;
-    std::cout
-        << BLUE << "  ╔══════════════════════════════════════╗\n"
-        << BLUE << "  ║  " << BOLD << "greffe" << RST << BLUE << "                              ║\n"
-        << BLUE << "  ║  " << DIM  << "Bare-Metal Binary Instrumentation" << RST << BLUE << "   ║\n"
-        << BLUE << "  ╚══════════════════════════════════════╝\n"
-        << RST
-        << CYAN << "  Type " << BOLD << "help" << RST << CYAN << " to list available commands.\n"
-        << RST << '\n';
-}
-
 void CLI::run() {
-    print_banner();
-
     signal(SIGINT,  sigint_handler);
     signal(SIGQUIT, SIG_IGN);
 

@@ -30,17 +30,14 @@ void PatchCommand::print_patch_info(CLIContext& ctx) {
     unsigned w    = static_cast<unsigned>(bits / 4);
 
     std::cout << "  bin_base   : 0x" << std::hex << std::setfill('0')
-              << std::setw(w) << ctx.bin_base   << '\n'
-              << "  patch_base : 0x" << std::setw(w) << *ctx.patch_base
+              << std::setw(w) << ctx.bin_base                    << '\n'
+              << "  patch_base : 0x" << std::setw(w) << *ctx.pinfo.getPatchBase()
               << std::dec << '\n';
 }
 
 void PatchCommand::execute(CLIContext& ctx, const Args&) {
     if (ctx.targets.targets().empty())
         throw std::runtime_error("nothing to patch");
-
-    if (!ctx.patch_base)
-        throw std::runtime_error("patch_base is not set (use: set patch_base <addr>)");
 
     print_patch_info(ctx);
 
@@ -52,6 +49,6 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
 
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
     PatchSession::run(ctx.targets.targets(), handler_bin,
-                      *ctx.patch_base, ctx.bin_base,
+                      *ctx.pinfo.getPatchBase(), ctx.bin_base,
                       ctx.pinfo, out_path);
 }

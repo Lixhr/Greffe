@@ -4,7 +4,7 @@ namespace Color {
     constexpr auto RST   = "\033[0m";
     constexpr auto BOLD  = "\033[1m";
     constexpr auto DIM   = "\033[2m";
-    constexpr auto GREY  = "\033[90m";
+    constexpr auto GREY  = "\033[37m";
     constexpr auto RED   = "\033[31m";
     constexpr auto GREEN = "\033[32m";
     constexpr auto BLUE  = "\033[34m";
