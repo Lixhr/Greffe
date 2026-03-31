@@ -5,7 +5,24 @@
 #include "utils.hpp"
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
+
+static std::vector<uint8_t> hex_decode(const std::string& hex) {
+    std::vector<uint8_t> out;
+    out.reserve(hex.size() / 2);
+    for (size_t i = 0; i + 1 < hex.size(); i += 2)
+        out.push_back(static_cast<uint8_t>(std::stoul(hex.substr(i, 2), nullptr, 16)));
+    return out;
+}
+
+static std::string hex_encode(const std::vector<uint8_t>& bytes) {
+    std::ostringstream ss;
+    ss << std::hex << std::setfill('0');
+    for (uint8_t b : bytes)
+        ss << std::setw(2) << static_cast<int>(b);
+    return ss.str();
+}
 
 TargetManager::TargetManager(IdaIPC& ipc)
     : _ipc(ipc) {}
@@ -32,7 +49,7 @@ std::vector<ContextEntry> TargetManager::parse_context(const json& entry) {
     for (const auto& c : entry.at("context")) {
         context.push_back({
             json_get<uint64_t>(c, "ea"),
-            json_get<std::string>(c, "raw"),
+            hex_decode(json_get<std::string>(c, "raw")),
             json_get<std::string>(c, "mode"),
             c.value("is_xref_target", false),
         });
@@ -95,8 +112,6 @@ std::pair<Target*, bool> TargetManager::append_target(const json& entry,
 
 void TargetManager::set_trampoline_addr(Target *target, uint32_t trg_index,
                                    uint64_t patch_base) {
-    IArchStubs &stubs = target->stubs();
-
     uint64_t offset = 0;                                                                                                                                                                          
     for (size_t i = 0; i < trg_index; ++i)                                                                                                                                                        
         offset += _targets[i].stubs().branch_placeholder_size();                                                                                                                                  
@@ -170,7 +185,7 @@ void TargetManager::save(const std::filesystem::path& path,
     for (const auto& t : _targets) {
         json ctx_arr = json::array();
         for (const auto& c : t.context())
-            ctx_arr.push_back({ {"ea", c.ea}, {"raw", c.raw}, {"mode", c.mode},
+            ctx_arr.push_back({ {"ea", c.ea}, {"raw", hex_encode(c.raw)}, {"mode", c.mode},
                                  {"is_xref_target", c.is_xref_target} });
 
         traced.push_back({

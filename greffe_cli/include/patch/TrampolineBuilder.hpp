@@ -8,8 +8,7 @@
 
 namespace TrampolineBuilder {
 
-    // Throws if the target instruction cannot be safely overwritten by a hook.
-    void validate(const Target& t, IArchStubs& stubs, IRelocator& relocator);
+    void create_branch(const Target& t);
 
     std::vector<uint8_t> build(const Target& t,
                                uint64_t      handler_addr,

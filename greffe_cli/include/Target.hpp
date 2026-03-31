@@ -8,9 +8,9 @@
 #include <ostream>
 
 struct ContextEntry {
-    uint64_t    ea;
-    std::string raw;
-    std::string mode;
+    uint64_t             ea;
+    std::vector<uint8_t> raw;
+    std::string          mode;
     bool        is_xref_target = false;
 };
 
@@ -35,6 +35,7 @@ class Target {
         uint64_t                    _trampoline_addr;
         std::vector<ContextEntry>   _context;
         std::shared_ptr<IArchStubs> _stubs;
+        std::vector<uint8_t>        _branch_instr;
 };
 
 struct TargetView {
