@@ -22,13 +22,27 @@ uint64_t                         Target::ea()      const { return _ea; }
 uint64_t                         Target::end_ea()  const { return _end_ea; }
 const std::vector<ContextEntry>& Target::context() const { return _context; }
 uint64_t                         Target::trampoline_addr() const { return _trampoline_addr;}
+
 void                             Target::setTrampolineAddr(uint64_t addr) { 
     _trampoline_addr = addr;
+}
+
+void                             Target::setTrampolineRetAddr(uint64_t addr) {
+    _trampoline_ret_addr = addr;
+}
+
+void                             Target::setBranchInstr(std::vector<uint8_t> branch) {
+    _branch_instr = std::move(branch);
 }
 
 IArchStubs&                      Target::stubs()   const {
     if (!_stubs) throw std::runtime_error("Target: stubs not set");
     return *_stubs;
+}
+
+void                             Target::setRelocdInstrs(
+                                 std::vector<const ContextEntry *> instrs) {
+    _relocd_instrs = std::move(instrs);
 }
 
 

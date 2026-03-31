@@ -1,33 +1,44 @@
 #include "TrampolineBuilder.hpp"
-
 #include <stdexcept>
 #include <algorithm>
-// Throws if the target instruction(s) cannot be safely overwritten by a branch.
-// void TrampolineBuilder::validate_hook____(const Target& t) {
+#include <iomanip>
+#include <iostream>
 
+void TrampolineBuilder::branch_init(Target& t) {
+    // generate a branch from the target to the trampoline
+    IArchStubs &stubs = t.stubs();
+    std::vector<uint8_t> branch = stubs.branch(t.ea(), t.trampoline_addr());
 
-void TrampolineBuilder::create_branch(const Target& t) {
-    std::vector<uint8_t> branch = t.stubs().branch(t.ea(), t.trampoline_addr());
-
+    // get our target
     auto it = std::find_if(t.context().begin(), t.context().end(),                                                                                                                                
     [&t](const ContextEntry& c) { return c.ea == t.ea() ; }); 
 
     if (it == t.context().end())
-        throw std::runtime_error("(Improbable) target instruction not found on context");
+        throw std::runtime_error("Target instruction not found on context ??");
+
 
     size_t len = 0;
-    while (it != t.context().end()) {
-        len += it->raw.size();
-        it ++;
-    }
-    throw std::runtime_error("(Improbable) target instruction not found on context");
+    std::vector<const ContextEntry *> relocd_instrs;
 
-    // std::vector<const ContextEntry &> reloc_instr;
-    // size_t size = 0;
-    // for (const auto& c : t.context()) {
-    //     reloc_instr.push_back(c);
-    //     size += 
-    // }
+    while (it != t.context().end()) {
+        // avoids overwriting instructions which is CODE XREFed
+        // the first instr is ignored (func start)
+        if (it->ea > t.ea() && it->is_xref_target)
+            throw std::runtime_error("Patched branch overlaps a CODE XREF");
+
+        len += it->raw.size();
+        relocd_instrs.push_back(&(*it));
+        it ++;
+        
+        if (len >= branch.size()) {
+            t.setTrampolineRetAddr(it->ea);
+            t.setRelocdInstrs(std::move(relocd_instrs));
+            t.setBranchInstr(std::move(branch));
+            return ;
+        }
+    }
+
+    throw std::runtime_error("Patched branch overlaps end of function");
 }
 
 std::vector<uint8_t> TrampolineBuilder::build(const Target&  /*t*/,

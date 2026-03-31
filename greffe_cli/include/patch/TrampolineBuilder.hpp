@@ -8,7 +8,7 @@
 
 namespace TrampolineBuilder {
 
-    void create_branch(const Target& t);
+    void branch_init(Target& t);
 
     std::vector<uint8_t> build(const Target& t,
                                uint64_t      handler_addr,

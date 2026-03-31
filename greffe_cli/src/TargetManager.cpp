@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include "TrampolineBuilder.hpp"
 
 static std::vector<uint8_t> hex_decode(const std::string& hex) {
     std::vector<uint8_t> out;
@@ -128,11 +129,14 @@ std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
     if (inserted) {
         try {
             set_trampoline_addr(target, _targets.size() - 1, pinfo.getPatchBase());
+            TrampolineBuilder::branch_init(*target);
             create_handler_stub(*target, pinfo);
+            
         } catch (...) {
             auto it = std::lower_bound(_targets.begin(), _targets.end(), target->ea(),
                 [](const Target& t, uint64_t val) { return t.ea() < val; });
             _targets.erase(it);
+
             throw;
         }
     }
