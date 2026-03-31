@@ -6,8 +6,10 @@ greffe_cli/build*
 .*
 greffe_cli/third_party/frida-gum/build/
 tests/bin/*/build/__greffe_workdir/*.o
+tests/bin/*/build/__greffe_workdir/handlers/
 *.id0
 *.id1
+*.i64
 *.nam
 *.mk
 *.til
@@ -16,3 +18,5 @@ tests/bin/*/build/__greffe_workdir/*.o
 *.bin
 *.elf
 *.greffe
+CLAUDE.md
+.gitignore
