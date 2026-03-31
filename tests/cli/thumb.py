@@ -14,9 +14,9 @@ RED    = "\033[31m"
 YELLOW = "\033[33m"
 RESET  = "\033[0m"
 
-TESTS: list[CliTest] = [
-    # CliTest("set patch_base 0x00010000", r"patch_base\s*=\s*0x10000"),
-    CliTest("set patch_base 0x1100000", r"patch_base\s*=\s*0x1100000"),
+TEST: list[CliTest] = [
+    CliTest("set patch_base 0x00010000", r"patch_base\s*=\s*0x10000"),
+    # CliTest("set patch_base 0x1100000", r"patch_base\s*=\s*0x1100000"),
 
     # =================== Just after a CODE XREF (OK) ===================
     # ROM:00000248 loc_248                                 ; CODE XREF: sub_230+38↓j
@@ -38,7 +38,7 @@ TESTS: list[CliTest] = [
     CliTest("add 0x00000246", r"which is a code xref target"),
 
 
-    # =================== Conditionnal branch (OK) =================== 
+    # =================== Conditionnal branch (OK) ===================
     # Two target instructions
     # ROM:00000286                 SUBS            R5, R1, #0
     # ROM:00000288                 BLE             loc_2E2
@@ -62,12 +62,19 @@ TESTS: list[CliTest] = [
     CliTest("patch\ny", r"written to "),
 
 
-    # CliTest("set patch_base 0x00010000000", r"patch_base\s*=\s*0x10000000"),
     CliTest("patch\ny", r"written to "),
-
-
 ]
 
+
+SESSIONS: dict[str, list[CliTest]] = {
+    "TEST": TEST,
+}
+
+# =============================================================================
+
+ALL_TESTS: list[tuple[str, CliTest]] = [
+    (name, tc) for name, tests in SESSIONS.items() for tc in tests
+]
 
 
 def get_patch_base(nm: str, elf_path: str) -> str:
@@ -80,7 +87,7 @@ def get_patch_base(nm: str, elf_path: str) -> str:
     raise RuntimeError(f"patch_base not defined in {elf_path}")
 
 
-def run_greffe(tests: list[CliTest]) -> list[str]:
+def run_greffe(tests: list[CliTest]) -> dict[str, list[str]]:
     stdin = "\n".join(t._input for t in tests) + "\n"
     output = subprocess.run([GREFFE_PATH], input=stdin, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if output.returncode:
@@ -109,12 +116,16 @@ def greffe_output():
     print(f"\n  {YELLOW}elf        :{RESET} {ELF}")
     print(f"  {YELLOW}patched    :{RESET} {BIN}")
     print(f"  {YELLOW}patch_base :{RESET} {patch_base}")
-    return run_greffe(TESTS)
+    return {name: run_greffe(tests) for name, tests in SESSIONS.items()}
 
 
-@pytest.mark.parametrize("tc", TESTS, ids=[t._input for t in TESTS])
-def test_cli_output(tc: CliTest, greffe_output: dict[str, list[str]]):
-    lines = greffe_output.get(tc._input.splitlines()[0], [])
+@pytest.mark.parametrize(
+    "session_name,tc",
+    ALL_TESTS,
+    ids=[f"{name}::{tc._input}" for name, tc in ALL_TESTS],
+)
+def test_cli_output(session_name: str, tc: CliTest, greffe_output: dict[str, dict[str, list[str]]]):
+    lines = greffe_output[session_name].get(tc._input.splitlines()[0], [])
     matched = any(re.search(tc._expected, line) for line in lines)
     if matched:
         print(f"\n  {GREEN}PASS{RESET}  [{tc._input}] matched /{tc._expected}/")
@@ -125,4 +136,3 @@ def test_cli_output(tc: CliTest, greffe_output: dict[str, list[str]]):
             f"  pattern : /{tc._expected}/\n"
             f"  output  :\n{output_dump}"
         )
-
