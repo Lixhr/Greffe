@@ -8,9 +8,9 @@
 #include <ostream>
 
 struct ContextEntry {
-    uint64_t    ea;
-    std::string raw;
-    std::string mode;
+    uint64_t             ea;
+    std::vector<uint8_t> raw;
+    std::string          mode;
     bool        is_xref_target = false;
 };
 
@@ -28,13 +28,21 @@ class Target {
         uint64_t                         trampoline_addr() const;
 
         void                             setTrampolineAddr(uint64_t addr);
+        void                             setTrampolineRetAddr(uint64_t addr);
+        void                             setBranchInstr(std::vector<uint8_t> branch);
+        void                             setRelocdInstrs(
+                                         std::vector<const ContextEntry *> instrs);
+
     private:
-        std::string                 _name;
-        uint64_t                    _ea;
-        uint64_t                    _end_ea;
-        uint64_t                    _trampoline_addr;
-        std::vector<ContextEntry>   _context;
-        std::shared_ptr<IArchStubs> _stubs;
+        std::string                         _name;
+        uint64_t                            _ea;
+        uint64_t                            _end_ea;
+        uint64_t                            _trampoline_addr;
+        uint64_t                            _trampoline_ret_addr;
+        std::vector<ContextEntry>           _context;
+        std::shared_ptr<IArchStubs>         _stubs;
+        std::vector<uint8_t>                _branch_instr;
+        std::vector<const ContextEntry *>   _relocd_instrs;
 };
 
 struct TargetView {

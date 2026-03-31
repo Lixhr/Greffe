@@ -120,7 +120,7 @@ void IdaIPC::run(CLIContext& ctx) {
                                         + entry.value("name", "?") + Color::RST + '\n');
                         }
                     } catch (const std::exception& e) {
-                        async_print(std::string("[IdaIPC] add_direct: ") + e.what() + '\n');
+                        async_print(std::string("[IdaIPC] add: ") + e.what() + '\n');
                     }
                 }
             }

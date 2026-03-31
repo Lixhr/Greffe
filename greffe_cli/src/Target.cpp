@@ -4,6 +4,7 @@
 
 #include <capstone/capstone.h>
 #include <iomanip>
+#include <sstream>
 #include <vector>
 
 
@@ -21,8 +22,17 @@ uint64_t                         Target::ea()      const { return _ea; }
 uint64_t                         Target::end_ea()  const { return _end_ea; }
 const std::vector<ContextEntry>& Target::context() const { return _context; }
 uint64_t                         Target::trampoline_addr() const { return _trampoline_addr;}
+
 void                             Target::setTrampolineAddr(uint64_t addr) { 
     _trampoline_addr = addr;
+}
+
+void                             Target::setTrampolineRetAddr(uint64_t addr) {
+    _trampoline_ret_addr = addr;
+}
+
+void                             Target::setBranchInstr(std::vector<uint8_t> branch) {
+    _branch_instr = std::move(branch);
 }
 
 IArchStubs&                      Target::stubs()   const {
@@ -30,13 +40,11 @@ IArchStubs&                      Target::stubs()   const {
     return *_stubs;
 }
 
-static std::vector<uint8_t> hex_decode(const std::string& hex) {
-    std::vector<uint8_t> out;
-    out.reserve(hex.size() / 2);
-    for (size_t i = 0; i + 1 < hex.size(); i += 2)
-        out.push_back(static_cast<uint8_t>(std::stoul(hex.substr(i, 2), nullptr, 16)));
-    return out;
+void                             Target::setRelocdInstrs(
+                                 std::vector<const ContextEntry *> instrs) {
+    _relocd_instrs = std::move(instrs);
 }
+
 
 static bool open_cs(int /*bits*/, const std::string& /*mode*/, csh& handle) {
     cs_arch_register_arm();
@@ -87,14 +95,18 @@ std::ostream& operator<<(std::ostream& os, const TargetView& v) {
            << std::hex << std::setw(addr_w) << std::setfill('0') << c.ea
            << RST << std::dec;
 
-        os << "  " << GREY
-           << std::left << std::setw(8) << std::setfill(' ') << c.raw
-           << RST << std::right;
+        {
+            std::ostringstream hex_ss;
+            hex_ss << std::hex << std::setfill('0');
+            for (uint8_t b : c.raw) hex_ss << std::setw(2) << static_cast<int>(b);
+            os << "  " << GREY
+               << std::left << std::setw(8) << std::setfill(' ') << hex_ss.str()
+               << RST << std::right;
+        }
 
         if (has_cs) {
-            auto     bytes = hex_decode(c.raw);
             cs_insn* insn  = nullptr;
-            size_t   count = cs_disasm(cs_handle, bytes.data(), bytes.size(), c.ea, 1, &insn);
+            size_t   count = cs_disasm(cs_handle, c.raw.data(), c.raw.size(), c.ea, 1, &insn);
             if (count > 0) {
                 os << "  " << CYAN << insn->mnemonic;
                 if (insn->op_str[0] != '\0')
