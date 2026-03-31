@@ -24,6 +24,6 @@ public:
     }
 
 private:
-    std::vector<uint8_t>                    _bytes;
+    std::vector<uint8_t>                      _bytes;
     std::unordered_map<std::string, uint64_t> _offsets;
 };

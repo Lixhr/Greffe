@@ -1,13 +1,31 @@
 #include "TrampolineBuilder.hpp"
+#include "PatchSession.hpp"
 #include <stdexcept>
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
 
+uint64_t TrampolineBuilder::patch_branches(PatchSession &session, 
+                                       const std::vector<Target> &targets) {
+    const Target *last_target = NULL;
+
+    for (const auto &target : targets) {
+        // keep track of the last trampoline
+        if (!last_target || target.ea() > last_target->ea())
+            last_target = &target;
+
+        session.patch(target.ea(), target.branch_instr());
+    }
+
+    return (last_target->trampoline_addr() 
+    + last_target->stubs().branch_placeholder_size()); // current writing pointer
+}
+
 void TrampolineBuilder::branch_init(Target& t) {
     // generate a branch from the target to the trampoline
     IArchStubs &stubs = t.stubs();
     std::vector<uint8_t> branch = stubs.branch(t.ea(), t.trampoline_addr());
+
 
     // get our target
     auto it = std::find_if(t.context().begin(), t.context().end(),                                                                                                                                
