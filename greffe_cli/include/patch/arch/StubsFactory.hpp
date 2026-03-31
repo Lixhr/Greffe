@@ -1,11 +1,10 @@
 #pragma once
 
 #include "IArchStubs.hpp"
-#include "Target.hpp"
-#include "ProjectInfo.hpp"
 #include <memory>
+#include <string_view>
 
 class StubsFactory {
 public:
-    static std::unique_ptr<IArchStubs> create(const Target& t, const ProjectInfo& pi);
+    static std::shared_ptr<IArchStubs> create(int bits, std::string_view mode);
 };

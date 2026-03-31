@@ -5,7 +5,7 @@ CLIContext::CLIContext(IdaIPC& client, ProjectInfo& pinfo)
     auto greffe = pinfo.getProjectDir() / ".greffe";
 
     if (std::filesystem::exists(greffe)) {
-        auto cfg = targets.load(greffe);
+        auto cfg = targets.load(greffe, pinfo);
         if (cfg.bin_base)   bin_base = *cfg.bin_base;
         if (cfg.patch_base) pinfo.setPatchBase(*cfg.patch_base);
     }
