@@ -1,6 +1,7 @@
 #include "TargetManager.hpp"
 #include "CLI/TargetCommands.hpp"
 #include "ProjectInfo.hpp"
+#include "patch/arch/StubsFactory.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <fstream>
@@ -59,15 +60,21 @@ void TargetManager::validate_context_modes(const std::string& target, uint64_t e
     }
 }
 
-std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
+static std::shared_ptr<IArchStubs> resolve_stubs(const std::vector<ContextEntry>& context,
+                                                  uint64_t ea, int bits) {
+    std::string_view mode;
+    for (const auto& c : context)
+        if (c.ea == ea) { mode = c.mode; break; }
+    return StubsFactory::create(bits, mode);
+}
+
+std::pair<Target*, bool> TargetManager::append_target(const json& entry,
                                                        std::vector<ContextEntry> context,
                                                        const ProjectInfo& pinfo) {
-    uint64_t ea = json_get<uint64_t>(entry, "ea");
+    uint64_t          ea   = json_get<uint64_t>(entry, "ea");
+    const std::string name = json_get<std::string>(entry, "name");
 
-    std::lock_guard<std::mutex> lk(_mutex);
-
-    // avoids cpu state changes
-    validate_context_modes(json_get<const std::string>(entry, "name"), ea, context);
+    validate_context_modes(name, ea, context);
 
     auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
         [](const Target& t, uint64_t val) { return t.ea() < val; });
@@ -75,15 +82,28 @@ std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
     if (it != _targets.end() && it->ea() == ea)
         return {&*it, false};
 
+    auto stubs = resolve_stubs(context, ea, pinfo.getBits());
     it = _targets.emplace(it,
-        json_get<std::string>(entry, "name"),
+        name,
         ea,
         json_get<uint64_t>(entry, "end_ea"),
-        std::move(context)
+        std::move(context),
+        std::move(stubs)
     );
-
-    create_handler_stub(*it, pinfo);
     return {&*it, true};
+}
+
+std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
+                                                       std::vector<ContextEntry> context,
+                                                       const ProjectInfo& pinfo) {
+    std::lock_guard<std::mutex> lk(_mutex);
+
+    auto [target, inserted] = append_target(entry, std::move(context), pinfo);
+    if (inserted) {
+
+        create_handler_stub(*target, pinfo);
+    }
+    return {target, inserted};
 }
 
 const Target& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
@@ -158,7 +178,7 @@ void TargetManager::save(const std::filesystem::path& path,
     f << root.dump(2) << '\n';
 }
 
-SavedProject TargetManager::load(const std::filesystem::path& path) {
+SavedProject TargetManager::load(const std::filesystem::path& path, const ProjectInfo& pinfo) {
     std::lock_guard<std::mutex> lk(_mutex);
     std::ifstream f(path);
     if (!f)
@@ -175,23 +195,8 @@ SavedProject TargetManager::load(const std::filesystem::path& path) {
             cfg.patch_base = proj["patch_base"].get<uint64_t>();
     }
 
-    for (const auto& entry : root.at("traced")) {
-        std::vector<ContextEntry> context = parse_context(entry);
-
-        uint64_t ea = json_get<uint64_t>(entry, "ea");
-        auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
-            [](const Target& t, uint64_t val) { return t.ea() < val; });
-
-        if (it != _targets.end() && it->ea() == ea)
-            continue;
-
-        _targets.emplace(it,
-            json_get<std::string>(entry, "name"),
-            ea,
-            json_get<uint64_t>(entry, "end_ea"),
-            std::move(context)
-        );
-    }
+    for (const auto& entry : root.at("traced"))
+        append_target(entry, parse_context(entry), pinfo);
 
     return cfg;
 }
