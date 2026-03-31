@@ -93,14 +93,26 @@ std::pair<Target*, bool> TargetManager::append_target(const json& entry,
     return {&*it, true};
 }
 
+void TargetManager::set_trampoline_addr(Target *target, uint32_t trg_index,
+                                   uint64_t patch_base) {
+    IArchStubs &stubs = target->stubs();
+
+    uint64_t offset = 0;                                                                                                                                                                          
+    for (size_t i = 0; i < trg_index; ++i)                                                                                                                                                        
+        offset += _targets[i].stubs().branch_placeholder_size();                                                                                                                                  
+
+    target->setTrampolineAddr(patch_base + offset);
+}
+
 std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
-                                                       std::vector<ContextEntry> context,
-                                                       const ProjectInfo& pinfo) {
+                                                     std::vector<ContextEntry> context,
+                                                     const ProjectInfo& pinfo) {
     std::lock_guard<std::mutex> lk(_mutex);
 
     auto [target, inserted] = append_target(entry, std::move(context), pinfo);
     if (inserted) {
         try {
+            set_trampoline_addr(target, _targets.size() - 1, pinfo.getPatchBase());
             create_handler_stub(*target, pinfo);
         } catch (...) {
             auto it = std::lower_bound(_targets.begin(), _targets.end(), target->ea(),
