@@ -7,5 +7,5 @@
 
 class StubsFactory {
 public:
-    static std::unique_ptr<IArchStubs> create(const Target& t, const ProjectInfo& pi);
+    static std::shared_ptr<IArchStubs> create(const Target& t, const ProjectInfo& pi);
 };
