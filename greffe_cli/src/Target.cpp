@@ -27,7 +27,7 @@ static std::vector<uint8_t> hex_decode(const std::string& hex) {
     return out;
 }
 
-static bool open_cs(int bits, const std::string& mode, csh& handle) {
+static bool open_cs(int /*bits*/, const std::string& /*mode*/, csh& handle) {
     cs_arch_register_arm();
     // cs_arch_register_arm64();
 

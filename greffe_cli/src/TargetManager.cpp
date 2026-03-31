@@ -1,9 +1,6 @@
 #include "TargetManager.hpp"
 #include "CLI/TargetCommands.hpp"
 #include "ProjectInfo.hpp"
-#include "patch/TrampolineBuilder.hpp"
-#include "patch/arch/StubsFactory.hpp"
-#include "patch/arch/RelocatorFactory.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <fstream>
@@ -62,11 +59,16 @@ void TargetManager::validate_context_modes(const std::string& target, uint64_t e
     }
 }
 
-const Target& TargetManager::add(const std::string& target) {
-    const json entry = fetch_entry(target);
+bool TargetManager::add_internal() {
+
+}
+
+const Target& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
+    const json entry = fetch_entry(target_str);
     std::vector<ContextEntry> context = parse_context(entry);
     const uint64_t ea = json_get<uint64_t>(entry, "ea");
-    validate_context_modes(target, ea, context);
+    validate_context_modes(target_str, ea, context);
+
 
     std::lock_guard<std::mutex> lk(_mutex);
 
@@ -74,7 +76,7 @@ const Target& TargetManager::add(const std::string& target) {
         [](const Target& t, uint64_t val) { return t.ea() < val; });
 
     if (it != _targets.end() && it->ea() == ea)
-        throw std::runtime_error(target + " already registered");
+        return;
 
     it = _targets.emplace(it,
         json_get<std::string>(entry, "name"),
@@ -83,6 +85,7 @@ const Target& TargetManager::add(const std::string& target) {
         std::move(context)
     );
 
+    create_handler_stub(*it, pinfo);
     return *it;
 }
 
@@ -99,23 +102,14 @@ bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
 
     std::vector<ContextEntry> context = parse_context(entry);
 
-    const auto &new_target = _targets.emplace(it,
+    it = _targets.emplace(it,
         json_get<std::string>(entry, "name"),
         ea,
         json_get<uint64_t>(entry, "end_ea"),
         std::move(context)
     );
 
-    auto stubs     = StubsFactory::create(*new_target, pinfo);
-    auto relocator = RelocatorFactory::create(*new_target, pinfo);
-    try {
-        TrampolineBuilder::validate(*new_target, *stubs, *relocator);
-    } catch (...) {
-        _targets.erase(new_target);
-        throw;
-    }
-
-    create_handler_stub(*new_target, pinfo);
+    create_handler_stub(*it, pinfo);
     return true;
 }
 
