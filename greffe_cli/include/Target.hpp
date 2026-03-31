@@ -25,7 +25,8 @@ class Target {
         uint64_t                         end_ea()            const;
         const std::vector<ContextEntry>& context()           const;
         IArchStubs&                      stubs()             const;
-        uint64_t                         trampoline_addr() const;
+        uint64_t                         trampoline_addr()   const;
+        std::vector<uint8_t>             branch_instr()      const;
 
         void                             setTrampolineAddr(uint64_t addr);
         void                             setTrampolineRetAddr(uint64_t addr);

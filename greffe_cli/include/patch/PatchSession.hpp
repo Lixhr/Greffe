@@ -1,18 +1,17 @@
 #pragma once
 
-#include "Target.hpp"
-#include "HandlerBin.hpp"
-#include "ProjectInfo.hpp"
+#include <cstdint>
 #include <filesystem>
 #include <vector>
 
-namespace PatchSession {
+class PatchSession {
+public:
+    PatchSession(const std::filesystem::path& bin_path, uint64_t bin_base);
 
-    void run(const std::vector<Target>&    targets,
-             const HandlerBin&             handler_bin,
-             uint64_t                      patch_base,
-             uint64_t                      bin_base,
-             const ProjectInfo&            pinfo,
-             const std::filesystem::path&  outfile);
+    void patch(uint64_t address, const std::vector<uint8_t>& bytes);
+    void save(const std::filesystem::path& outfile) const;
 
-}
+private:
+    std::vector<uint8_t> buffer_;
+    uint64_t             bin_base_;
+};

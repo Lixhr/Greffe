@@ -1,12 +1,14 @@
 #include "TargetCommands.hpp"
 #include "CLIContext.hpp"
 #include "HandlerCompiler.hpp"
+#include "TrampolineBuilder.hpp"
 #include "PatchSession.hpp"
 #include "cli_fmt.hpp"
 #include "colors.hpp"
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
 
 std::string_view PatchCommand::name()        const { return "patch"; }
 std::string_view PatchCommand::description() const { return "Compile handlers and apply all greffes"; }
@@ -47,8 +49,18 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         return;
     }
 
+    // compiled blob
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
-    PatchSession::run(ctx.targets.targets(), handler_bin,
-                      ctx.pinfo.getPatchBase(), ctx.bin_base,
-                      ctx.pinfo, out_path);
+    PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
+
+    uint64_t waddr = TrampolineBuilder::patch_branches(session, ctx.targets.targets());
+
+
+    // if (!handler_bin.bytes().empty())
+        // session.patch(ctx.pinfo.getPatchBase() - ctx.bin_base, handler_bin.bytes());
+
+
+
+    session.save(out_path);
+    std::cout << Color::GREEN << "written to " << out_path.string() << Color::RST << '\n';
 }

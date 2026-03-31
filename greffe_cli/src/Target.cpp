@@ -17,11 +17,12 @@ Target::Target(std::string name, uint64_t ea, uint64_t end_ea,
     , _context(std::move(context))
     , _stubs(std::move(stubs)) {}
 
-const std::string&               Target::name()    const { return _name; }
-uint64_t                         Target::ea()      const { return _ea; }
-uint64_t                         Target::end_ea()  const { return _end_ea; }
-const std::vector<ContextEntry>& Target::context() const { return _context; }
+const std::string&               Target::name()            const { return _name; }
+uint64_t                         Target::ea()              const { return _ea; }
+uint64_t                         Target::end_ea()          const { return _end_ea; }
+const std::vector<ContextEntry>& Target::context()         const { return _context; }
 uint64_t                         Target::trampoline_addr() const { return _trampoline_addr;}
+std::vector<uint8_t>             Target::branch_instr()    const { return _branch_instr; }
 
 void                             Target::setTrampolineAddr(uint64_t addr) { 
     _trampoline_addr = addr;
