@@ -86,64 +86,61 @@ static std::shared_ptr<IArchStubs> resolve_stubs(const std::vector<ContextEntry>
     return StubsFactory::create(bits, mode);
 }
 
-std::pair<Target*, bool> TargetManager::append_target(const json& entry,
-                                                       std::vector<ContextEntry> context,
-                                                       const ProjectInfo& pinfo) {
+std::pair<PatchPlan*, bool> TargetManager::append_target(const json& entry,
+                                                          std::vector<ContextEntry> context,
+                                                          const ProjectInfo& pinfo) {
     uint64_t          ea   = json_get<uint64_t>(entry, "ea");
     const std::string name = json_get<std::string>(entry, "name");
 
     validate_context_modes(name, ea, context);
 
-    auto it = std::lower_bound(_targets.begin(), _targets.end(), ea,
-        [](const Target& t, uint64_t val) { return t.ea() < val; });
+    auto it = std::lower_bound(_plans.begin(), _plans.end(), ea,
+        [](const PatchPlan& p, uint64_t val) { return p.target.ea() < val; });
 
-    if (it != _targets.end() && it->ea() == ea)
+    if (it != _plans.end() && it->target.ea() == ea)
         return {&*it, false};
 
     auto stubs = resolve_stubs(context, ea, pinfo.getBits());
-    it = _targets.emplace(it,
-        name,
-        ea,
-        json_get<uint64_t>(entry, "end_ea"),
-        std::move(context),
+    it = _plans.emplace(it, PatchPlan{
+        Target{name, ea, json_get<uint64_t>(entry, "end_ea"), std::move(context)},
         std::move(stubs)
-    );
+    });
     return {&*it, true};
 }
 
-void TargetManager::set_trampoline_addr(Target *target, uint32_t trg_index,
-                                   uint64_t patch_base) {
-    uint64_t offset = 0;                                                                                                                                                                          
-    for (size_t i = 0; i < trg_index; ++i)                                                                                                                                                        
-        offset += _targets[i].stubs().branch_placeholder_size();                                                                                                                                  
+void TargetManager::set_trampoline_addr(PatchPlan* plan, uint32_t plan_index,
+                                        uint64_t patch_base) {
+    uint64_t offset = 0;
+    for (size_t i = 0; i < plan_index; ++i)
+        offset += _plans[i].stubs->branch_placeholder_size();
 
-    target->setTrampolineAddr(patch_base + offset);
+    plan->trampoline_addr = patch_base + offset;
 }
 
-std::pair<Target*, bool> TargetManager::add_internal(const json& entry,
-                                                     std::vector<ContextEntry> context,
-                                                     const ProjectInfo& pinfo) {
+std::pair<PatchPlan*, bool> TargetManager::add_internal(const json& entry,
+                                                         std::vector<ContextEntry> context,
+                                                         const ProjectInfo& pinfo) {
     std::lock_guard<std::mutex> lk(_mutex);
 
-    auto [target, inserted] = append_target(entry, std::move(context), pinfo);
+    auto [plan, inserted] = append_target(entry, std::move(context), pinfo);
     if (inserted) {
         try {
-            set_trampoline_addr(target, _targets.size() - 1, pinfo.getPatchBase());
-            TrampolineBuilder::branch_init(*target);
-            create_handler_stub(*target, pinfo);
-            
+            set_trampoline_addr(plan, _plans.size() - 1, pinfo.getPatchBase());
+            TrampolineBuilder::branch_init(*plan);
+            create_handler_stub(plan->target, pinfo);
+
         } catch (...) {
-            auto it = std::lower_bound(_targets.begin(), _targets.end(), target->ea(),
-                [](const Target& t, uint64_t val) { return t.ea() < val; });
-            _targets.erase(it);
+            auto it = std::lower_bound(_plans.begin(), _plans.end(), plan->target.ea(),
+                [](const PatchPlan& p, uint64_t val) { return p.target.ea() < val; });
+            _plans.erase(it);
 
             throw;
         }
     }
-    return {target, inserted};
+    return {plan, inserted};
 }
 
-const Target& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
+const PatchPlan& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
     const json entry = fetch_entry(target_str);
     return *add_internal(entry, parse_context(entry), pinfo).first;
 }
@@ -154,7 +151,7 @@ bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
 
 void TargetManager::remove(const std::string& target) {
     std::lock_guard<std::mutex> lk(_mutex);
-    decltype(_targets)::iterator it;
+    decltype(_plans)::iterator it;
 
     if (target.size() > 2 && target[0] == '0' && (target[1] == 'x' || target[1] == 'X')) {
         uint64_t ea;
@@ -163,22 +160,22 @@ void TargetManager::remove(const std::string& target) {
         } catch (const std::out_of_range&) {
             throw std::runtime_error(target + ": address out of range");
         }
-        it = std::find_if(_targets.begin(), _targets.end(),
-            [ea](const Target& t) { return t.ea() == ea; });
+        it = std::find_if(_plans.begin(), _plans.end(),
+            [ea](const PatchPlan& p) { return p.target.ea() == ea; });
     } else {
-        it = std::find_if(_targets.begin(), _targets.end(),
-            [&](const Target& t) { return t.name() == target; });
+        it = std::find_if(_plans.begin(), _plans.end(),
+            [&](const PatchPlan& p) { return p.target.name() == target; });
     }
 
-    if (it == _targets.end())
+    if (it == _plans.end())
         throw std::runtime_error(target + " not found");
 
-    _targets.erase(it);
+    _plans.erase(it);
 }
 
-std::vector<Target> TargetManager::targets() const {
+std::vector<PatchPlan> TargetManager::plans() const {
     std::lock_guard<std::mutex> lk(_mutex);
-    return _targets;
+    return _plans;
 }
 
 void TargetManager::save(const std::filesystem::path& path,
@@ -186,7 +183,8 @@ void TargetManager::save(const std::filesystem::path& path,
                          std::optional<uint64_t>      patch_base) const {
     std::lock_guard<std::mutex> lk(_mutex);
     json traced = json::array();
-    for (const auto& t : _targets) {
+    for (const auto& p : _plans) {
+        const Target& t = p.target;
         json ctx_arr = json::array();
         for (const auto& c : t.context())
             ctx_arr.push_back({ {"ea", c.ea}, {"raw", hex_encode(c.raw)}, {"mode", c.mode},
