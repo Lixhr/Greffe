@@ -12,7 +12,12 @@ class IArchStubs {
         virtual std::vector<uint8_t> restore_ctx(uint64_t at) = 0;
         virtual std::vector<uint8_t> branch(uint64_t from, uint64_t to) = 0;
         virtual std::vector<uint8_t> call  (uint64_t from, uint64_t to) = 0;
+        virtual std::vector<uint8_t> trampoline_init(uint64_t at, 
+                                                     uint64_t handler_addr,
+                                                     uint32_t id) = 0;
+
         virtual size_t               branch_placeholder_size() const = 0;
+
         virtual std::string_view     name() const = 0;
         virtual uint8_t              alignment() const = 0;
 

@@ -7,6 +7,11 @@ PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
                        , _patch_offset(pinfo.getPatchBase() - pinfo.getBinBase())
                         {}
 
+uint64_t PatchLayout::offset_to_addr(uint64_t offset) const {
+    return (offset + _pinfo.getPatchBase());
+}
+
+
 void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
     _patch_offset = plan->stubs->align_offset(_patch_offset);
 
@@ -24,7 +29,10 @@ const SharedStub &PatchLayout::get_shstub(PatchPlan *plan) {
 
 
     // Shared stub not created
-    _shstubs.push_back(SharedStub(plan->stubs, _patch_offset));
+    _shstubs.push_back(SharedStub(plan->stubs,
+                                  _patch_offset, 
+                                  _pinfo.getPatchBase() + _patch_offset));
+
     SharedStub &new_shstub = _shstubs.back();
     
     _patch_offset = new_shstub.end();
@@ -38,4 +46,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
 
     const SharedStub &shstub = get_shstub(plan);
     (void) shstub;
+    TrampolineBuilder::init_trampoline(*plan, shstub);
+
+
 }

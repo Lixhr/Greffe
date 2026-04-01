@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <iostream>
 
-uint64_t TrampolineBuilder::patch_branches(PatchSession& session,
+void TrampolineBuilder::patch_branches(PatchSession& session,
                                             const std::vector<PatchPlan>& plans) {
     const PatchPlan* last = nullptr;
 
@@ -15,8 +15,6 @@ uint64_t TrampolineBuilder::patch_branches(PatchSession& session,
 
         session.patch(plan.target.ea(), plan.branch_instr);
     }
-
-    return last->trampoline_addr + last->stubs->branch_placeholder_size();
 }
 
 void TrampolineBuilder::branch_init(PatchPlan& plan) {
@@ -54,10 +52,12 @@ void TrampolineBuilder::branch_init(PatchPlan& plan) {
     throw std::runtime_error("Patched branch overlaps end of function");
 }
 
-std::vector<uint8_t> TrampolineBuilder::init_trampoline(const PatchPlan&  plan,
-                                               uint64_t         /*handler_addr*/,
-                                               IRelocator&      /*relocator*/) {
-    plan.stubs->save_ctx(plan.trampoline_addr);
+std::vector<uint8_t> TrampolineBuilder::init_trampoline(PatchPlan        &plan,
+                                                        const SharedStub &shstub) {
 
-    throw std::runtime_error("TrampolineBuilder::build: not implemented");
+    std::shared_ptr<IArchStubs> &stubs = plan.stubs;
+
+    plan.trampoline = stubs->trampoline_init(plan.trampoline_addr, 
+                                            shstub.addr(), 
+                                            plan.id);
 }

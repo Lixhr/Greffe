@@ -11,9 +11,8 @@
 namespace TrampolineBuilder {
 
     void                 branch_init(PatchPlan& plan);
-    uint64_t             patch_branches(PatchSession& session, const std::vector<PatchPlan>& plans);
+    void                 patch_branches(PatchSession& session, const std::vector<PatchPlan>& plans);
 
-    std::vector<uint8_t> init_trampoline(const PatchPlan& plan,
-                               uint64_t         handler_addr,
-                               IRelocator&      relocator);
+    std::vector<uint8_t> init_trampoline(PatchPlan& plan,
+                                         const SharedStub &shstub);
 }

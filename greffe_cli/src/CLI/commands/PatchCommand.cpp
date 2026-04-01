@@ -53,8 +53,7 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.plans(), ctx.pinfo);
     PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
 
-    uint64_t waddr = TrampolineBuilder::patch_branches(session, ctx.targets.plans());
-    (void) waddr;
+    TrampolineBuilder::patch_branches(session, ctx.targets.plans());
 
     // if (!handler_bin.bytes().empty())
         // session.patch(ctx.pinfo.getPatchBase() - ctx.bin_base, handler_bin.bytes());

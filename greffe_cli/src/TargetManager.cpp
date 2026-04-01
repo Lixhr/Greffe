@@ -102,8 +102,9 @@ std::pair<PatchPlan*, bool> TargetManager::append_target(const json& entry,
 
     auto stubs = resolve_stubs(context, ea, pinfo.getBits());
     it = _plans.emplace(it, PatchPlan{
-        Target{name, ea, json_get<uint64_t>(entry, "end_ea"), std::move(context)},
-        std::move(stubs)
+        Target{name, ea, json_get<uint64_t>(entry, "end_ea"), std::move(context)}
+      , std::move(stubs)
+      , _current_id
     });
     return {&*it, true};
 }
@@ -121,6 +122,8 @@ std::pair<PatchPlan*, bool> TargetManager::add_internal(const json& entry,
         try {
             ctx.layout.create_patch_entry(&(*plan));
             create_handler_stub(plan->target, pinfo);
+
+            _current_id ++;
         } 
         
         catch (...) {
