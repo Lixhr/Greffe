@@ -15,7 +15,7 @@ class PatchLayout {
 
     private:
         void                 set_trampoline_addr(PatchPlan* plan);
-        const SharedStub     &get_shstub(PatchPlan *plan) const;
+        const SharedStub     &get_shstub(PatchPlan *plan);
 
         const ProjectInfo&                _pinfo;
         const std::vector<PatchPlan>&     _patch_plans;

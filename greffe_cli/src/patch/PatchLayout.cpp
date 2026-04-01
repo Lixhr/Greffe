@@ -13,7 +13,7 @@ void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
     plan->trampoline_addr = _patch_offset + _pinfo.getPatchBase();
 }
 
-const SharedStub &PatchLayout::get_shstub(PatchPlan *plan) const {
+const SharedStub &PatchLayout::get_shstub(PatchPlan *plan) {
     auto it = std::find_if(_shstubs.begin(), _shstubs.end(),
         [&plan](const SharedStub& shstub) { 
             return (shstub.name() == plan->stubs->name()); 
@@ -22,7 +22,12 @@ const SharedStub &PatchLayout::get_shstub(PatchPlan *plan) const {
     if (it != _shstubs.end())
         return (*it);
 
-    return (TrampolineBuilder::build_shstub(*plan));
+    _shstubs.push_back(TrampolineBuilder::build_shstub(*plan));
+    SharedStub &new_shstub = _shstubs.back();
+
+    
+
+    return (new_shstub);
 }
 
 
