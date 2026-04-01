@@ -4,6 +4,7 @@
 #include "PatchSession.hpp"
 #include "arch/IArchStubs.hpp"
 #include "arch/IRelocator.hpp"
+#include "SharedStub.hpp"
 #include <cstdint>
 #include <vector>
 
@@ -16,4 +17,5 @@ namespace TrampolineBuilder {
                                uint64_t         handler_addr,
                                IRelocator&      relocator);
 
+    SharedStub           build_shstub(const PatchPlan &plan);
 }

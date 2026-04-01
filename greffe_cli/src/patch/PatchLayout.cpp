@@ -1,33 +1,34 @@
 #include "PatchLayout.hpp"
+#include "TrampolineBuilder.hpp"
 
 PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
-                         _pinfo(pinfo),
-                         _patch_plans(targets.plans()),
-                         _patch_offset(pinfo.getPatchBase() - pinfo.getBinBase())
+                         _pinfo(pinfo)
+                       , _patch_plans(targets.plans())
+                       , _patch_offset(pinfo.getPatchBase() - pinfo.getBinBase())
                         {}
 
-void PatchLayout::create_patch_entry(PatchPlan *plan) {
-    // const SharedStub shared = *get_shared_stub(plan->stubs->name());
-    // if (!shared)
-    //     shared = 
+void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
+    _patch_offset = plan->stubs->align_offset(_patch_offset);
+
+    plan->trampoline_addr = _patch_offset + _pinfo.getPatchBase();
 }
 
-// const SharedStub *PatchLayout::create_shared_stub(std::shared_ptr<IArchStubs> stub) {
-//     SharedStub()
-//     _shared_stubs.push_back(SharedStub())
-// }
+const SharedStub &PatchLayout::get_shstub(PatchPlan *plan) const {
+    auto it = std::find_if(_shstubs.begin(), _shstubs.end(),
+        [&plan](const SharedStub& shstub) { 
+            return (shstub.name() == plan->stubs->name()); 
+        });
 
-const SharedStub *PatchLayout::get_shared_stub(std::shared_ptr<IArchStubs> stub) {
-    auto it = std::find_if(_shared_stubs.begin(), _shared_stubs.end(),
-        [&stub](const SharedStub& shstb) { return shstb.name() == stub->name(); });
+    if (it != _shstubs.end())
+        return (*it);
 
-    if (it != _shared_stubs.end())
-        return (&(*it));
+    return (TrampolineBuilder::build_shstub(*plan));
+}
 
-    // shared stub currently not created
-    SharedStub new_stub(stub, _patch_offset);
-    _patch_offset = new_stub.offset() + new_stub.bytecode().size();
 
-    _shared_stubs.push_back(new_stub);
-    return (&_shared_stubs.back());
+void PatchLayout::create_patch_entry(PatchPlan *plan) {
+    set_trampoline_addr(plan);
+    TrampolineBuilder::branch_init(*plan);
+
+
 }

@@ -108,17 +108,8 @@ std::pair<PatchPlan*, bool> TargetManager::append_target(const json& entry,
     return {&*it, true};
 }
 
-void TargetManager::set_trampoline_addr(PatchPlan* plan, uint32_t plan_index,
-                                        uint64_t patch_base) {
-    uint64_t offset = 0;
-    for (size_t i = 0; i < plan_index; ++i)
-        offset += _plans[i].stubs->branch_placeholder_size();
-
-    plan->trampoline_addr = patch_base + offset;
-}
-
 std::pair<PatchPlan*, bool> TargetManager::add_internal(const json& entry,
-                                                        const CLIContext& ctx) {
+                                                        CLIContext& ctx) {
     std::lock_guard<std::mutex> lk(_mutex);
 
     const ProjectInfo& pinfo = ctx.pinfo;
@@ -126,30 +117,30 @@ std::pair<PatchPlan*, bool> TargetManager::add_internal(const json& entry,
 
     auto [plan, inserted] = append_target(entry, std::move(context), pinfo);
     if (inserted) {
-        try {
-            
-            // ctx.layout
-            set_trampoline_addr(plan, _plans.size() - 1, pinfo.getPatchBase());
-            TrampolineBuilder::branch_init(*plan);
-            create_handler_stub(plan->target, pinfo);
 
-        } catch (...) {
+        try {
+            ctx.layout.create_patch_entry(&(*plan));
+            create_handler_stub(plan->target, pinfo);
+        } 
+        
+        catch (...) {
             auto it = std::lower_bound(_plans.begin(), _plans.end(), plan->target.ea(),
                 [](const PatchPlan& p, uint64_t val) { return p.target.ea() < val; });
             _plans.erase(it);
 
             throw;
         }
+
     }
     return {plan, inserted};
 }
 
-const PatchPlan& TargetManager::add(const std::string& target_str,  const CLIContext &ctx) {
+const PatchPlan& TargetManager::add(const std::string& target_str, CLIContext& ctx) {
     const json entry = fetch_entry(target_str);
     return *add_internal(entry, ctx).first;
 }
 
-bool TargetManager::add_direct(const json& entry, const CLIContext &ctx) {
+bool TargetManager::add_direct(const json& entry, CLIContext& ctx) {
     return add_internal(entry, ctx).second;
 }
 

@@ -12,5 +12,6 @@ struct PatchPlan {
     uint64_t                    trampoline_addr     = 0;
     uint64_t                    trampoline_ret_addr = 0;
     std::vector<uint8_t>        branch_instr          = {};
+    std::vector<uint8_t>        trpl_placeholder      = {};
     std::vector<size_t>         relocd_instr_indices  = {}; // indices into target.context()
 };

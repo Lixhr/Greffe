@@ -19,8 +19,8 @@ class TargetManager {
     public:
         explicit                     TargetManager(IdaIPC& ipc);
       
-        const PatchPlan&             add(const std::string& target, const CLIContext& cxt);
-        bool                         add_direct(const json& entry, const CLIContext& cxt);
+        const PatchPlan&             add(const std::string& target, CLIContext& cxt);
+        bool                         add_direct(const json& entry, CLIContext& cxt);
         void                         remove(const std::string& target);
         const std::vector<PatchPlan>& plans() const;
 
@@ -37,7 +37,7 @@ class TargetManager {
                                                                 const std::vector<ContextEntry>& context);
 
         std::pair<PatchPlan*, bool>      add_internal(const json& entry,
-                                                      const CLIContext& cxt);
+                                                      CLIContext& cxt);
 
         std::pair<PatchPlan*, bool>      append_target(const json& entry,
                                                        std::vector<ContextEntry> context,
