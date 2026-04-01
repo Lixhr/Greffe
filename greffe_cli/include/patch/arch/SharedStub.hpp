@@ -1,0 +1,6 @@
+
+
+class SharedStub {
+    public:
+    private:
+};

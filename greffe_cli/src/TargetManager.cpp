@@ -102,51 +102,49 @@ std::pair<PatchPlan*, bool> TargetManager::append_target(const json& entry,
 
     auto stubs = resolve_stubs(context, ea, pinfo.getBits());
     it = _plans.emplace(it, PatchPlan{
-        Target{name, ea, json_get<uint64_t>(entry, "end_ea"), std::move(context)},
-        std::move(stubs)
+        Target{name, ea, json_get<uint64_t>(entry, "end_ea"), std::move(context)}
+      , std::move(stubs)
+      , _current_id
     });
     return {&*it, true};
 }
 
-void TargetManager::set_trampoline_addr(PatchPlan* plan, uint32_t plan_index,
-                                        uint64_t patch_base) {
-    uint64_t offset = 0;
-    for (size_t i = 0; i < plan_index; ++i)
-        offset += _plans[i].stubs->branch_placeholder_size();
-
-    plan->trampoline_addr = patch_base + offset;
-}
-
 std::pair<PatchPlan*, bool> TargetManager::add_internal(const json& entry,
-                                                         std::vector<ContextEntry> context,
-                                                         const ProjectInfo& pinfo) {
+                                                        CLIContext& ctx) {
     std::lock_guard<std::mutex> lk(_mutex);
+
+    const ProjectInfo& pinfo = ctx.pinfo;
+    std::vector<ContextEntry> context = parse_context(entry);
 
     auto [plan, inserted] = append_target(entry, std::move(context), pinfo);
     if (inserted) {
+
         try {
-            set_trampoline_addr(plan, _plans.size() - 1, pinfo.getPatchBase());
-            TrampolineBuilder::branch_init(*plan);
+            ctx.layout.create_patch_entry(&(*plan));
             create_handler_stub(plan->target, pinfo);
 
-        } catch (...) {
+            _current_id ++;
+        } 
+        
+        catch (...) {
             auto it = std::lower_bound(_plans.begin(), _plans.end(), plan->target.ea(),
                 [](const PatchPlan& p, uint64_t val) { return p.target.ea() < val; });
             _plans.erase(it);
 
             throw;
         }
+
     }
     return {plan, inserted};
 }
 
-const PatchPlan& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
+const PatchPlan& TargetManager::add(const std::string& target_str, CLIContext& ctx) {
     const json entry = fetch_entry(target_str);
-    return *add_internal(entry, parse_context(entry), pinfo).first;
+    return *add_internal(entry, ctx).first;
 }
 
-bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
-    return add_internal(entry, parse_context(entry), pinfo).second;
+bool TargetManager::add_direct(const json& entry, CLIContext& ctx) {
+    return add_internal(entry, ctx).second;
 }
 
 void TargetManager::remove(const std::string& target) {
@@ -173,7 +171,7 @@ void TargetManager::remove(const std::string& target) {
     _plans.erase(it);
 }
 
-std::vector<PatchPlan> TargetManager::plans() const {
+const std::vector<PatchPlan>& TargetManager::plans() const {
     std::lock_guard<std::mutex> lk(_mutex);
     return _plans;
 }
