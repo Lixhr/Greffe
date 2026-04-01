@@ -118,13 +118,17 @@ void TargetManager::set_trampoline_addr(PatchPlan* plan, uint32_t plan_index,
 }
 
 std::pair<PatchPlan*, bool> TargetManager::add_internal(const json& entry,
-                                                         std::vector<ContextEntry> context,
-                                                         const ProjectInfo& pinfo) {
+                                                        const CLIContext& ctx) {
     std::lock_guard<std::mutex> lk(_mutex);
+
+    const ProjectInfo& pinfo = ctx.pinfo;
+    std::vector<ContextEntry> context = parse_context(entry);
 
     auto [plan, inserted] = append_target(entry, std::move(context), pinfo);
     if (inserted) {
         try {
+            
+            // ctx.layout
             set_trampoline_addr(plan, _plans.size() - 1, pinfo.getPatchBase());
             TrampolineBuilder::branch_init(*plan);
             create_handler_stub(plan->target, pinfo);
@@ -140,13 +144,13 @@ std::pair<PatchPlan*, bool> TargetManager::add_internal(const json& entry,
     return {plan, inserted};
 }
 
-const PatchPlan& TargetManager::add(const std::string& target_str, const ProjectInfo& pinfo) {
+const PatchPlan& TargetManager::add(const std::string& target_str,  const CLIContext &ctx) {
     const json entry = fetch_entry(target_str);
-    return *add_internal(entry, parse_context(entry), pinfo).first;
+    return *add_internal(entry, ctx).first;
 }
 
-bool TargetManager::add_direct(const json& entry, const ProjectInfo& pinfo) {
-    return add_internal(entry, parse_context(entry), pinfo).second;
+bool TargetManager::add_direct(const json& entry, const CLIContext &ctx) {
+    return add_internal(entry, ctx).second;
 }
 
 void TargetManager::remove(const std::string& target) {
@@ -173,7 +177,7 @@ void TargetManager::remove(const std::string& target) {
     _plans.erase(it);
 }
 
-std::vector<PatchPlan> TargetManager::plans() const {
+const std::vector<PatchPlan>& TargetManager::plans() const {
     std::lock_guard<std::mutex> lk(_mutex);
     return _plans;
 }

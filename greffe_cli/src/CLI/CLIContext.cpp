@@ -1,7 +1,12 @@
 #include "CLIContext.hpp"
 
 CLIContext::CLIContext(IdaIPC& client, ProjectInfo& pinfo)
-        : client(client), pinfo(pinfo), targets(client), bin_base(pinfo.getBinBase()) {
+        : client(client)
+        , pinfo(pinfo)
+        , targets(client)
+        , layout(pinfo, targets)
+        , bin_base(pinfo.getBinBase()) {
+
     auto greffe = pinfo.getProjectDir() / ".greffe";
 
     if (std::filesystem::exists(greffe)) {
@@ -12,4 +17,5 @@ CLIContext::CLIContext(IdaIPC& client, ProjectInfo& pinfo)
 
     if (pinfo.getPatchBase() == -1ULL)
         pinfo.initPatchBase(bin_base);
+
 }

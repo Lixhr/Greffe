@@ -50,6 +50,6 @@ void AddCommand::execute(CLIContext& ctx, const Args& args) {
         throw std::runtime_error("usage: add <target> [target ...]");
 
     for (const auto& arg : args) {
-        ctx.targets.add(arg, ctx.pinfo);
+        ctx.targets.add(arg, ctx);
     }
 }

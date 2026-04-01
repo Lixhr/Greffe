@@ -17,17 +17,17 @@ struct SavedProject {
 
 class TargetManager {
     public:
-        explicit TargetManager(IdaIPC& ipc);
+        explicit                     TargetManager(IdaIPC& ipc);
+      
+        const PatchPlan&             add(const std::string& target, const CLIContext& cxt);
+        bool                         add_direct(const json& entry, const CLIContext& cxt);
+        void                         remove(const std::string& target);
+        const std::vector<PatchPlan>& plans() const;
 
-        const PatchPlan&       add(const std::string& target, const ProjectInfo& pinfo);
-        bool                   add_direct(const json& entry, const ProjectInfo& pinfo);
-        void                   remove(const std::string& target);
-        std::vector<PatchPlan> plans() const;
-
-        void                   save(const std::filesystem::path& path,
-                                    uint64_t                     bin_base,
-                                    std::optional<uint64_t>      patch_base) const;
-        SavedProject           load(const std::filesystem::path& path, const ProjectInfo& pinfo);
+        void                         save(const std::filesystem::path& path,
+                                         uint64_t                     bin_base,
+                                         std::optional<uint64_t>      patch_base) const;
+        SavedProject                 load(const std::filesystem::path& path, const ProjectInfo& pinfo);
 
     private:
         json                             fetch_entry(const std::string& target);
@@ -37,8 +37,7 @@ class TargetManager {
                                                                 const std::vector<ContextEntry>& context);
 
         std::pair<PatchPlan*, bool>      add_internal(const json& entry,
-                                                      std::vector<ContextEntry> context,
-                                                      const ProjectInfo& pinfo);
+                                                      const CLIContext& cxt);
 
         std::pair<PatchPlan*, bool>      append_target(const json& entry,
                                                        std::vector<ContextEntry> context,
