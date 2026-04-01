@@ -26,7 +26,7 @@ const SharedStub *PatchLayout::get_shared_stub(std::shared_ptr<IArchStubs> stub)
 
     // shared stub currently not created
     SharedStub new_stub(stub, _patch_offset);
-    _patch_offset += new_stub.bytecode().size(); // align later
+    _patch_offset = new_stub.offset() + new_stub.bytecode().size();
 
     _shared_stubs.push_back(new_stub);
     return (&_shared_stubs.back());

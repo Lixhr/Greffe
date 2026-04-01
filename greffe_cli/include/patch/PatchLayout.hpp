@@ -11,7 +11,7 @@ class SharedStub {
     public:
         SharedStub(std::shared_ptr<IArchStubs> stub, uint64_t current_offset) : 
                    _name(stub->name())
-                ,  _offset(current_offset) {
+                ,  _offset(stub->align_offset(current_offset)) {
             // _bytecode = generate_shstu
         };
 
