@@ -38,7 +38,7 @@ void PatchCommand::print_patch_info(CLIContext& ctx) {
 }
 
 void PatchCommand::execute(CLIContext& ctx, const Args&) {
-    if (ctx.targets.targets().empty())
+    if (ctx.targets.plans().empty())
         throw std::runtime_error("nothing to patch");
 
     print_patch_info(ctx);
@@ -50,11 +50,11 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     }
 
     // compiled blob
-    HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.targets(), ctx.pinfo);
+    HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.plans(), ctx.pinfo);
     PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
 
-    uint64_t waddr = TrampolineBuilder::patch_branches(session, ctx.targets.targets());
-
+    uint64_t waddr = TrampolineBuilder::patch_branches(session, ctx.targets.plans());
+    (void) waddr;
 
     // if (!handler_bin.bytes().empty())
         // session.patch(ctx.pinfo.getPatchBase() - ctx.bin_base, handler_bin.bytes());

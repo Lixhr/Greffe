@@ -2,9 +2,9 @@
 
 #include "HandlerBin.hpp"
 #include "ProjectInfo.hpp"
-#include "Target.hpp"
+#include "PatchPlan.hpp"
 #include <vector>
 
 namespace HandlerCompiler {
-    HandlerBin build(const std::vector<Target>& targets, const ProjectInfo& pinfo);
+    HandlerBin build(const std::vector<PatchPlan>& plans, const ProjectInfo& pinfo);
 }

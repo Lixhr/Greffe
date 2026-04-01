@@ -1,6 +1,5 @@
 #include "Target.hpp"
 #include "colors.hpp"
-#include <stdexcept>
 
 #include <capstone/capstone.h>
 #include <iomanip>
@@ -9,42 +8,16 @@
 
 
 Target::Target(std::string name, uint64_t ea, uint64_t end_ea,
-               std::vector<ContextEntry> context,
-               std::shared_ptr<IArchStubs> stubs)
+               std::vector<ContextEntry> context)
     : _name(std::move(name))
     , _ea(ea)
     , _end_ea(end_ea)
-    , _context(std::move(context))
-    , _stubs(std::move(stubs)) {}
+    , _context(std::move(context)) {}
 
-const std::string&               Target::name()            const { return _name; }
-uint64_t                         Target::ea()              const { return _ea; }
-uint64_t                         Target::end_ea()          const { return _end_ea; }
-const std::vector<ContextEntry>& Target::context()         const { return _context; }
-uint64_t                         Target::trampoline_addr() const { return _trampoline_addr;}
-std::vector<uint8_t>             Target::branch_instr()    const { return _branch_instr; }
-
-void                             Target::setTrampolineAddr(uint64_t addr) { 
-    _trampoline_addr = addr;
-}
-
-void                             Target::setTrampolineRetAddr(uint64_t addr) {
-    _trampoline_ret_addr = addr;
-}
-
-void                             Target::setBranchInstr(std::vector<uint8_t> branch) {
-    _branch_instr = std::move(branch);
-}
-
-IArchStubs&                      Target::stubs()   const {
-    if (!_stubs) throw std::runtime_error("Target: stubs not set");
-    return *_stubs;
-}
-
-void                             Target::setRelocdInstrs(
-                                 std::vector<const ContextEntry *> instrs) {
-    _relocd_instrs = std::move(instrs);
-}
+const std::string&               Target::name()    const { return _name; }
+uint64_t                         Target::ea()      const { return _ea; }
+uint64_t                         Target::end_ea()  const { return _end_ea; }
+const std::vector<ContextEntry>& Target::context() const { return _context; }
 
 
 static bool open_cs(int /*bits*/, const std::string& /*mode*/, csh& handle) {

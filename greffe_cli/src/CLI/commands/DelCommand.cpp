@@ -22,11 +22,11 @@ DelCommand::complete(const CLIContext* ctx, const Args& args) const {
 
     if (!ctx)
         return result;
-    const auto& targets = ctx->targets.targets();
+    const auto& plans = ctx->targets.plans();
     const std::string prefix = args.empty() ? "" : args.back();
 
-    for (const auto& t : targets) {
-        const std::string& name = t.name();
+    for (const auto& p : plans) {
+        const std::string& name = p.target.name();
 
         if (name.rfind(prefix, 0) == 0) {
             result.push_back(name);
