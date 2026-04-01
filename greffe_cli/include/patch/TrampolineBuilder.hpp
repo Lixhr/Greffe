@@ -16,6 +16,4 @@ namespace TrampolineBuilder {
     std::vector<uint8_t> init_trampoline(const PatchPlan& plan,
                                uint64_t         handler_addr,
                                IRelocator&      relocator);
-
-    SharedStub           build_shstub(const PatchPlan &plan);
 }

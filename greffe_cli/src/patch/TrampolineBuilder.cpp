@@ -61,8 +61,3 @@ std::vector<uint8_t> TrampolineBuilder::init_trampoline(const PatchPlan&  plan,
 
     throw std::runtime_error("TrampolineBuilder::build: not implemented");
 }
-
-SharedStub           TrampolineBuilder::build_shstub(const PatchPlan &plan) {
-    // plan.stubs->
-    return (SharedStub(plan.stubs));
-}

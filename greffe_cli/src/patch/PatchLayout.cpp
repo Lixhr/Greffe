@@ -22,11 +22,12 @@ const SharedStub &PatchLayout::get_shstub(PatchPlan *plan) {
     if (it != _shstubs.end())
         return (*it);
 
-    _shstubs.push_back(TrampolineBuilder::build_shstub(*plan));
+
+    // Shared stub not created
+    _shstubs.push_back(SharedStub(plan->stubs, _patch_offset));
     SharedStub &new_shstub = _shstubs.back();
-
     
-
+    _patch_offset = new_shstub.end();
     return (new_shstub);
 }
 
@@ -35,5 +36,6 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     set_trampoline_addr(plan);
     TrampolineBuilder::branch_init(*plan);
 
-
+    const SharedStub &shstub = get_shstub(plan);
+    (void) shstub;
 }

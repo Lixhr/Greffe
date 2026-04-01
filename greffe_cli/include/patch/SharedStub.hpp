@@ -6,8 +6,12 @@
 
 class SharedStub : public PatchLayoutEntry {
     public:
-        explicit             SharedStub(std::shared_ptr<IArchStubs> stub);
-        std::string_view     name() const;
+        SharedStub(std::shared_ptr<IArchStubs> s, uint64_t initial_offset);
+        std::string_view            name() const;
+        uint64_t                    end()  const;
+        const std::vector<uint8_t>  bytes() const;
+
     private:
+        std::vector<uint8_t> _bytes;
         std::string_view     _name;
 };
