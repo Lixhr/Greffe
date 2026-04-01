@@ -54,8 +54,10 @@ void TrampolineBuilder::branch_init(PatchPlan& plan) {
     throw std::runtime_error("Patched branch overlaps end of function");
 }
 
-std::vector<uint8_t> TrampolineBuilder::build(const PatchPlan& /*plan*/,
+std::vector<uint8_t> TrampolineBuilder::init_trampoline(const PatchPlan&  plan,
                                                uint64_t         /*handler_addr*/,
                                                IRelocator&      /*relocator*/) {
+    plan.stubs->save_ctx(plan.trampoline_addr);
+
     throw std::runtime_error("TrampolineBuilder::build: not implemented");
 }
