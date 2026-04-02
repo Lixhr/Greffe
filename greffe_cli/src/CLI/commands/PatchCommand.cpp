@@ -55,9 +55,13 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
 
     TrampolineBuilder::patch_branches(session, ctx.targets.plans());
 
+
+    for (const auto& plan : ctx.layout.patch_plans()) {
+        session.patch(plan.trampoline_addr , plan.trampoline);
+    }
+
     // if (!handler_bin.bytes().empty())
         // session.patch(ctx.pinfo.getPatchBase() - ctx.bin_base, handler_bin.bytes());
-
 
 
     session.save(out_path);

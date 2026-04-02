@@ -6,6 +6,8 @@ SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, uint64_t initial_offset, u
     set_offset(stubs->align_offset(initial_offset));
     _name = stubs->name();
     _addr = addr;
+
+    // TODO
 }
 
 std::string_view            SharedStub::name() const { return (_name); }

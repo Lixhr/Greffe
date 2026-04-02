@@ -52,8 +52,8 @@ void TrampolineBuilder::branch_init(PatchPlan& plan) {
     throw std::runtime_error("Patched branch overlaps end of function");
 }
 
-std::vector<uint8_t> TrampolineBuilder::init_trampoline(PatchPlan        &plan,
-                                                        const SharedStub &shstub) {
+void TrampolineBuilder::init_trampoline(PatchPlan &plan,
+                                        const SharedStub &shstub) {
 
     std::shared_ptr<IArchStubs> &stubs = plan.stubs;
 
