@@ -3,19 +3,21 @@
 #include <cstdint>
 #include <string_view>
 #include <vector>
+#include <gum/arch-arm/gumthumbwriter.h>
+
 
 class IArchStubs {
     public:
         virtual ~IArchStubs() = default;
 
-        virtual std::vector<uint8_t> save_ctx   (uint64_t at) = 0;
-        virtual std::vector<uint8_t> restore_ctx(uint64_t at) = 0;
+        virtual void                 save_ctx(GumThumbWriter *w) = 0;
+        virtual void                 restore_ctx(GumThumbWriter *w) = 0;
         virtual std::vector<uint8_t> branch(uint64_t from, uint64_t to) = 0;
         virtual std::vector<uint8_t> call  (uint64_t from, uint64_t to) = 0;
         virtual std::vector<uint8_t> build_shared_stub(uint64_t at) = 0;
-        virtual std::vector<uint8_t> trampoline_init(uint64_t at, 
-                                                     uint64_t handler_addr,
-                                                     uint32_t id) = 0;
+        virtual std::vector<uint8_t> trampoline_init(uint64_t at,
+                                                     uint64_t shstub_addr,
+                                                     uint32_t **ptr_array) = 0;
 
         virtual std::string_view     name()            const = 0;
         virtual uint8_t              instr_alignment() const = 0;

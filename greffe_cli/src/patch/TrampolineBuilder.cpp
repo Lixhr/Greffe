@@ -53,12 +53,17 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
 }
 
 size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
-                                        const SharedStub &shstub) {
+                                           const SharedStub &shstub) {
 
     std::shared_ptr<IArchStubs> &stubs = plan.stubs;
 
+    uint32_t *test = NULL;
+
     plan.trampoline = stubs->trampoline_init(plan.trampoline_addr, 
                                             shstub.addr(), 
-                                            plan.id);
+                                            &test);
+    test[0] = 0xdeadc0de;
+    test[1] = 0x42424242;
+
     return (plan.trampoline.size());
 }

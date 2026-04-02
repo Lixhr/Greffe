@@ -22,49 +22,40 @@ static std::vector<uint8_t> thumb_collect(GumThumbWriter& w,
     return std::move(buf);
 }
 
-std::vector<uint8_t> ThumbStubs::save_ctx(uint64_t at) {
-    std::vector<uint8_t> buf(128, 0);
-    GumThumbWriter w;
-    gum_thumb_writer_init(&w, buf.data());
-    w.pc = static_cast<GumAddress>(at);
-    if (!gum_thumb_writer_put_push_regs(&w, 14,
+void ThumbStubs::save_ctx(GumThumbWriter *w) {
+    // R0 already saved
+    if (!gum_thumb_writer_put_push_regs(w, 14,
+            ARM_REG_R1,  ARM_REG_R2,  ARM_REG_R3,
+            ARM_REG_R4,  ARM_REG_R5,  ARM_REG_R6,  ARM_REG_R7,
+            ARM_REG_R8,  ARM_REG_R9,  ARM_REG_R10, ARM_REG_R11,
+            ARM_REG_R12, ARM_REG_LR)) {
+        gum_thumb_writer_clear(w);
+        throw std::runtime_error("ThumbStubs::save_ctx: put_push_regs failed");
+    }
+    gum_thumb_writer_put_mov_reg_cpsr(w, ARM_REG_R1);
+    if (!gum_thumb_writer_put_push_regs(w, 1, ARM_REG_R1)) {
+        gum_thumb_writer_clear(w);
+        throw std::runtime_error("ThumbStubs::save_ctx: cpsr push failed");
+    }
+}
+
+void ThumbStubs::restore_ctx(GumThumbWriter *w) {
+    if (!gum_thumb_writer_put_pop_regs(w, 1, ARM_REG_R0)) {
+        gum_thumb_writer_clear(w);
+        throw std::runtime_error("ThumbStubs::restore_ctx: cpsr pop failed");
+    }
+    if (!gum_thumb_writer_put_msr_reg_reg(w, ARM_SYSREG_APSR_NZCVQ, ARM_REG_R0)) {
+        gum_thumb_writer_clear(w);
+        throw std::runtime_error("ThumbStubs::restore_ctx: msr failed");
+    }
+    if (!gum_thumb_writer_put_pop_regs(w, 14,
             ARM_REG_R0,  ARM_REG_R1,  ARM_REG_R2,  ARM_REG_R3,
             ARM_REG_R4,  ARM_REG_R5,  ARM_REG_R6,  ARM_REG_R7,
             ARM_REG_R8,  ARM_REG_R9,  ARM_REG_R10, ARM_REG_R11,
             ARM_REG_R12, ARM_REG_LR)) {
-        gum_thumb_writer_clear(&w);
-        throw std::runtime_error("ThumbStubs::save_ctx: put_push_regs failed");
-    }
-    gum_thumb_writer_put_mov_reg_cpsr(&w, ARM_REG_R0);
-    if (!gum_thumb_writer_put_push_regs(&w, 1, ARM_REG_R0)) {
-        gum_thumb_writer_clear(&w);
-        throw std::runtime_error("ThumbStubs::save_ctx: cpsr push failed");
-    }
-    return thumb_collect(w, buf, "ThumbStubs::save_ctx");
-}
-
-std::vector<uint8_t> ThumbStubs::restore_ctx(uint64_t at) {
-    std::vector<uint8_t> buf(128, 0);
-    GumThumbWriter w;
-    gum_thumb_writer_init(&w, buf.data());
-    w.pc = static_cast<GumAddress>(at);
-    if (!gum_thumb_writer_put_pop_regs(&w, 1, ARM_REG_R0)) {
-        gum_thumb_writer_clear(&w);
-        throw std::runtime_error("ThumbStubs::restore_ctx: cpsr pop failed");
-    }
-    if (!gum_thumb_writer_put_msr_reg_reg(&w, ARM_SYSREG_APSR_NZCVQ, ARM_REG_R0)) {
-        gum_thumb_writer_clear(&w);
-        throw std::runtime_error("ThumbStubs::restore_ctx: msr failed");
-    }
-    if (!gum_thumb_writer_put_pop_regs(&w, 14,
-            ARM_REG_R0,  ARM_REG_R0,  ARM_REG_R1,  ARM_REG_R2,  ARM_REG_R3,
-            ARM_REG_R4,  ARM_REG_R5,  ARM_REG_R6,  ARM_REG_R7,
-            ARM_REG_R8,  ARM_REG_R9,  ARM_REG_R10, ARM_REG_R11,
-            ARM_REG_R12, ARM_REG_LR)) {
-        gum_thumb_writer_clear(&w);
+        gum_thumb_writer_clear(w);
         throw std::runtime_error("ThumbStubs::restore_ctx: put_pop_regs failed");
     }
-    return thumb_collect(w, buf, "ThumbStubs::restore_ctx");
 }
 
 static inline void write_branch(GumThumbWriter *w, uint64_t from, uint64_t to) {
@@ -94,63 +85,39 @@ std::vector<uint8_t> ThumbStubs::call(uint64_t from, uint64_t to) {
     return thumb_collect(w, buf, "ThumbStubs::call");
 }
 
-std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at, uint64_t shstub_addr, uint32_t id) {
+std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at, 
+                                                 uint64_t shstub_addr, 
+                                                 uint32_t **ptr_array) {
     std::vector<uint8_t> buf(128, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
 
+    // this first item on the stack will hold the 'return' addr 
+    if (!gum_thumb_writer_put_add_reg_imm(&w, ARM_REG_SP, -0x4))
+        throw std::runtime_error("ThumbStubs::trampoline_init: push R0 failed");
+
     // saves the original R0
     if (!gum_thumb_writer_put_push_regs(&w, 1, ARM_REG_R0)) {
-        gum_thumb_writer_clear(&w);
         throw std::runtime_error("ThumbStubs::trampoline_init: push R0 failed");
     }
 
-    // R0 knows the id 
-    if (id < UINT8_MAX)
-        gum_thumb_writer_put_mov_reg_u8(&w, ARM_REG_R0, (guint8)id);
-    else
-        gum_thumb_writer_put_ldr_reg_u32(&w, ARM_REG_R0, id);
 
-    // jump to the shared stub
+    // get the literal pool address
+    gum_thumb_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_PC, 4);
     write_branch(&w, w.pc, shstub_addr);
     
-    return thumb_collect(w, buf, "ThumbStubs::trampoline_init");
+
+    // align 
+    gum_thumb_writer_put_nop(&w);
+
+    std::vector<uint8_t> bytes = thumb_collect(w, buf, "ThumbStubs::trampoline_init");
+    *ptr_array = reinterpret_cast<uint32_t *>(bytes.data() + bytes.size());
+
+    // reserve space for handler / relocated code
+    bytes.resize(bytes.size() + 2 * sizeof(uint32_t));
+    return bytes;
 }
-
-typedef struct _GumThumbLiteralRef GumThumbLiteralRef;
-
-struct _GumThumbLiteralRef
-{
-  guint32 val;
-  guint16 * insn;
-  GumAddress pc;
-};
-
-
-static gboolean gum_thumb_writer_has_literal_refs (GumThumbWriter * self)
-{
-  return self->literal_refs.data != NULL;
-}
-
-static void
-gum_thumb_writer_add_literal_reference_here (GumThumbWriter * self,
-                                             guint32 val)
-{
-  GumThumbLiteralRef * r;
-
-  if (!gum_thumb_writer_has_literal_refs (self))
-    gum_metal_array_init (&self->literal_refs, sizeof (GumThumbLiteralRef));
-
-  r = (GumThumbLiteralRef *)gum_metal_array_append (&self->literal_refs);
-  r->val = val;
-  r->insn = self->code;
-  r->pc = self->pc + 4;
-
-  if (self->earliest_literal_insn == NULL)
-    self->earliest_literal_insn = r->insn;
-}
-
 
 std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
     std::vector<uint8_t> buf(0x400, 0);
@@ -158,17 +125,27 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
     gum_thumb_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
 
-
-    if (!gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_PC, 8))
-        throw std::runtime_error("ThumbStubs::build_shared_stub: str R0 failed");
-
-    // restore the original r0
-    if (!gum_thumb_writer_put_pop_regs(&w, 1, ARM_REG_R0))
-        throw std::runtime_error("ThumbStubs::build_shared_stub: pop R0 failed");
+    save_ctx(&w);
 
 
-    // global literal: stores our index before saving context
-    gum_thumb_writer_add_literal_reference_here(&w, 0xdeadc0de);
+    // get the funcptr
+    gum_thumb_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);
+
+    // get the 'ret' address
+    gum_thumb_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_R0, 0x4);
+
+
+    // space is reserved at the bottom of our stack
+    // it stores the 'ret' to be available on POP PC
+    gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, -4);
+
+    // call the handler
+    // gum_thumb_writer_put_blx_reg(&w, ARM_REG_R1);
+
+    restore_ctx(&w);
+
+    // branch to the 'ret'
+    gum_thumb_writer_put_pop_regs(&w, 1, ARM_REG_PC);
 
     return thumb_collect(w, buf, "ThumbStubs::build_shared_stub");
 }
