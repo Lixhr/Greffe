@@ -53,11 +53,20 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.plans(), ctx.pinfo);
     PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
 
+    // point targets to trampolines
     TrampolineBuilder::patch_branches(session, ctx.targets.plans());
+
+
+    for (const auto& plan : ctx.layout.patch_plans()) {
+        session.patch(plan.trampoline_addr , plan.trampoline);
+    }
+
+    for (const auto& shstub : ctx.layout.shstubs()) {
+        session.patch(shstub.addr() , shstub.bytes());
+    }
 
     // if (!handler_bin.bytes().empty())
         // session.patch(ctx.pinfo.getPatchBase() - ctx.bin_base, handler_bin.bytes());
-
 
 
     session.save(out_path);

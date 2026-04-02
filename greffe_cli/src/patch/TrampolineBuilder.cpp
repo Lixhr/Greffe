@@ -17,7 +17,7 @@ void TrampolineBuilder::patch_branches(PatchSession& session,
     }
 }
 
-void TrampolineBuilder::branch_init(PatchPlan& plan) {
+void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     const Target& t     = plan.target;
     IArchStubs&   stubs = *plan.stubs;
 
@@ -52,12 +52,18 @@ void TrampolineBuilder::branch_init(PatchPlan& plan) {
     throw std::runtime_error("Patched branch overlaps end of function");
 }
 
-std::vector<uint8_t> TrampolineBuilder::init_trampoline(PatchPlan        &plan,
-                                                        const SharedStub &shstub) {
+size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
+                                           const SharedStub &shstub) {
 
     std::shared_ptr<IArchStubs> &stubs = plan.stubs;
 
+    uint32_t *test = NULL;
+
     plan.trampoline = stubs->trampoline_init(plan.trampoline_addr, 
                                             shstub.addr(), 
-                                            plan.id);
+                                            &test);
+    test[0] = 0xdeadc0de;
+    test[1] = 0x42424242;
+
+    return (plan.trampoline.size());
 }
