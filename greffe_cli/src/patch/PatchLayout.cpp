@@ -4,7 +4,7 @@
 PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
                          _pinfo(pinfo)
                        , _patch_plans(targets.plans())
-                       , _patch_offset(pinfo.getPatchBase() - pinfo.getBinBase())
+                       , _patch_offset(0)
                         {}
 
 const std::vector<PatchPlan> & PatchLayout::patch_plans() const { return (_patch_plans);}
@@ -14,7 +14,10 @@ uint64_t PatchLayout::offset_to_addr(uint64_t offset)     const {
     return (offset + _pinfo.getPatchBase());
 }
 
+
+#include <iostream>
 void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
+
     _patch_offset = plan->stubs->align_offset(_patch_offset);
 
     plan->trampoline_addr = _patch_offset + _pinfo.getPatchBase();
@@ -39,9 +42,6 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
                                   _pinfo.getPatchBase() + offset));
 
     SharedStub &new_shstub = _shstubs.back();
-    
-
-    _patch_offset = new_shstub.end();
     return (&new_shstub);
 }
 
@@ -49,13 +49,13 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
     // get the shared-stubs
     const SharedStub *shstub = get_shstub(plan);
-    if (!shstub)
+    if (!shstub) {
         shstub = create_shstub(plan);
+        _patch_offset += shstub->bytes().size();
+    }
 
-
-    // append the pre-trampolines
-    TrampolineBuilder::init_trampoline(*plan, *shstub);
 
     set_trampoline_addr(plan);
+    _patch_offset += TrampolineBuilder::init_trampoline(*plan, *shstub);
     TrampolineBuilder::branch_to_trampoline(*plan);
 }

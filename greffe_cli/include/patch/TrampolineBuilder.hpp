@@ -13,6 +13,6 @@ namespace TrampolineBuilder {
     void                 branch_to_trampoline(PatchPlan& plan);
     void                 patch_branches(PatchSession& session, const std::vector<PatchPlan>& plans);
 
-    void                 init_trampoline(PatchPlan& plan,
+    size_t               init_trampoline(PatchPlan& plan,
                                          const SharedStub &shstub);
 }

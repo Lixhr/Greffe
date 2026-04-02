@@ -117,3 +117,60 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at, uint64_t shstub_ad
     
     return thumb_collect(w, buf, "ThumbStubs::trampoline_init");
 }
+
+typedef struct _GumThumbLiteralRef GumThumbLiteralRef;
+
+struct _GumThumbLiteralRef
+{
+  guint32 val;
+  guint16 * insn;
+  GumAddress pc;
+};
+
+
+static gboolean gum_thumb_writer_has_literal_refs (GumThumbWriter * self)
+{
+  return self->literal_refs.data != NULL;
+}
+
+static void
+gum_thumb_writer_add_literal_reference_here (GumThumbWriter * self,
+                                             guint32 val)
+{
+  GumThumbLiteralRef * r;
+
+  if (!gum_thumb_writer_has_literal_refs (self))
+    gum_metal_array_init (&self->literal_refs, sizeof (GumThumbLiteralRef));
+
+  r = (GumThumbLiteralRef *)gum_metal_array_append (&self->literal_refs);
+  r->val = val;
+  r->insn = self->code;
+  r->pc = self->pc + 4;
+
+  if (self->earliest_literal_insn == NULL)
+    self->earliest_literal_insn = r->insn;
+}
+
+
+std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
+    std::vector<uint8_t> buf(0x400, 0);
+    GumThumbWriter w;
+    gum_thumb_writer_init(&w, buf.data());
+    w.pc = static_cast<GumAddress>(at);
+
+
+    if (!gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_PC, 8))
+        throw std::runtime_error("ThumbStubs::build_shared_stub: str R0 failed");
+
+    // restore the original r0
+    if (!gum_thumb_writer_put_pop_regs(&w, 1, ARM_REG_R0))
+        throw std::runtime_error("ThumbStubs::build_shared_stub: pop R0 failed");
+
+
+    // global literal: stores our index before saving context
+    gum_thumb_writer_add_literal_reference_here(&w, 0xdeadc0de);
+
+    return thumb_collect(w, buf, "ThumbStubs::build_shared_stub");
+}
+
+

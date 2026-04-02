@@ -53,6 +53,7 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.plans(), ctx.pinfo);
     PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
 
+    // point targets to trampolines
     TrampolineBuilder::patch_branches(session, ctx.targets.plans());
 
 
