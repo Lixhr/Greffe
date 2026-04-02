@@ -17,7 +17,7 @@ void TrampolineBuilder::patch_branches(PatchSession& session,
     }
 }
 
-void TrampolineBuilder::branch_init(PatchPlan& plan) {
+void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     const Target& t     = plan.target;
     IArchStubs&   stubs = *plan.stubs;
 

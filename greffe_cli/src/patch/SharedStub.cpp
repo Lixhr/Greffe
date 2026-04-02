@@ -2,11 +2,19 @@
 #include <vector>
 
 SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, uint64_t initial_offset, uint64_t addr) {
-    stubs = std::move(s);
-    set_offset(stubs->align_offset(initial_offset));
-    _name = stubs->name();
-    _addr = addr;
+    stubs   = std::move(s);
+    _offset = initial_offset;
+    _name   = stubs->name();
+    _addr   = addr;
 
+    // nops 
+    _bytes.push_back(0);
+    _bytes.push_back(0);
+    _bytes.push_back(0);
+    _bytes.push_back(0);
+    _bytes.push_back(0);
+    _bytes.push_back(0);
+    _bytes.push_back(0);
     // TODO
 }
 

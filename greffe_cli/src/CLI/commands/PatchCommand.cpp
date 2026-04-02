@@ -60,6 +60,10 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         session.patch(plan.trampoline_addr , plan.trampoline);
     }
 
+    for (const auto& shstub : ctx.layout.shstubs()) {
+        session.patch(shstub.addr() , shstub.bytes());
+    }
+
     // if (!handler_bin.bytes().empty())
         // session.patch(ctx.pinfo.getPatchBase() - ctx.bin_base, handler_bin.bytes());
 

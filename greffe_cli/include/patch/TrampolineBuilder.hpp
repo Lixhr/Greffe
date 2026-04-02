@@ -10,7 +10,7 @@
 
 namespace TrampolineBuilder {
 
-    void                 branch_init(PatchPlan& plan);
+    void                 branch_to_trampoline(PatchPlan& plan);
     void                 patch_branches(PatchSession& session, const std::vector<PatchPlan>& plans);
 
     void                 init_trampoline(PatchPlan& plan,
