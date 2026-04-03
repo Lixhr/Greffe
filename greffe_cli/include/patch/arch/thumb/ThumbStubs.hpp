@@ -13,11 +13,14 @@ class ThumbStubs final : public IArchStubs {
                                             uint64_t shstub_addr,
                                             uint8_t  **ptr_array)   override;
 
-        std::vector<uint8_t> relocate(const ContextEntry& instr,
-                                    uint64_t            dest_addr) override;
+        std::vector<uint8_t> relocate_and_branch_back(
+                                    const std::vector<const ContextEntry*>& instrs,
+                                    uint64_t                                dest_addr,
+                                    uint64_t                                branch_to) override;
         // assumes the handler distance is < 16Mb
         std::string_view     name()            const override;
         uint8_t              instr_alignment() const override { return 4; }
         uint8_t              sizeof_ptr()      const override { return 4; }
+        void                 write_ptr(uint8_t* dst, uint64_t addr) const override;
 
 };

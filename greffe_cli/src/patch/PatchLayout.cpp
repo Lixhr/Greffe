@@ -9,6 +9,7 @@ PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
 
 const std::vector<PatchPlan> & PatchLayout::patch_plans() const { return _patch_plans; }
 const std::vector<SharedStub>& PatchLayout::shstubs()     const { return _shstubs; }
+uint64_t                       PatchLayout::current_offset() const { return _patch_offset; }
 
 uint64_t PatchLayout::offset_to_addr(uint64_t offset)     const {
     return offset + _pinfo.getPatchBase();
@@ -19,7 +20,7 @@ void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
 
     _patch_offset = plan->stubs->align_offset(_patch_offset);
 
-    plan->trampoline_addr = offset_to_addr(_patch_offset);
+    plan->set_addr(offset_to_addr(_patch_offset));
 }
 
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
@@ -55,6 +56,5 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     set_trampoline_addr(plan);
     TrampolineBuilder::branch_to_trampoline(*plan);
     _patch_offset += TrampolineBuilder::init_trampoline(*plan, *shstub);
-    _patch_offset += TrampolineBuilder::relocate_instructions(*plan);
-    _patch_offset += TrampolineBuilder::branch_back(*plan);
+    _patch_offset += TrampolineBuilder::relocate_and_branch_back(*plan);
 }

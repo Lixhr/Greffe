@@ -174,6 +174,11 @@ const std::vector<PatchPlan>& TargetManager::plans() const {
     return _plans;
 }
 
+std::vector<PatchPlan>& TargetManager::plans() {
+    std::lock_guard<std::mutex> lk(_mutex);
+    return _plans;
+}
+
 void TargetManager::save(const std::filesystem::path& path,
                          uint64_t                     bin_base,
                          std::optional<uint64_t>      patch_base) const {

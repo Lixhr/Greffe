@@ -16,6 +16,5 @@ namespace TrampolineBuilder {
     size_t               init_trampoline(PatchPlan& plan,
                                          const SharedStub &shstub);
 
-    size_t               relocate_instructions(PatchPlan& plan);
-    size_t               branch_back(PatchPlan& plan);
+    size_t               relocate_and_branch_back(PatchPlan& plan);
 }
