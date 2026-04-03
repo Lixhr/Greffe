@@ -18,7 +18,7 @@ uint64_t    SetCommand::get_value_from_strhex(const Args& args) {
         if (pos != args[1].size())
             throw std::invalid_argument("");
 
-        return (value);
+        return value;
     } catch (const std::exception&) {
         throw std::runtime_error("invalid address: " + args[1]);
     }

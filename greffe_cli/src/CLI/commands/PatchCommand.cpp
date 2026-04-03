@@ -18,7 +18,7 @@ const std::filesystem::path PatchCommand::get_output_path(CLIContext& ctx) const
     out_filename += ".greffe";
 
     auto out_path = ctx.pinfo.getProjectDir() / out_filename;
-    return (out_path);
+    return out_path;
 }
 
 bool PatchCommand::confirm_output(const std::filesystem::path &out_path) const {

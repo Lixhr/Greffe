@@ -41,7 +41,7 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
                                   _pinfo.getPatchBase() + offset));
 
     SharedStub &new_shstub = _shstubs.back();
-    return (&new_shstub);
+    return &new_shstub;
 }
 
 
