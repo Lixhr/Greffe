@@ -3,7 +3,6 @@
 #include "Target.hpp"
 #include "patch/TrampolineBuilder.hpp"
 #include "patch/arch/StubsFactory.hpp"
-#include "patch/arch/RelocatorFactory.hpp"
 #include "patch_utils.hpp"
 #include "cli_fmt.hpp"
 #include <filesystem>

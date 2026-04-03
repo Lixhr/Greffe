@@ -9,13 +9,13 @@
 
 class PatchPlan : public PatchLayoutEntry {
     public:
-        PatchPlan(Target t, std::shared_ptr<IArchStubs> s, uint32_t id)
-            : target(std::move(t)), id(id) { stubs = std::move(s); }
+        PatchPlan(Target t, std::shared_ptr<IArchStubs> s)
+            : target(std::move(t)) { stubs = std::move(s); }
         Target                      target;
         uint64_t                    trampoline_addr       = 0;
         uint64_t                    trampoline_ret_addr   = 0;
         std::vector<uint8_t>        branch_instr          = {};
         std::vector<uint8_t>        trampoline            = {};
-        std::vector<size_t>         relocd_instr_indices  = {}; // indices into target.context()
-        uint32_t                    id;
+        std::vector<const ContextEntry*> relocd_instr  = {};
+        uint8_t                    *trampoline_ret        = 0;
 };

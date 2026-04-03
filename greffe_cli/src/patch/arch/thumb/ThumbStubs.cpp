@@ -1,7 +1,9 @@
 #include "thumb/ThumbStubs.hpp"
+#include "Target.hpp"
 
 extern "C" {
 #include <gum/arch-arm/gumthumbwriter.h>
+#include <gum/arch-arm/gumthumbrelocator.h>
 #include <capstone/arm.h>
 }
 
@@ -87,7 +89,7 @@ std::vector<uint8_t> ThumbStubs::call(uint64_t from, uint64_t to) {
 
 std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at, 
                                                  uint64_t shstub_addr, 
-                                                 uint32_t **ptr_array) {
+                                                 uint8_t  **ptr_array) {
     std::vector<uint8_t> buf(128, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
@@ -112,11 +114,28 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at,
     gum_thumb_writer_put_nop(&w);
 
     std::vector<uint8_t> bytes = thumb_collect(w, buf, "ThumbStubs::trampoline_init");
-    *ptr_array = reinterpret_cast<uint32_t *>(bytes.data() + bytes.size());
+    *ptr_array = reinterpret_cast<uint8_t *>(bytes.data() + bytes.size());
 
-    // reserve space for handler / relocated code
-    bytes.resize(bytes.size() + 2 * sizeof(uint32_t));
+    // reserve fake literal pool for handler address
+    bytes.resize(bytes.size() + sizeof_ptr());
     return bytes;
+}
+
+std::vector<uint8_t> ThumbStubs::relocate(const ContextEntry& instr, uint64_t dest_addr) {
+    std::vector<uint8_t> buf(32, 0);
+    GumThumbWriter w;
+    gum_thumb_writer_init(&w, buf.data());
+    w.pc = static_cast<GumAddress>(dest_addr);
+
+    GumThumbRelocator r;
+    gum_thumb_relocator_init(&r, instr.raw.data(), &w);
+    r.input_pc = static_cast<GumAddress>(instr.ea);
+
+    gum_thumb_relocator_read_one(&r, nullptr);
+    gum_thumb_relocator_write_one(&r);
+    gum_thumb_relocator_clear(&r);
+
+    return thumb_collect(w, buf, "ThumbStubs::relocate");
 }
 
 std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
