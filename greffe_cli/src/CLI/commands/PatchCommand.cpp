@@ -3,6 +3,7 @@
 #include "HandlerCompiler.hpp"
 #include "TrampolineBuilder.hpp"
 #include "PatchSession.hpp"
+#include "patch/patch_utils.hpp"
 #include "cli_fmt.hpp"
 #include "colors.hpp"
 #include <filesystem>
@@ -44,7 +45,7 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
 
     print_patch_info(ctx);
 
-    auto out_path = get_output_path(ctx);
+    const std::filesystem::path out_path = get_output_path(ctx);
     if (!confirm_output(out_path)) {
         std::cout << Color::GREY << "aborted" << Color::RST << '\n';
         return;
@@ -57,16 +58,23 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     handler_bin.set_offset(ctx.layout.current_offset());
     handler_bin.set_addr(ctx.layout.offset_to_addr(ctx.layout.current_offset()));
 
+    // write handler addresses into each trampoline's fake literal pool
+    for (auto& plan : ctx.targets.plans()) {
+        std::string sym = "handler_" + sanitize(plan.target.name());
+        uint64_t handler_addr = handler_bin.handler_addr(sym);
+        uint8_t* slot = plan.bytes().data() + plan.handler_offset;
+        plan.stubs->write_ptr(slot, handler_addr);
+    }
 
     // point targets to trampolines
     TrampolineBuilder::patch_branches(session, ctx.targets.plans());
 
-    auto patch_entry = [&](const PatchLayoutEntry& e) {                                                                                                                                           
-        session.patch(e.addr(), e.bytes());                                                                                                                                                       
-    };                                                                                                                                                                                            
+    auto patch_entry = [&](const PatchLayoutEntry& e) {
+        session.patch(e.addr(), e.bytes());
+    };
 
     for (const auto& plan   : ctx.layout.patch_plans()) patch_entry(plan);
-    for (const auto& shstub : ctx.layout.shstubs())     patch_entry(shstub);                                                                                                                      
+    for (const auto& shstub : ctx.layout.shstubs())     patch_entry(shstub);
     patch_entry(handler_bin);
 
     session.save(out_path);

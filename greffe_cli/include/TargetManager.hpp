@@ -23,6 +23,7 @@ class TargetManager {
         bool                             add_direct(const json& entry, CLIContext& cxt);
         void                             remove(const std::string& target);
         const std::vector<PatchPlan>&    plans() const;
+        std::vector<PatchPlan>&          plans();
 
         void                             save(const std::filesystem::path& path,
                                          uint64_t                     bin_base,

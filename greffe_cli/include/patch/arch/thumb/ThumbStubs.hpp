@@ -21,5 +21,6 @@ class ThumbStubs final : public IArchStubs {
         std::string_view     name()            const override;
         uint8_t              instr_alignment() const override { return 4; }
         uint8_t              sizeof_ptr()      const override { return 4; }
+        void                 write_ptr(uint8_t* dst, uint64_t addr) const override;
 
 };

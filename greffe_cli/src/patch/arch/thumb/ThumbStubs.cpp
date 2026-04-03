@@ -11,6 +11,14 @@ extern "C" {
 
 std::string_view ThumbStubs::name() const { return "Thumb"; }
 
+void ThumbStubs::write_ptr(uint8_t* dst, uint64_t addr) const {
+    uint32_t v = static_cast<uint32_t>(addr);
+    dst[0] = static_cast<uint8_t>(v);
+    dst[1] = static_cast<uint8_t>(v >> 8);
+    dst[2] = static_cast<uint8_t>(v >> 16);
+    dst[3] = static_cast<uint8_t>(v >> 24);
+}
+
 static std::vector<uint8_t> thumb_collect(GumThumbWriter& w,
                                           std::vector<uint8_t>& buf,
                                           const char* ctx) {

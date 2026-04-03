@@ -54,9 +54,11 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
 
 size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
                                            const SharedStub &shstub) {
+    uint8_t *ptr = nullptr;
     plan.bytes() = plan.stubs->trampoline_init(plan.addr(),
                                                shstub.addr(),
-                                               &plan.trampoline_ret);
+                                               &ptr);
+    plan.handler_offset = static_cast<size_t>(ptr - plan.bytes().data());
     return plan.bytes().size();
 }
 

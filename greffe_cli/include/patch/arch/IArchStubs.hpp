@@ -27,6 +27,7 @@ class IArchStubs {
         virtual std::string_view name()            const = 0;
         virtual uint8_t          instr_alignment() const = 0;
         virtual uint8_t          sizeof_ptr()      const = 0;
+        virtual void             write_ptr(uint8_t* dst, uint64_t addr) const = 0;
 
         uint64_t align_offset(uint64_t offset) const {
             const uint8_t a = instr_alignment();

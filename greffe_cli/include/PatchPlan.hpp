@@ -16,5 +16,5 @@ class PatchPlan : public PatchLayoutEntry {
         uint64_t                            trampoline_ret_addr   = 0;
         std::vector<uint8_t>                branch_instr          = {};
         std::vector<const ContextEntry*>    relocd_instr          = {};
-        uint8_t                             *trampoline_ret       = 0;
+        size_t                              handler_offset = 0;
 };
