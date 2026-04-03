@@ -19,7 +19,7 @@ void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
 
     _patch_offset = plan->stubs->align_offset(_patch_offset);
 
-    plan->trampoline_addr = _patch_offset + _pinfo.getPatchBase();
+    plan->trampoline_addr = offset_to_addr(_patch_offset);
 }
 
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
@@ -38,12 +38,11 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
 
     _shstubs.push_back(SharedStub(plan->stubs,
                                   offset, 
-                                  _pinfo.getPatchBase() + offset));
+                                  offset_to_addr(offset)));
 
     SharedStub &new_shstub = _shstubs.back();
     return &new_shstub;
 }
-
 
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
     // get the shared-stubs
