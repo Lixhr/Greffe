@@ -31,19 +31,19 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         throw std::runtime_error("Target instruction not found on context ??");
 
     size_t len = 0;
-    std::vector<size_t> relocd_indices;
+    std::vector<const ContextEntry*> relocd_indices;
 
     while (it != ctx.end()) {
         if (it->ea > t.ea() && it->is_xref_target)
             throw std::runtime_error("Patched branch overlaps a CODE XREF");
 
         len += it->raw.size();
-        relocd_indices.push_back(static_cast<size_t>(std::distance(ctx.begin(), it)));
+        relocd_indices.push_back(&*it);
         ++it;
 
         if (len >= branch.size()) {
             plan.trampoline_ret_addr   = it->ea;
-            plan.relocd_instr_indices  = std::move(relocd_indices);
+            plan.relocd_instr  = std::move(relocd_indices);
             plan.branch_instr          = std::move(branch);
             return;
         }
@@ -57,13 +57,10 @@ size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
 
     std::shared_ptr<IArchStubs> &stubs = plan.stubs;
 
-    uint32_t *test = NULL;
+    // uint_ *test = NULL;
 
     plan.trampoline = stubs->trampoline_init(plan.trampoline_addr, 
                                             shstub.addr(), 
-                                            &test);
-    test[0] = 0xdeadc0de;
-    test[1] = 0x42424242;
-
+                                            &plan.trampoline_ret);
     return (plan.trampoline.size());
 }

@@ -37,7 +37,7 @@ run: $(BUILD)/$(TARGET).bin
 	bash -c 'trap "stty sane 2>/dev/null" EXIT; qemu-system-arm -machine lm3s6965evb -nographic -device loader,file=$<,addr=0x0'
 
 run-patched:
-	bash -c 'trap "stty sane 2>/dev/null" EXIT; qemu-system-arm -machine lm3s6965evb -nographic -device loader,file=$(PATCHED),addr=0x0'
+	bash -c 'trap "stty sane 2>/dev/null" EXIT; qemu-system-arm -machine lm3s6965evb -nographic -device loader,file=$(PATCHED),addr=0x0 -S -s'
 
 clean:
 	rm -rf $(BUILD)

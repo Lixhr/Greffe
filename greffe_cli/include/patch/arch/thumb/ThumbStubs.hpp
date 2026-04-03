@@ -11,7 +11,7 @@ class ThumbStubs final : public IArchStubs {
 
         std::vector<uint8_t> trampoline_init(uint64_t at,
                                              uint64_t shstub_addr,
-                                             uint32_t **ptr_array);
+                                             uint8_t  **ptr_array);
         // assumes the handler distance is < 16Mb
         std::string_view     name()                const override;
         uint8_t              instr_alignment()     const override { return 4; }

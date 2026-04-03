@@ -87,7 +87,7 @@ std::vector<uint8_t> ThumbStubs::call(uint64_t from, uint64_t to) {
 
 std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at, 
                                                  uint64_t shstub_addr, 
-                                                 uint32_t **ptr_array) {
+                                                 uint8_t  **ptr_array) {
     std::vector<uint8_t> buf(128, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
@@ -112,10 +112,10 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at,
     gum_thumb_writer_put_nop(&w);
 
     std::vector<uint8_t> bytes = thumb_collect(w, buf, "ThumbStubs::trampoline_init");
-    *ptr_array = reinterpret_cast<uint32_t *>(bytes.data() + bytes.size());
+    *ptr_array = reinterpret_cast<uint8_t *>(bytes.data() + bytes.size());
 
-    // reserve space for handler / relocated code
-    bytes.resize(bytes.size() + 2 * sizeof(uint32_t));
+    // reserve fake literal pool for handler address
+    bytes.resize(bytes.size() + sizeof_ptr());
     return bytes;
 }
 

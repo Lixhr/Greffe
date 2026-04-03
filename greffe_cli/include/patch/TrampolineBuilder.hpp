@@ -3,7 +3,6 @@
 #include "PatchPlan.hpp"
 #include "PatchSession.hpp"
 #include "arch/IArchStubs.hpp"
-#include "arch/IRelocator.hpp"
 #include "SharedStub.hpp"
 #include <cstdint>
 #include <vector>
