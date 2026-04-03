@@ -12,7 +12,6 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-
 static int connect_socket() {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0)
@@ -75,40 +74,40 @@ static json recv_line(int fd, int timeout_ms) {
 
 
 IdaIPC::IdaIPC() {
-    fd_ = connect_socket();
+    _fd = connect_socket();
 }
 
 IdaIPC::~IdaIPC() {
-    stop_.store(true);
-    shutdown(fd_, SHUT_RDWR);
-    if (thread_.joinable())
-        thread_.join();
-    close(fd_);
+    _stop.store(true);
+    shutdown(_fd, SHUT_RDWR);
+    if (_thread.joinable())
+        _thread.join();
+    close(_fd);
 }
 
 json IdaIPC::send(const json& msg, int timeout_ms) {
-    std::lock_guard<std::mutex> lk(sock_mutex_);
+    std::lock_guard<std::mutex> lk(_sock_mutex);
     return do_send(msg, timeout_ms);
 }
 
 json IdaIPC::do_send(const json& msg, int timeout_ms) {
-    send_all(fd_, msg.dump());
-    return recv_line(fd_, timeout_ms);
+    send_all(_fd, msg.dump());
+    return recv_line(_fd, timeout_ms);
 }
 
 void IdaIPC::start(CLIContext& ctx) {
-    if (thread_.joinable())
+    if (_thread.joinable())
         throw std::logic_error("IdaIPC::start() already called");
 
-    thread_ = std::thread([this, &ctx] { run(ctx); });
+    _thread = std::thread([this, &ctx] { run(ctx); });
 }
 
 void IdaIPC::run(CLIContext& ctx) {
-    while (!stop_.load()) {
+    while (!_stop.load()) {
         try {
             json resp;
             {
-                std::lock_guard<std::mutex> lk(sock_mutex_);
+                std::lock_guard<std::mutex> lk(_sock_mutex);
                 resp = do_send({ {"action", "refresh"} }, 2000);
             }
 

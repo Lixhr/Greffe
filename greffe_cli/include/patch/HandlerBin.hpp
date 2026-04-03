@@ -9,9 +9,10 @@
 class HandlerBin {
 public:
     HandlerBin() = default;
-    HandlerBin(std::vector<uint8_t>                    bytes,
-               std::unordered_map<std::string, uint64_t> offsets)
-        : _bytes(std::move(bytes)), _offsets(std::move(offsets)) {}
+    HandlerBin(std::vector<uint8_t>                         bytes,
+               std::unordered_map<std::string, uint64_t>    offsets) :
+               _bytes(std::move(bytes))
+             , _offsets(std::move(offsets)) {}
 
     size_t                      size()  const { return _bytes.size(); }
     const std::vector<uint8_t>& bytes() const { return _bytes; }
@@ -20,6 +21,7 @@ public:
         auto it = _offsets.find(sym);
         if (it == _offsets.end())
             throw std::runtime_error("HandlerBin: symbol not found: " + sym);
+
         return it->second + base;
     }
 

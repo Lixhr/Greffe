@@ -63,6 +63,7 @@ build:
 inline std::string_view get(const std::string& arch) {
     for (const auto& [a, content] : table)
         if (a == arch) return content;
+
     throw std::runtime_error("MakefileTemplates: no template for arch: " + arch);
 }
 

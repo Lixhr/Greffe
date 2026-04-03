@@ -17,17 +17,18 @@ struct SavedProject {
 
 class TargetManager {
     public:
-        explicit                     TargetManager(IdaIPC& ipc);
+        explicit                         TargetManager(IdaIPC& ipc);
       
-        const PatchPlan&             add(const std::string& target, CLIContext& cxt);
-        bool                         add_direct(const json& entry, CLIContext& cxt);
-        void                         remove(const std::string& target);
-        const std::vector<PatchPlan>& plans() const;
+        const PatchPlan&                 add(const std::string& target, CLIContext& cxt);
+        bool                             add_direct(const json& entry, CLIContext& cxt);
+        void                             remove(const std::string& target);
+        const std::vector<PatchPlan>&    plans() const;
 
-        void                         save(const std::filesystem::path& path,
+        void                             save(const std::filesystem::path& path,
                                          uint64_t                     bin_base,
                                          std::optional<uint64_t>      patch_base) const;
-        SavedProject                 load(const std::filesystem::path& path, const ProjectInfo& pinfo);
+
+        SavedProject                     load(const std::filesystem::path& path, const ProjectInfo& pinfo);
 
     private:
         json                             fetch_entry(const std::string& target);

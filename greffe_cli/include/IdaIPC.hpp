@@ -26,15 +26,15 @@ public:
     IdaIPC();
     ~IdaIPC();
 
-    json send(const json& msg, int timeout_ms = 2000);
-    void start(CLIContext& ctx);
+    json    send(const json& msg, int timeout_ms = 2000);
+    void    start(CLIContext& ctx);
 
 private:
-    json do_send(const json& msg, int timeout_ms);
-    void run(CLIContext& ctx);
+    json    do_send(const json& msg, int timeout_ms);
+    void    run(CLIContext& ctx);
 
-    int               fd_{ -1 };
-    std::thread       thread_;
-    std::atomic<bool> stop_{ false };
-    std::mutex        sock_mutex_;
+    int               _fd{ -1 };
+    std::thread       _thread;
+    std::atomic<bool> _stop{ false };
+    std::mutex        _sock_mutex;
 };

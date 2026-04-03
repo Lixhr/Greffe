@@ -22,26 +22,7 @@ const std::vector<ContextEntry>& Target::context() const { return _context; }
 
 static bool open_cs(int /*bits*/, const std::string& /*mode*/, csh& handle) {
     cs_arch_register_arm();
-    // cs_arch_register_arm64();
-
-    cs_arch arch;
-    cs_mode cs_m;
-
-    // if (bits == 64) {
-    //     arch = CS_ARCH_ARM64;
-    //     cs_m = CS_MODE_ARM;
-    // } else if (mode == "thumb") {
-        // arch = CS_ARCH_ARM;
-        // cs_m = CS_MODE_THUMB;
-    // } else {
-    //     arch = CS_ARCH_ARM;
-    //     cs_m = CS_MODE_ARM;
-    // }
-
-    arch = CS_ARCH_ARM;
-    cs_m = CS_MODE_THUMB;
-
-    return cs_open(arch, cs_m, &handle) == CS_ERR_OK;
+    return cs_open(CS_ARCH_ARM, CS_MODE_THUMB, &handle) == CS_ERR_OK;
 }
 
 

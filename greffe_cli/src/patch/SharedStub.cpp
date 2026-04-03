@@ -7,14 +7,12 @@ SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, uint64_t initial_offset, u
     _name   = stubs->name();
     _addr   = addr;
 
-    // nops 
     _bytes = stubs->build_shared_stub(addr);
-    // _addr  += sizeof(); // instrs starts after the literal pool
 }
 
-std::string_view            SharedStub::name() const { return (_name); }
-const std::vector<uint8_t>  SharedStub::bytes() const { return (_bytes); }
+std::string_view           SharedStub::name()  const { return _name; }
+const std::vector<uint8_t> SharedStub::bytes() const { return _bytes; }
 
-uint64_t                    SharedStub::end() const { 
-    return (_offset + _bytes.size()); 
+uint64_t SharedStub::end() const {
+    return _offset + _bytes.size();
 }

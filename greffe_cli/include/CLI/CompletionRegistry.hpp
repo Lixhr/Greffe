@@ -8,18 +8,17 @@
 
 class CompletionRegistry {
     public:
-        static CompletionRegistry& instance();
-
-        void install(const CLIDispatcher& dispatcher, const CLIContext& ctx);
-
         CompletionRegistry(const CompletionRegistry&)            = delete;
-        CompletionRegistry& operator=(const CompletionRegistry&) = delete;
+
+        CompletionRegistry&         operator=(const CompletionRegistry&) = delete;
+        void                        install(const CLIDispatcher& dispatcher, const CLIContext& ctx);
+        static CompletionRegistry&  instance();
 
     private:
         CompletionRegistry() = default;
 
-        static char** readline_completion(const char* text, int start, int end);
-        static char* completion_generator(const char* text, int state);
+        static char**            readline_completion(const char* text, int start, int end);
+        static char*             completion_generator(const char* text, int state);
 
         const CLIDispatcher*     _dispatcher = nullptr;
         const CLIContext*        _ctx = nullptr;

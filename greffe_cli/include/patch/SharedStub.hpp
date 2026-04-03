@@ -14,6 +14,6 @@ class SharedStub : public PatchLayoutEntry {
         const std::vector<uint8_t>  bytes() const;
 
     private:
-        std::vector<uint8_t> _bytes;
-        std::string_view     _name;
+        std::vector<uint8_t>        _bytes;
+        std::string_view            _name;
 };

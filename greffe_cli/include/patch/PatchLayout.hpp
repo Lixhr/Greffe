@@ -18,9 +18,9 @@ class PatchLayout {
         uint64_t                       offset_to_addr(uint64_t offset) const;
 
     private:
-        void                           set_trampoline_addr(PatchPlan* plan);
-        const SharedStub               *get_shstub(PatchPlan *plan);
-        const SharedStub               *create_shstub(PatchPlan *plan);
+        void                            set_trampoline_addr(PatchPlan* plan);
+        const SharedStub                *get_shstub(PatchPlan *plan);
+        const SharedStub                *create_shstub(PatchPlan *plan);
         
 
         const ProjectInfo&                _pinfo;

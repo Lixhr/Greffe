@@ -158,8 +158,8 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
     // it stores the 'ret' to be available on POP PC
     gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, -4);
 
-    // call the handler
-    // gum_thumb_writer_put_blx_reg(&w, ARM_REG_R1);
+    // call the handler                                                                                                                                                       
+    // gum_thumb_writer_put_blx_reg(&w, ARM_REG_R1);   
 
     restore_ctx(&w);
 
@@ -168,5 +168,3 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
 
     return thumb_collect(w, buf, "ThumbStubs::build_shared_stub");
 }
-
-
