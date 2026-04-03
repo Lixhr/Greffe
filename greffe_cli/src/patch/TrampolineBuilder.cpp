@@ -21,7 +21,7 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     const Target& t     = plan.target;
     IArchStubs&   stubs = *plan.stubs;
 
-    std::vector<uint8_t> branch = stubs.branch(t.ea(), plan.trampoline_addr);
+    std::vector<uint8_t> branch = stubs.branch(t.ea(), plan.addr());
 
     const auto& ctx = t.context();
     auto it = std::find_if(ctx.begin(), ctx.end(),
@@ -42,9 +42,9 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         ++it;
 
         if (len >= branch.size()) {
-            plan.trampoline_ret_addr   = it->ea;
-            plan.relocd_instr  = std::move(relocd_indices);
-            plan.branch_instr          = std::move(branch);
+            plan.trampoline_ret_addr  = it->ea;
+            plan.relocd_instr         = std::move(relocd_indices);
+            plan.branch_instr         = std::move(branch);
             return;
         }
     }
@@ -52,36 +52,20 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     throw std::runtime_error("Patched branch overlaps end of function");
 }
 
-size_t TrampolineBuilder::relocate_instructions(PatchPlan& plan) {
-    std::shared_ptr<IArchStubs> &stubs = plan.stubs;
-    uint64_t    dest_addr              = plan.trampoline_addr + plan.trampoline.size();
-    size_t      total                  = 0;
-
-    for (const ContextEntry* e : plan.relocd_instr) {
-        auto relocated = stubs->relocate(*e, dest_addr + total);
-        plan.trampoline.insert(plan.trampoline.end(), relocated.begin(), relocated.end());
-        total += relocated.size();
-    }
-    return total;
-}
-
 size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
                                            const SharedStub &shstub) {
-
-    std::shared_ptr<IArchStubs> &stubs = plan.stubs;
-
-    plan.trampoline = stubs->trampoline_init(plan.trampoline_addr, 
-                                            shstub.addr(), 
-                                            &plan.trampoline_ret);
-    return plan.trampoline.size();
+    plan.bytes() = plan.stubs->trampoline_init(plan.addr(),
+                                               shstub.addr(),
+                                               &plan.trampoline_ret);
+    return plan.bytes().size();
 }
 
-size_t  TrampolineBuilder::branch_back(PatchPlan& plan) {
-    std::shared_ptr<IArchStubs> &stubs = plan.stubs;
-    uint64_t br_addr = plan.trampoline_addr + plan.trampoline.size();
+size_t TrampolineBuilder::relocate_and_branch_back(PatchPlan& plan) {
+    uint64_t dest_addr = plan.addr() + plan.bytes().size();
 
-    std::vector<uint8_t> branch = stubs->branch(br_addr, plan.trampoline_ret_addr);
-    plan.trampoline.insert(plan.trampoline.end(), branch.begin(), branch.end());
-
-    return branch.size();
+    auto tail = plan.stubs->relocate_and_branch_back(plan.relocd_instr,
+                                                     dest_addr,
+                                                     plan.trampoline_ret_addr);
+    plan.bytes().insert(plan.bytes().end(), tail.begin(), tail.end());
+    return tail.size();
 }

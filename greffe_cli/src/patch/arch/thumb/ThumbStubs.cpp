@@ -121,21 +121,29 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at,
     return bytes;
 }
 
-std::vector<uint8_t> ThumbStubs::relocate(const ContextEntry& instr, uint64_t dest_addr) {
-    std::vector<uint8_t> buf(32, 0);
+std::vector<uint8_t> ThumbStubs::relocate_and_branch_back(
+                        const std::vector<const ContextEntry*>& instrs,
+                        uint64_t                                dest_addr,
+                        uint64_t                                branch_to) {
+    std::vector<uint8_t> buf(256, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(dest_addr);
 
-    GumThumbRelocator r;
-    gum_thumb_relocator_init(&r, instr.raw.data(), &w);
-    r.input_pc = static_cast<GumAddress>(instr.ea);
+    for (const ContextEntry* e : instrs) {
+        GumThumbRelocator r;
+        gum_thumb_relocator_init(&r, e->raw.data(), &w);
+        r.input_pc = static_cast<GumAddress>(e->ea);
+        gum_thumb_relocator_read_one(&r, nullptr);
+        gum_thumb_relocator_write_one(&r);
+        gum_thumb_relocator_clear(&r);
+    }
 
-    gum_thumb_relocator_read_one(&r, nullptr);
-    gum_thumb_relocator_write_one(&r);
-    gum_thumb_relocator_clear(&r);
+    uint64_t br_from = dest_addr + (reinterpret_cast<uint8_t*>(w.code)
+                                  - reinterpret_cast<uint8_t*>(w.base));
+    write_branch(&w, br_from, branch_to);
 
-    return thumb_collect(w, buf, "ThumbStubs::relocate");
+    return thumb_collect(w, buf, "ThumbStubs::relocate_and_branch_back");
 }
 
 std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {

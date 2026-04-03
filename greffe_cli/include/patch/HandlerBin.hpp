@@ -10,12 +10,10 @@ class HandlerBin : public PatchLayoutEntry {
     public:
         HandlerBin() = default;
         HandlerBin(std::vector<uint8_t>                         bytes,
-                std::unordered_map<std::string, uint64_t>    offsets) :
-                _bytes(std::move(bytes))
-                , _offsets(std::move(offsets)) {}
+                std::unordered_map<std::string, uint64_t>       offsets) :
+                _offsets(std::move(offsets)) { _bytes = std::move(bytes); }
 
-        size_t                      size()  const { return _bytes.size(); }
-        const std::vector<uint8_t>& bytes() const { return _bytes; }
+        size_t size() const { return _bytes.size(); }
 
         uint64_t handler_addr(const std::string& sym, uint64_t base) const {
             auto it = _offsets.find(sym);
@@ -26,6 +24,5 @@ class HandlerBin : public PatchLayoutEntry {
         }
 
     private:
-        std::vector<uint8_t>                      _bytes;
         std::unordered_map<std::string, uint64_t> _offsets;
 };

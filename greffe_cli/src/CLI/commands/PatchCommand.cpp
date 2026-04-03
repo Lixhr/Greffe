@@ -59,7 +59,7 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
 
 
     for (const auto& plan : ctx.layout.patch_plans()) {
-        session.patch(plan.trampoline_addr , plan.trampoline);
+        session.patch(plan.addr(), plan.bytes());
     }
 
     for (const auto& shstub : ctx.layout.shstubs()) {
