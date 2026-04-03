@@ -9,6 +9,7 @@ PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
 
 const std::vector<PatchPlan> & PatchLayout::patch_plans() const { return _patch_plans; }
 const std::vector<SharedStub>& PatchLayout::shstubs()     const { return _shstubs; }
+uint64_t                       PatchLayout::current_offset() const { return _patch_offset; }
 
 uint64_t PatchLayout::offset_to_addr(uint64_t offset)     const {
     return offset + _pinfo.getPatchBase();

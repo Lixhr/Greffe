@@ -12,7 +12,9 @@ class PatchLayout {
         PatchLayout(const ProjectInfo& pinfo, TargetManager& targets);
 
         void                           create_patch_entry(PatchPlan *plan);
-        
+
+        uint64_t                       current_offset()                const;
+
         const std::vector<SharedStub>& shstubs()                       const;
         const std::vector<PatchPlan> & patch_plans()                   const;
         uint64_t                       offset_to_addr(uint64_t offset) const;

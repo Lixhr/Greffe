@@ -50,21 +50,24 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         return;
     }
 
+    PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
+
     // compiled blob
     HandlerBin handler_bin = HandlerCompiler::build(ctx.targets.plans(), ctx.pinfo);
-    PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
+    handler_bin.set_offset(ctx.layout.current_offset());
+    handler_bin.set_addr(ctx.layout.offset_to_addr(ctx.layout.current_offset()));
+
 
     // point targets to trampolines
     TrampolineBuilder::patch_branches(session, ctx.targets.plans());
 
+    auto patch_entry = [&](const PatchLayoutEntry& e) {                                                                                                                                           
+        session.patch(e.addr(), e.bytes());                                                                                                                                                       
+    };                                                                                                                                                                                            
 
-    for (const auto& plan : ctx.layout.patch_plans()) {
-        session.patch(plan.addr(), plan.bytes());
-    }
-
-    for (const auto& shstub : ctx.layout.shstubs()) {
-        session.patch(shstub.addr(), shstub.bytes());
-    }
+    for (const auto& plan   : ctx.layout.patch_plans()) patch_entry(plan);
+    for (const auto& shstub : ctx.layout.shstubs())     patch_entry(shstub);                                                                                                                      
+    patch_entry(handler_bin);
 
     session.save(out_path);
     std::cout << Color::GREEN << "written to " << out_path.string() << Color::RST << '\n';
