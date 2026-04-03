@@ -70,10 +70,10 @@ void TargetManager::validate_context_modes(const std::string& target, uint64_t e
 
     for (const auto& c : context) {
         if (c.mode != target_mode) {
-            char buf[17];
-            snprintf(buf, sizeof(buf), "%lx", c.ea);
+            std::ostringstream oss;
+            oss << std::hex << c.ea;
             throw std::runtime_error(
-                target + ": cpu mode mismatch at 0x" + buf +
+                target + ": cpu mode mismatch at 0x" + oss.str() +
                 " (" + c.mode + " vs " + target_mode + ")");
         }
     }
