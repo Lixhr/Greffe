@@ -7,31 +7,30 @@ PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
                        , _patch_offset(0)
                         {}
 
-const std::vector<PatchPlan> & PatchLayout::patch_plans() const { return (_patch_plans);}
-const std::vector<SharedStub>& PatchLayout::shstubs()     const { return (_shstubs);}
+const std::vector<PatchPlan> & PatchLayout::patch_plans() const { return _patch_plans; }
+const std::vector<SharedStub>& PatchLayout::shstubs()     const { return _shstubs; }
 
 uint64_t PatchLayout::offset_to_addr(uint64_t offset)     const {
-    return (offset + _pinfo.getPatchBase());
+    return offset + _pinfo.getPatchBase();
 }
 
 
-#include <iostream>
 void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
 
     _patch_offset = plan->stubs->align_offset(_patch_offset);
 
-    plan->trampoline_addr = _patch_offset + _pinfo.getPatchBase();
+    plan->trampoline_addr = offset_to_addr(_patch_offset);
 }
 
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
     auto it = std::find_if(_shstubs.begin(), _shstubs.end(),
-        [&plan](const SharedStub& shstub) { 
-            return (shstub.name() == plan->stubs->name()); 
+        [plan](const SharedStub& shstub) {
+            return shstub.name() == plan->stubs->name();
         });
 
     if (it != _shstubs.end())
-        return (&(*it));
-    return (NULL);
+        return &*it;
+    return nullptr;
 }
 
 const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
@@ -39,12 +38,11 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
 
     _shstubs.push_back(SharedStub(plan->stubs,
                                   offset, 
-                                  _pinfo.getPatchBase() + offset));
+                                  offset_to_addr(offset)));
 
     SharedStub &new_shstub = _shstubs.back();
-    return (&new_shstub);
+    return &new_shstub;
 }
-
 
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
     // get the shared-stubs

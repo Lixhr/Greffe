@@ -12,6 +12,7 @@
 static std::vector<uint8_t> hex_decode(const std::string& hex) {
     std::vector<uint8_t> out;
     out.reserve(hex.size() / 2);
+
     for (size_t i = 0; i + 1 < hex.size(); i += 2)
         out.push_back(static_cast<uint8_t>(std::stoul(hex.substr(i, 2), nullptr, 16)));
     return out;
@@ -69,10 +70,10 @@ void TargetManager::validate_context_modes(const std::string& target, uint64_t e
 
     for (const auto& c : context) {
         if (c.mode != target_mode) {
-            char buf[17];
-            snprintf(buf, sizeof(buf), "%lx", c.ea);
+            std::ostringstream oss;
+            oss << std::hex << c.ea;
             throw std::runtime_error(
-                target + ": cpu mode mismatch at 0x" + buf +
+                target + ": cpu mode mismatch at 0x" + oss.str() +
                 " (" + c.mode + " vs " + target_mode + ")");
         }
     }
@@ -177,7 +178,9 @@ void TargetManager::save(const std::filesystem::path& path,
                          uint64_t                     bin_base,
                          std::optional<uint64_t>      patch_base) const {
     std::lock_guard<std::mutex> lk(_mutex);
+
     json traced = json::array();
+
     for (const auto& p : _plans) {
         const Target& t = p.target;
         json ctx_arr = json::array();
@@ -210,6 +213,7 @@ void TargetManager::save(const std::filesystem::path& path,
 
 SavedProject TargetManager::load(const std::filesystem::path& path, const ProjectInfo& pinfo) {
     std::lock_guard<std::mutex> lk(_mutex);
+
     std::ifstream f(path);
     if (!f)
         throw std::runtime_error("cannot open " + path.string());

@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <tuple>
 
 
 std::shared_ptr<IArchStubs> StubsFactory::create(int bits, std::string_view mode) {

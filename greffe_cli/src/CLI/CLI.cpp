@@ -82,6 +82,7 @@ void CLI::run() {
 
     static constexpr auto prompt = "\001\033[34m\002greffe>\001\033[0m\002 ";
     char* raw = nullptr;
+
     while (_ctx.running && (raw = readline(prompt)) != nullptr) {
         if (*raw) {
             add_history(raw);
@@ -91,6 +92,7 @@ void CLI::run() {
         raw = nullptr;
         signal(SIGINT, sigint_handler);
     }
+
     free(raw);
     std::cout << '\n';
 }

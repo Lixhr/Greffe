@@ -17,13 +17,12 @@ CommandNode group(std::string name, std::string desc,
 
 class CLI {
     public:
-        explicit CLI(CLIContext& ctx);
-        void register_command(std::unique_ptr<ICommand> cmd);
-
-        void run();
+        explicit        CLI(CLIContext& ctx);
+        void            register_command(std::unique_ptr<ICommand> cmd);
+        void            run();
 
     private:
-        void register_tree(std::vector<CommandNode> tree); 
-        CLIContext&   _ctx;
-        CLIDispatcher _dispatcher;
+        void            register_tree(std::vector<CommandNode> tree); 
+        CLIContext&     _ctx;
+        CLIDispatcher   _dispatcher;
 };

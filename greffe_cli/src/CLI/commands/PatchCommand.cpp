@@ -18,12 +18,13 @@ const std::filesystem::path PatchCommand::get_output_path(CLIContext& ctx) const
     out_filename += ".greffe";
 
     auto out_path = ctx.pinfo.getProjectDir() / out_filename;
-    return (out_path);
+    return out_path;
 }
 
 bool PatchCommand::confirm_output(const std::filesystem::path &out_path) const {
     if (std::filesystem::exists(out_path))
         return prompt_confirm(out_path.string() + " already exists. Overwrite? [y/N]");
+
     return prompt_confirm("Proceed? [y/N]");
 }
 
@@ -62,12 +63,8 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
     }
 
     for (const auto& shstub : ctx.layout.shstubs()) {
-        session.patch(shstub.addr() , shstub.bytes());
+        session.patch(shstub.addr(), shstub.bytes());
     }
-
-    // if (!handler_bin.bytes().empty())
-        // session.patch(ctx.pinfo.getPatchBase() - ctx.bin_base, handler_bin.bytes());
-
 
     session.save(out_path);
     std::cout << Color::GREEN << "written to " << out_path.string() << Color::RST << '\n';

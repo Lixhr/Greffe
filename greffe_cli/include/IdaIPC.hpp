@@ -15,26 +15,26 @@ static constexpr const char* SOCKET_PATH = "/tmp/greffe.sock";
 
 
 class IdaIPCError : public std::runtime_error {
-public:
-    explicit IdaIPCError(const std::string& msg)
-        : std::runtime_error(msg) {}
+    public:
+        explicit IdaIPCError(const std::string& msg)
+            : std::runtime_error(msg) {}
 };
 
 
 class IdaIPC {
-public:
-    IdaIPC();
-    ~IdaIPC();
+    public:
+        IdaIPC();
+        ~IdaIPC();
 
-    json send(const json& msg, int timeout_ms = 2000);
-    void start(CLIContext& ctx);
+        json    send(const json& msg, int timeout_ms = 2000);
+        void    start(CLIContext& ctx);
 
-private:
-    json do_send(const json& msg, int timeout_ms);
-    void run(CLIContext& ctx);
+    private:
+        json    do_send(const json& msg, int timeout_ms);
+        void    run(CLIContext& ctx);
 
-    int               fd_{ -1 };
-    std::thread       thread_;
-    std::atomic<bool> stop_{ false };
-    std::mutex        sock_mutex_;
+        int               _fd{ -1 };
+        std::thread       _thread;
+        std::atomic<bool> _stop{ false };
+        std::mutex        _sock_mutex;
 };

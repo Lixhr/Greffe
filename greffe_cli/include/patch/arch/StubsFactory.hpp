@@ -5,6 +5,6 @@
 #include <string_view>
 
 class StubsFactory {
-public:
-    static std::shared_ptr<IArchStubs> create(int bits, std::string_view mode);
+    public:
+        static std::shared_ptr<IArchStubs> create(int bits, std::string_view mode);
 };

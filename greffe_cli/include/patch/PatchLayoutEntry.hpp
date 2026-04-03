@@ -6,7 +6,7 @@
 
 class PatchLayoutEntry {
     public:
-        virtual ~PatchLayoutEntry() = default;
+        virtual     ~PatchLayoutEntry() = default;
 
         void        set_offset(uint64_t offset);
         uint64_t    offset() const;

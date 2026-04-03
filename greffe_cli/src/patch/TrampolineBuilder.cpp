@@ -73,7 +73,7 @@ size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
     plan.trampoline = stubs->trampoline_init(plan.trampoline_addr, 
                                             shstub.addr(), 
                                             &plan.trampoline_ret);
-    return (plan.trampoline.size());
+    return plan.trampoline.size();
 }
 
 size_t  TrampolineBuilder::branch_back(PatchPlan& plan) {
@@ -83,5 +83,5 @@ size_t  TrampolineBuilder::branch_back(PatchPlan& plan) {
     std::vector<uint8_t> branch = stubs->branch(br_addr, plan.trampoline_ret_addr);
     plan.trampoline.insert(plan.trampoline.end(), branch.begin(), branch.end());
 
-    return (branch.size());
+    return branch.size();
 }
