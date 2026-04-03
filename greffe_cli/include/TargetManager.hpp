@@ -48,5 +48,4 @@ class TargetManager {
         IdaIPC&                _ipc;
         std::vector<PatchPlan> _plans;
         mutable std::mutex     _mutex;
-        uint32_t               _current_id = 0;
 };

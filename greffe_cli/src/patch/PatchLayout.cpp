@@ -54,10 +54,9 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         _patch_offset += shstub->bytes().size();
     }
 
-
     set_trampoline_addr(plan);
-    _patch_offset += TrampolineBuilder::init_trampoline(*plan, *shstub);
-    // _patch_offset += 
-
     TrampolineBuilder::branch_to_trampoline(*plan);
+    _patch_offset += TrampolineBuilder::init_trampoline(*plan, *shstub);
+    _patch_offset += TrampolineBuilder::relocate_instructions(*plan);
+    _patch_offset += TrampolineBuilder::branch_back(*plan);
 }

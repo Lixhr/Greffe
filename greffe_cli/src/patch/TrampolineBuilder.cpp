@@ -52,15 +52,36 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     throw std::runtime_error("Patched branch overlaps end of function");
 }
 
+size_t TrampolineBuilder::relocate_instructions(PatchPlan& plan) {
+    std::shared_ptr<IArchStubs> &stubs = plan.stubs;
+    uint64_t    dest_addr              = plan.trampoline_addr + plan.trampoline.size();
+    size_t      total                  = 0;
+
+    for (const ContextEntry* e : plan.relocd_instr) {
+        auto relocated = stubs->relocate(*e, dest_addr + total);
+        plan.trampoline.insert(plan.trampoline.end(), relocated.begin(), relocated.end());
+        total += relocated.size();
+    }
+    return total;
+}
+
 size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
                                            const SharedStub &shstub) {
 
     std::shared_ptr<IArchStubs> &stubs = plan.stubs;
 
-    // uint_ *test = NULL;
-
     plan.trampoline = stubs->trampoline_init(plan.trampoline_addr, 
                                             shstub.addr(), 
                                             &plan.trampoline_ret);
     return (plan.trampoline.size());
+}
+
+size_t  TrampolineBuilder::branch_back(PatchPlan& plan) {
+    std::shared_ptr<IArchStubs> &stubs = plan.stubs;
+    uint64_t br_addr = plan.trampoline_addr + plan.trampoline.size();
+
+    std::vector<uint8_t> branch = stubs->branch(br_addr, plan.trampoline_ret_addr);
+    plan.trampoline.insert(plan.trampoline.end(), branch.begin(), branch.end());
+
+    return (branch.size());
 }

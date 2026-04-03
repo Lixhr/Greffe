@@ -9,7 +9,7 @@
 
 class PatchPlan : public PatchLayoutEntry {
     public:
-        PatchPlan(Target t, std::shared_ptr<IArchStubs> s, uint32_t id)
+        PatchPlan(Target t, std::shared_ptr<IArchStubs> s)
             : target(std::move(t)) { stubs = std::move(s); }
         Target                      target;
         uint64_t                    trampoline_addr       = 0;

@@ -5,6 +5,7 @@
 #include <vector>
 #include <gum/arch-arm/gumthumbwriter.h>
 
+struct ContextEntry;
 
 class IArchStubs {
     public:
@@ -18,6 +19,8 @@ class IArchStubs {
         virtual std::vector<uint8_t> trampoline_init(uint64_t at,
                                                      uint64_t shstub_addr,
                                                      uint8_t  **ptr_array) = 0;
+        virtual std::vector<uint8_t> relocate(const ContextEntry& instr,
+                                              uint64_t            dest_addr) = 0;
 
         virtual std::string_view     name()            const = 0;
         virtual uint8_t              instr_alignment() const = 0;
