@@ -18,4 +18,6 @@ CLIContext::CLIContext(IdaIPC& client, ProjectInfo& pinfo)
     if (pinfo.getPatchBase() == -1ULL)
         pinfo.initPatchBase(bin_base);
 
+    for (auto& plan : targets.plans())
+        layout.create_patch_entry(&plan);
 }
