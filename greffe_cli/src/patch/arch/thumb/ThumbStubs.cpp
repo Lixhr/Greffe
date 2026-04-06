@@ -34,7 +34,7 @@ static std::vector<uint8_t> thumb_collect(GumThumbWriter& w,
 
 void ThumbStubs::save_ctx(GumThumbWriter *w) {
     // R0 already saved
-    if (!gum_thumb_writer_put_push_regs(w, 14,
+    if (!gum_thumb_writer_put_push_regs(w, 13,
             ARM_REG_R1,  ARM_REG_R2,  ARM_REG_R3,
             ARM_REG_R4,  ARM_REG_R5,  ARM_REG_R6,  ARM_REG_R7,
             ARM_REG_R8,  ARM_REG_R9,  ARM_REG_R10, ARM_REG_R11,
@@ -58,13 +58,19 @@ void ThumbStubs::restore_ctx(GumThumbWriter *w) {
         gum_thumb_writer_clear(w);
         throw std::runtime_error("ThumbStubs::restore_ctx: msr failed");
     }
-    if (!gum_thumb_writer_put_pop_regs(w, 14,
-            ARM_REG_R0,  ARM_REG_R1,  ARM_REG_R2,  ARM_REG_R3,
+    if (!gum_thumb_writer_put_pop_regs(w, 13,
+            ARM_REG_R1,  ARM_REG_R2,  ARM_REG_R3,
             ARM_REG_R4,  ARM_REG_R5,  ARM_REG_R6,  ARM_REG_R7,
             ARM_REG_R8,  ARM_REG_R9,  ARM_REG_R10, ARM_REG_R11,
             ARM_REG_R12, ARM_REG_LR)) {
         gum_thumb_writer_clear(w);
         throw std::runtime_error("ThumbStubs::restore_ctx: put_pop_regs failed");
+    }
+
+    // restore original R0
+    if (!gum_thumb_writer_put_pop_regs(w, 1, ARM_REG_R0)) {
+        gum_thumb_writer_clear(w);
+        throw std::runtime_error("ThumbStubs::restore_ctx: r0 pop failed");
     }
 }
 
