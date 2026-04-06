@@ -166,13 +166,14 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
     // get the funcptr
     gum_thumb_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);
 
-    // get the 'ret' address
-    gum_thumb_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_R0, 0x4);
+    // get the 'ret' address, ensure the thumb bit is set
+    gum_thumb_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_R0, 0x4 | 1);
 
 
     // space is reserved at the bottom of our stack
     // it stores the 'ret' to be available on POP PC
-    gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, -4);
+    // gum_thumb_writer_put_str_reg_reg(&w, ARM_REG_R0, ARM_REG_SP);
+    gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, 0x3c);
 
     // call the handler                                                                                                                                                       
     gum_thumb_writer_put_blx_reg(&w, ARM_REG_R1);   

@@ -42,6 +42,7 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         ++it;
 
         if (len >= branch.size()) {
+            std::cout << it->ea << "\n";
             plan.trampoline_ret_addr  = it->ea;
             plan.relocd_instr         = std::move(relocd_indices);
             plan.branch_instr         = std::move(branch);
