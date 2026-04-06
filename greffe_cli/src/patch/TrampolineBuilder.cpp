@@ -5,19 +5,7 @@
 #include <iomanip>
 #include <iostream>
 
-void TrampolineBuilder::patch_branches(PatchSession& session,
-                                            const std::vector<PatchPlan>& plans) {
-    const PatchPlan* last = nullptr;
-
-    for (const auto& plan : plans) {
-        if (!last || plan.target.ea() > last->target.ea())
-            last = &plan;
-
-        session.patch(plan.target.ea(), plan.branch_instr);
-    }
-}
-
-void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
+PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     const Target& t     = plan.target;
     IArchStubs&   stubs = *plan.stubs;
 
@@ -42,11 +30,9 @@ void TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         ++it;
 
         if (len >= branch.size()) {
-            std::cout << it->ea << "\n";
-            plan.trampoline_ret_addr  = it->ea;
-            plan.relocd_instr         = std::move(relocd_indices);
-            plan.branch_instr         = std::move(branch);
-            return;
+            plan.trampoline_ret_addr = it->ea;
+            plan.relocd_instr        = std::move(relocd_indices);
+            return PatchBranch(t.ea(), std::move(branch));
         }
     }
 

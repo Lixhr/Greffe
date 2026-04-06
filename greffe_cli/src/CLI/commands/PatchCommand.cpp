@@ -1,7 +1,6 @@
 #include "TargetCommands.hpp"
 #include "CLIContext.hpp"
 #include "HandlerCompiler.hpp"
-#include "TrampolineBuilder.hpp"
 #include "PatchSession.hpp"
 #include "patch/patch_utils.hpp"
 #include "cli_fmt.hpp"
@@ -66,13 +65,11 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         plan.stubs->write_ptr(slot, handler_addr);
     }
 
-    // point targets to trampolines
-    TrampolineBuilder::patch_branches(session, ctx.targets.plans());
-
     auto patch_entry = [&](const PatchLayoutEntry& e) {
         session.patch(e.addr(), e.bytes());
     };
 
+    for (const auto& branch : ctx.layout.branches())    patch_entry(branch);
     for (const auto& plan   : ctx.layout.patch_plans()) patch_entry(plan);
     for (const auto& shstub : ctx.layout.shstubs())     patch_entry(shstub);
     patch_entry(handler_bin);
