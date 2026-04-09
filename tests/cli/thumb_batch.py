@@ -10,9 +10,9 @@ YELLOW = "\033[33m"
 RESET  = "\033[0m"
 
 commands = (
-    ["set patch_base 0x0001000"]
-    + [f"add 0x{ea:08x}" for ea in range(0x280, 0x284 + 1, 2)]
-    # + [f"add 0x{ea:08x}" for ea in range(0x280, 0x2E4 + 1, 2)]
+    ["0x1000"]
+    # + [f"add 0x{ea:08x}" for ea in range(0x280, 0x284 + 1, 2)]
+    + [f"add 0x{ea:08x}" for ea in range(0x280, 0x2E4 + 1, 2)]
     # + [f"add 0x{ea:08x}" for ea in range(0x230, 0x272 + 1, 2)]
     + ["patch", "y"]
 )
