@@ -1,7 +1,6 @@
 #include "CLIDispatcher.hpp"
 #include "cli_fmt.hpp"
 
-#include <iostream>
 #include <sstream>
 
 void CLIDispatcher::register_command(std::shared_ptr<ICommand> cmd) {
@@ -16,8 +15,7 @@ void CLIDispatcher::dispatch(CLIContext& ctx, const std::string& line) const {
 
     auto it = _commands.find(tokens[0]);
     if (it == _commands.end()) {
-        std::cerr << "unknown command: " << tokens[0]
-                  << " (try 'help')\n";
+        cli_error("unknown command: " + tokens[0] + " (try 'help')");
         return;
     }
 
