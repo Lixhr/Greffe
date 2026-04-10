@@ -7,7 +7,7 @@
 #include <readline/readline.h>
 
 inline void cli_error(std::string_view msg) {
-    std::cerr << Color::GREY << msg << Color::RST << '\n';
+    std::cerr << Color::RED << msg << Color::RST << '\n';
 }
 
 inline void async_print(const std::string& msg) {

@@ -119,16 +119,16 @@ void IdaIPC::run(CLIContext& ctx) {
                                         + entry.value("name", "?") + Color::RST + '\n');
                         }
                     } catch (const std::exception& e) {
-                        async_print(std::string("[IdaIPC] add: ") + e.what() + '\n');
+                        async_print(std::string(Color::RED) + "[IdaIPC] add: " + e.what() + Color::RST + '\n');
                     }
                 }
             }
         }
         catch (const IdaIPCError& e) {
-            async_print(std::string("[IdaIPC] refresh error: ") + e.what() + '\n');
+            async_print(std::string(Color::RED) + "[IdaIPC] refresh error: " + e.what() + Color::RST + '\n');
         }
         catch (const json::exception& e) {
-            async_print(std::string("[IdaIPC] json error: ") + e.what() + '\n');
+            async_print(std::string(Color::RED) + "[IdaIPC] json error: " + e.what() + Color::RST + '\n');
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
