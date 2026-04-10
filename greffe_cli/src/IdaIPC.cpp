@@ -4,6 +4,7 @@
 #include "colors.hpp"
 #include <cerrno>
 #include <chrono>
+#include <csignal>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -11,6 +12,11 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+
+static void thread_print_error(const std::string& msg) {
+    std::string line = std::string(Color::RED) + msg + Color::RST + '\n';
+    write(STDERR_FILENO, line.c_str(), line.size());
+}
 
 static int connect_socket() {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -74,6 +80,7 @@ static json recv_line(int fd, int timeout_ms) {
 
 
 IdaIPC::IdaIPC() {
+    signal(SIGPIPE, SIG_IGN);
     _fd = connect_socket();
 }
 
@@ -119,16 +126,19 @@ void IdaIPC::run(CLIContext& ctx) {
                                         + entry.value("name", "?") + Color::RST + '\n');
                         }
                     } catch (const std::exception& e) {
-                        async_print(std::string(Color::RED) + "[IdaIPC] add: " + e.what() + Color::RST + '\n');
+                        async_print(std::string(Color::RED) + "add: " + e.what() + Color::RST + '\n');
                     }
                 }
             }
         }
         catch (const IdaIPCError& e) {
-            async_print(std::string(Color::RED) + "[IdaIPC] refresh error: " + e.what() + Color::RST + '\n');
+            thread_print_error(std::string("\nrefresh error: ") + e.what());
+            rl_deprep_terminal();
+            rl_clear_history();
+            exit(1);
         }
         catch (const json::exception& e) {
-            async_print(std::string(Color::RED) + "[IdaIPC] json error: " + e.what() + Color::RST + '\n');
+            thread_print_error(std::string("json error: ") + e.what());
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
