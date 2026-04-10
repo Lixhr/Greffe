@@ -2,6 +2,8 @@
 #include "MakefileTemplates.hpp"
 #include "utils.hpp"
 #include "colors.hpp"
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -54,8 +56,11 @@ void ProjectInfo::setupProjectDir() {
         f << MakefileTemplates::get(arch);
     }
 
-    std::cout << GREY << ITALIC << "  Working directory : \n  " << project_dir.string() \
-    << RST << "\n";
+    std::string display = project_dir.string();
+    if (const char* home = getenv("HOME"); home && display.rfind(home, 0) == 0)
+        display = "~" + display.substr(strlen(home));
+
+    std::cout << GREY << ITALIC << "  Working directory : \n  " << display << RST << "\n";
 }
 
 
@@ -86,9 +91,6 @@ void ProjectInfo::initPatchBase(uint64_t bin_base) {
 
     if (bits == 64 && usr_base & 0xF)
         throw std::invalid_argument("patch_base must be 0x10 aligned");
-
-    if (bits == 32 && usr_base & 0x7)
-        throw std::invalid_argument("patch_base must be 0x8 aligned");
 
     if (usr_base < bin_base) 
         throw std::invalid_argument("patch_base < bin_base");
