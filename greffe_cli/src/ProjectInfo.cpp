@@ -54,7 +54,7 @@ void ProjectInfo::setupProjectDir() {
         f << MakefileTemplates::get(arch);
     }
 
-    std::cout << GREY << BOLD << "Working directory: \n" << project_dir.string() \
+    std::cout << GREY << ITALIC << "  Working directory : \n  " << project_dir.string() \
     << RST << "\n";
 }
 
@@ -84,10 +84,16 @@ ProjectInfo::ProjectInfo(IdaIPC& client) {
 void ProjectInfo::initPatchBase(uint64_t bin_base) {
     uint64_t usr_base = prompt_patch_base();
 
+    if (bits == 64 && usr_base & 0xF)
+        throw std::invalid_argument("patch_base must be 0x10 aligned");
+
+    if (bits == 32 && usr_base & 0x7)
+        throw std::invalid_argument("patch_base must be 0x8 aligned");
+
     if (usr_base < bin_base) 
         throw std::invalid_argument("patch_base < bin_base");
 
-    if (bits == 32 && usr_base > UINT32_MAX)
+    if (bits == 32 && usr_base >= UINT32_MAX)
         throw std::invalid_argument("patch_base > UINT32_MAX (32 bits arch)");
 
     patch_base = usr_base;
