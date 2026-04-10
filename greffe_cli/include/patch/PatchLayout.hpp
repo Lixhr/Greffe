@@ -7,6 +7,7 @@
 #include "TargetManager.hpp"
 #include "patch/SharedStub.hpp"
 #include "patch/PatchBranch.hpp"
+#include "patch/PatchOffset.hpp"
 
 class PatchLayout {
     public:
@@ -29,7 +30,7 @@ class PatchLayout {
 
         const ProjectInfo&                _pinfo;
         const std::vector<PatchPlan>&     _patch_plans;
-        uint64_t                          _patch_offset;
+        PatchOffset                       _patch_offset;
         std::vector<SharedStub>           _shstubs;
         std::vector<PatchBranch>          _branches;
 
