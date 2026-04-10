@@ -8,7 +8,7 @@
 PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
                          _pinfo(pinfo)
                        , _patch_plans(targets.plans())
-                       , _patch_offset(0)
+                       , _patch_offset(pinfo.getBits(), pinfo.getPatchBase())
                         {}
 
 const std::vector<PatchPlan> & PatchLayout::patch_plans() const { return _patch_plans; }
