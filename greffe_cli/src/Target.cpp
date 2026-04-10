@@ -44,26 +44,28 @@ std::ostream& operator<<(std::ostream& os, const TargetView& v) {
     for (const auto& c : t.context()) {
         bool is_target = (c.ea == t.ea());
 
-        os << (is_target ? GREEN : DIM) << (is_target ? "  > " : "    ") << RST;
-
-        os << BLUE << "0x"
-           << std::hex << std::setw(addr_w) << std::setfill('0') << c.ea
+        // indicator + address
+        if (is_target)
+            os << GREEN << "  > " << RST << BLUE;
+        else
+            os << DIM << "    " << BLUE;
+        os << "0x" << std::hex << std::setw(addr_w) << std::setfill('0') << c.ea
            << RST << std::dec;
 
-        {
-            std::ostringstream hex_ss;
-            hex_ss << std::hex << std::setfill('0');
-            for (uint8_t b : c.raw) hex_ss << std::setw(2) << static_cast<int>(b);
-            os << "  " << GREY
-               << std::left << std::setw(8) << std::setfill(' ') << hex_ss.str()
-               << RST << std::right;
-        }
+        // hex bytes
+        std::ostringstream hex_ss;
+        hex_ss << std::hex << std::setfill('0');
+        for (uint8_t b : c.raw) hex_ss << std::setw(2) << static_cast<int>(b);
+        os << "  " << GREY
+           << std::left << std::setw(8) << std::setfill(' ') << hex_ss.str()
+           << RST << std::right;
 
+        // disassembly
         if (has_cs) {
             cs_insn* insn  = nullptr;
             size_t   count = cs_disasm(cs_handle, c.raw.data(), c.raw.size(), c.ea, 1, &insn);
             if (count > 0) {
-                os << "  " << CYAN << insn->mnemonic;
+                os << "  " << (is_target ? BOLD : DIM) << CYAN << insn->mnemonic;
                 if (insn->op_str[0] != '\0')
                     os << ' ' << insn->op_str;
                 os << RST;
@@ -71,8 +73,10 @@ std::ostream& operator<<(std::ostream& os, const TargetView& v) {
             }
         }
 
-        os << '\n';
+        os << "\n";
     }
+
+    os << "\n";
 
     if (has_cs)
         cs_close(&cs_handle);
