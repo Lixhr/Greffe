@@ -16,6 +16,8 @@ void ListCommand::execute(CLIContext& ctx, const Args&) {
     }
 
     int bits = ctx.pinfo.getBits();
-    for (const auto& p : plans)
-        std::cout << TargetView{ p.target, bits };
+    for (size_t i = 0; i < plans.size(); ++i) {
+        std::cout << Color::BOLD << "[" << std::setfill('0') << std::setw(2) << i << "] " \
+        << TargetView{ plans[i].target, bits };
+    }
 }

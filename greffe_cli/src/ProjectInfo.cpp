@@ -60,7 +60,7 @@ void ProjectInfo::setupProjectDir() {
     if (const char* home = getenv("HOME"); home && display.rfind(home, 0) == 0)
         display = "~" + display.substr(strlen(home));
 
-    std::cout << GREY << ITALIC << "  Working directory : \n  " << display << RST << "\n";
+    std::cout << GREY << ITALIC << "  Working directory : \n  " << display << RST << "\n\n";
 }
 
 

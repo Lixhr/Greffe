@@ -2,8 +2,10 @@
 #include "CLI/TargetCommands.hpp"
 #include "ProjectInfo.hpp"
 #include "patch/arch/StubsFactory.hpp"
+#include "patch/patch_utils.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -145,28 +147,24 @@ bool TargetManager::add_direct(const json& entry, CLIContext& ctx) {
     return add_internal(entry, ctx).second;
 }
 
-void TargetManager::remove(const std::string& target) {
+void TargetManager::remove(const std::string& target, CLIContext& ctx) {
     std::lock_guard<std::mutex> lk(_mutex);
-    decltype(_plans)::iterator it;
 
-    if (target.size() > 2 && target[0] == '0' && (target[1] == 'x' || target[1] == 'X')) {
-        uint64_t ea;
-        try {
-            ea = std::stoull(target, nullptr, 16);
-        } catch (const std::out_of_range&) {
-            throw std::runtime_error(target + ": address out of range");
-        }
-        it = std::find_if(_plans.begin(), _plans.end(),
-            [ea](const PatchPlan& p) { return p.target.ea() == ea; });
-    } else {
-        it = std::find_if(_plans.begin(), _plans.end(),
-            [&](const PatchPlan& p) { return p.target.name() == target; });
-    }
+    if (target.empty() || !std::all_of(target.begin(), target.end(), ::isdigit))
+        throw std::runtime_error("usage: del <index>  (see 'list' for indices)");
 
-    if (it == _plans.end())
-        throw std::runtime_error(target + " not found");
+    size_t idx = std::stoull(target);
+    if (idx >= _plans.size())
+        throw std::runtime_error(target + ": index out of range");
+
+    auto it = _plans.begin() + static_cast<ptrdiff_t>(idx);
+    const std::string name = it->target.name();
 
     _plans.erase(it);
+
+    namespace fs = std::filesystem;
+    auto handler = ctx.pinfo.getProjectDir() / "handlers" / (sanitize(name) + ".greffe.c");
+    fs::remove(handler);
 }
 
 const std::vector<PatchPlan>& TargetManager::plans() const {

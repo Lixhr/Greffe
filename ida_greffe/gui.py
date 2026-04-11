@@ -11,7 +11,7 @@ class TraceFunctionAction(idaapi.action_handler_t):
         if ea != idaapi.BADADDR:
             from ida_greffe.core import Greffe
             Greffe().add_pending(ea)
-            print(f"[greffe] tracepoint queued: {hex(ea)}")
+            print(f"[greffe] greffe queued: {hex(ea)}")
         return 1
 
     def update(self, obj):
@@ -35,10 +35,10 @@ class GUITracerHook(idaapi.UI_Hooks):
             return
         self.action = idaapi.action_desc_t(
             self.ACTION_ID,
-            "Add Greffe tracepoint",
+            "Add a Greffe",
             TraceFunctionAction(),
             "Shift+G",
-            "Add a tracepoint at the current address",
+            "Add a greffe at the current address",
             -1,
         )
         idaapi.register_action(self.action)

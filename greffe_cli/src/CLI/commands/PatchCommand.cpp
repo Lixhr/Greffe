@@ -50,6 +50,8 @@ void PatchCommand::execute(CLIContext& ctx, const Args&) {
         return;
     }
 
+    ctx.layout.rebuild();
+
     PatchSession session(ctx.pinfo.getBinPath(), ctx.bin_base);
 
     // compiled blob
