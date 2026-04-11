@@ -1,29 +1,16 @@
 #pragma once
 
-#include "IdaIPC.hpp"
+// #include "IdaIPC.hpp"
 #include <filesystem>
 #include <optional>
 #include <vector>
-
-class Segment {
-    public:
-        Segment(const json& json_seg);
-
-        uint64_t           getStart() const { return start; }
-        uint64_t           getEnd()   const { return end; }
-        const std::string& getName()  const { return name; }
-
-    private:
-        const uint64_t    start;
-        const uint64_t    end;
-        const std::string name;
-};
-
+#include "ida.hpp"
 
 struct ProjectInfo {
     public:
-        ProjectInfo(IdaIPC& client);
+        ProjectInfo();
 
+        void                         populateData(void);
         void                         setPatchBase(uint64_t base) { patch_base = base; };
         void                         initPatchBase(uint64_t bin_base);
 
@@ -36,8 +23,6 @@ struct ProjectInfo {
         const std::string&           getEndianness() const { return endianness; }
 
     private:
-        json fetchInfo(IdaIPC& client);
-        void populateFromJson(const json& body);
         void setupProjectDir();
 
         std::filesystem::path   bin_path;
@@ -47,5 +32,4 @@ struct ProjectInfo {
         int                     bits;
         uint64_t                bin_base;
         uint64_t                patch_base = -1ULL;
-        std::vector<Segment>    segments;
 };
