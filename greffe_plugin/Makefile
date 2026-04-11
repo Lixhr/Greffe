@@ -53,9 +53,12 @@ QT_INCS   := -isystem /usr/include/x86_64-linux-gnu/qt6 \
 QT_LIBS   := -L$(IDA_DIR) -lQt6Widgets -lQt6Core -lQt6Gui \
              -Wl,-rpath,$(IDA_DIR)
 
-# SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.cpp' -o -name '*.cc' \))
-SRCS := $(SRC_DIR)/plugin.cpp \
-        $(SRC_DIR)/ProjectInfo.cpp
+SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.cpp' -o -name '*.cc' \))
+# SRCS := $(SRC_DIR)/plugin.cpp \
+#         $(SRC_DIR)/ProjectInfo.cpp \
+#         $(SRC_DIR)/GreffeCTX.cpp \
+#         $(SRC_DIR)/GUI/InstrAction.cpp
+
 OBJS := $(patsubst $(SRC_DIR)/%,$(OBJ_DIR)/%.o,$(SRCS))
 
 STD   := -std=c++17

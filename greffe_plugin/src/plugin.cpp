@@ -1,20 +1,29 @@
 #include <ida.hpp>
 #include <idp.hpp>
-#include <kernwin.hpp>
 #include <loader.hpp>
 #include "ProjectInfo.hpp"
-
-// IDA's pro.h and Qt both define these — undef IDA's versions first
-#undef qstrlen
-#undef qstrncmp
+#include "utils.hpp"
+#include "GreffeCTX.hpp"
+#include "GUI/Actions.hpp"
 
 static plugmod_t *idaapi init() {
-    msg("[greffe] plugin loaded\n");
+    register_instr_action();
+    register_region_action();
+    greffe_msg("plugin loaded\n");
     return PLUGIN_OK;
 }
 
+static void idaapi term() {
+    unregister_instr_action();
+    unregister_region_action();
+    greffe_msg("plugin unloaded\n");
+
+}
+
 static bool idaapi run(size_t) {
-    ProjectInfo pinfo;
+    if (!g_ctx)
+        g_ctx = std::make_unique<GreffeCTX>();
+
 
     // TWidget *g_widget = find_widget("Greffe");
 
@@ -42,12 +51,12 @@ static bool idaapi run(size_t) {
 
 plugin_t PLUGIN = {
     IDP_INTERFACE_VERSION,
-    PLUGIN_UNL,
+    PLUGIN_FIX,
     init,
-    nullptr,
+    term,
     run,
     "Greffe instrumentation plugin",
     nullptr,
     "greffe",
-    nullptr
+    "Shift+R"
 };

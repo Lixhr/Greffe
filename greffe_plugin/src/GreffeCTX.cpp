@@ -1,0 +1,22 @@
+#include "GreffeCTX.hpp"
+
+std::unique_ptr<GreffeCTX> g_ctx;
+
+GreffeCTX::GreffeCTX() : pinfo()
+                       , targets()
+                       , layout(pinfo, targets) {
+
+    // auto greffe = pinfo.getProjectDir() / ".greffe";
+
+    // if (std::filesystem::exists(greffe)) {
+    //     auto cfg = targets.load(greffe, pinfo);
+    //     if (cfg.bin_base)   bin_base = *cfg.bin_base;
+    //     if (cfg.patch_base) pinfo.setPatchBase(*cfg.patch_base);
+    // }
+
+    // if (pinfo.getPatchBase() == -1ULL)
+        // pinfo.initPatchBase(bin_base);
+
+    // for (auto& plan : targets.plans())
+        // layout.create_patch_entry(&plan);
+}

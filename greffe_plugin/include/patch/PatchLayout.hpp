@@ -9,6 +9,8 @@
 #include "patch/PatchBranch.hpp"
 #include "patch/PatchOffset.hpp"
 
+class TargetManager;
+
 class PatchLayout {
     public:
         PatchLayout(const ProjectInfo& pinfo, TargetManager& targets);

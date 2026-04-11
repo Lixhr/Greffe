@@ -99,7 +99,7 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan>& plans,
         _exit(127);
     }
     int status;
-    if (waitpid(pid, &status, 0) < 0)
+    if (qwait(&status, pid, 0) != pid)
         throw std::runtime_error("HandlerCompiler: waitpid() failed");
     int ret = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
     if (ret != 0)

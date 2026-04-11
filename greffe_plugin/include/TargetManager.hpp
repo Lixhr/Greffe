@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 #include "PatchPlan.hpp"
-#include "IdaIPC.hpp"
 
 class ProjectInfo;
+class GreffeCTX;
 
 struct SavedProject {
     std::optional<uint64_t> bin_base;
@@ -17,11 +17,11 @@ struct SavedProject {
 
 class TargetManager {
     public:
-        explicit                         TargetManager(IdaIPC& ipc);
+        explicit                         TargetManager();
       
-        const PatchPlan&                 add(const std::string& target, CLIContext& cxt);
-        bool                             add_direct(const json& entry, CLIContext& cxt);
-        void                             remove(const std::string& target, CLIContext& ctx);
+        const PatchPlan&                 add(const std::string& target, GreffeCTX& cxt);
+        // bool                             add_direct(const json& entry, GreffeCTX& cxt);
+        void                             remove(const std::string& target, GreffeCTX& ctx);
         const std::vector<PatchPlan>&    plans() const;
         std::vector<PatchPlan>&          plans();
 
@@ -32,22 +32,20 @@ class TargetManager {
         SavedProject                     load(const std::filesystem::path& path, const ProjectInfo& pinfo);
 
     private:
-        json                             fetch_entry(const std::string& target);
-        static std::vector<ContextEntry> parse_context(const json& entry);
+        // json                             fetch_entry(const std::string& target);
+        // static std::vector<ContextEntry> parse_context(const json& entry);
         static void                      validate_context_modes(const std::string& target,
                                                                 uint64_t ea,
                                                                 const std::vector<ContextEntry>& context);
 
-        std::pair<PatchPlan*, bool>      add_internal(const json& entry,
-                                                      CLIContext& cxt);
+        // std::pair<PatchPlan*, bool>      add_internal(const json& entry,
+                                                    //   GreffeCTX& cxt);
 
-        std::pair<PatchPlan*, bool>      append_target(const json& entry,
-                                                       std::vector<ContextEntry> context,
-                                                       const ProjectInfo& pinfo);
+        // std::pair<PatchPlan*, bool>      append_target(const json& entry,
+                                                    //    std::vector<ContextEntry> context,
+                                                    //    const ProjectInfo& pinfo);
 
         void                             set_trampoline_addr(PatchPlan* plan, uint32_t plan_index,
                                                              uint64_t patch_base);
-        IdaIPC&                _ipc;
         std::vector<PatchPlan> _plans;
-        mutable std::mutex     _mutex;
 };

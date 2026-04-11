@@ -1,13 +1,12 @@
 #include "ProjectInfo.hpp"
 #include "MakefileTemplates.hpp"
-#include "colors.hpp"
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
-#include "cli_fmt.hpp"
 #include "kernwin.hpp"
+#include "utils.hpp"
 
 void ProjectInfo::setupProjectDir() {
     project_dir = bin_path.parent_path() / "__greffe_workdir";
@@ -24,10 +23,12 @@ void ProjectInfo::setupProjectDir() {
     }
 
     std::string display = project_dir.string();
-    if (const char* home = getenv("HOME"); home && display.rfind(home, 0) == 0)
-        display = "~" + display.substr(strlen(home));
 
-    std::cout << GREY << ITALIC << "  Working directory : \n  " << display << RST << "\n\n";
+    qstring home;
+    if (qgetenv("HOME", &home) && display.rfind(home.c_str(), 0) == 0)
+        display = "~" + display.substr(strlen(home.c_str()));
+
+    greffe_msg("Workdir: %s\n", display.c_str());
 }
 
 
