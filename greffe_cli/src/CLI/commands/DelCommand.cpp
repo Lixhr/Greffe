@@ -21,7 +21,7 @@ void DelCommand::execute(CLIContext& ctx, const Args& args) {
     });
 
     for (const auto& arg : sorted) {
-        ctx.targets.remove(arg);
+        ctx.targets.remove(arg, ctx);
         std::cout << Color::GREY << "removed " << arg << Color::RST << '\n';
     }
 }

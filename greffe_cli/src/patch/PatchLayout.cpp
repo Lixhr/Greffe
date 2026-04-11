@@ -81,6 +81,14 @@ void PatchLayout::insert_branch(PatchBranch branch) {
     _branches.insert(pos, std::move(branch));
 }
 
+void PatchLayout::rebuild() {
+    _patch_offset = 0;
+    _shstubs.clear();
+    _branches.clear();
+    for (auto& plan : _patch_plans)
+        create_patch_entry(&plan);
+}
+
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
     // get the shared-stubs
     const SharedStub *shstub = get_shstub(plan);

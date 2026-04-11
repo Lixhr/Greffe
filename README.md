@@ -42,9 +42,9 @@ This starts the IDA-side socket server. Then, in a separate terminal, run the CL
 
 The CLI connects to IDA and creates `__greffe_workdir/` next to the binary.
 
-### 2. Add tracepoints
+### 2. Add a greffe
 
-**From IDA** - right-click any instruction -> *Add Greffe tracepoint* (or `Shift+G`). The tracepoint then appears in the CLI.
+**From IDA** - right-click any instruction -> *Add a Greffe* (or `Shift+G`). The greffe then appears in the CLI.
 
 **From the CLI** - by function name or address:
 ```
@@ -73,7 +73,7 @@ greffe> patch
 
 Compiles all handlers and writes the patched binary alongside the original: `firmware.bin.greffe`. Flash it to your target.
 
-Use `save` to persist the tracepoint list. It is automatically reloaded on the next CLI launch.
+Use `save` to persist the greffes list. It is automatically reloaded on the next CLI launch.
 
 ---
 
@@ -81,11 +81,11 @@ Use `save` to persist the tracepoint list. It is automatically reloaded on the n
 
 | Command | Description |
 |---|---|
-| `add <name\|0xaddr>` | Register a tracepoint |
-| `del <name\|0xaddr>` | Remove a tracepoint |
-| `list` | List registered tracepoints |
+| `add <name\|0xaddr>` | Register a greffe |
+| `del <name\|0xaddr>` | Remove a greffe |
+| `list` | List registered greffes |
 | `save` | Save state to `workdir/.greffe` |
-| `patch` | Compile handlers and apply all tracepoints |
+| `patch` | Compile handlers and apply all greffes |
 
 ---
 
@@ -106,7 +106,7 @@ Use `save` to persist the tracepoint list. It is automatically reloaded on the n
 ```
 __greffe_workdir/
 ├── Makefile          auto-generated
-├── .greffe           saved tracepoints
+├── .greffe           saved configuratin
 ├── handlers/
 │   ├── my_func.c     <- edit this
 │   └── usr_utils.c

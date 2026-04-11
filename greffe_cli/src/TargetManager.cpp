@@ -2,8 +2,10 @@
 #include "CLI/TargetCommands.hpp"
 #include "ProjectInfo.hpp"
 #include "patch/arch/StubsFactory.hpp"
+#include "patch/patch_utils.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -145,7 +147,7 @@ bool TargetManager::add_direct(const json& entry, CLIContext& ctx) {
     return add_internal(entry, ctx).second;
 }
 
-void TargetManager::remove(const std::string& target) {
+void TargetManager::remove(const std::string& target, CLIContext& ctx) {
     std::lock_guard<std::mutex> lk(_mutex);
 
     if (target.empty() || !std::all_of(target.begin(), target.end(), ::isdigit))
@@ -155,7 +157,14 @@ void TargetManager::remove(const std::string& target) {
     if (idx >= _plans.size())
         throw std::runtime_error(target + ": index out of range");
 
-    _plans.erase(_plans.begin() + static_cast<ptrdiff_t>(idx));
+    auto it = _plans.begin() + static_cast<ptrdiff_t>(idx);
+    const std::string name = it->target.name();
+
+    _plans.erase(it);
+
+    namespace fs = std::filesystem;
+    auto handler = ctx.pinfo.getProjectDir() / "handlers" / (sanitize(name) + ".greffe.c");
+    fs::remove(handler);
 }
 
 const std::vector<PatchPlan>& TargetManager::plans() const {

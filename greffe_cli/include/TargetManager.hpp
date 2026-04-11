@@ -21,7 +21,7 @@ class TargetManager {
       
         const PatchPlan&                 add(const std::string& target, CLIContext& cxt);
         bool                             add_direct(const json& entry, CLIContext& cxt);
-        void                             remove(const std::string& target);
+        void                             remove(const std::string& target, CLIContext& ctx);
         const std::vector<PatchPlan>&    plans() const;
         std::vector<PatchPlan>&          plans();
 

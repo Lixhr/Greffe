@@ -14,6 +14,7 @@ class PatchLayout {
         PatchLayout(const ProjectInfo& pinfo, TargetManager& targets);
 
         void                             create_patch_entry(PatchPlan *plan);
+        void                             rebuild();
 
         uint64_t                         current_offset()                const;
 
@@ -29,7 +30,7 @@ class PatchLayout {
         void                            insert_branch(PatchBranch branch);
 
         const ProjectInfo&                _pinfo;
-        const std::vector<PatchPlan>&     _patch_plans;
+        std::vector<PatchPlan>&           _patch_plans;
         PatchOffset                       _patch_offset;
         std::vector<SharedStub>           _shstubs;
         std::vector<PatchBranch>          _branches;
