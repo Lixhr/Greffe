@@ -141,6 +141,6 @@ void IdaIPC::run(CLIContext& ctx) {
             thread_print_error(std::string("json error: ") + e.what());
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
     }
 }

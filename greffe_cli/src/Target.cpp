@@ -32,7 +32,7 @@ std::ostream& operator<<(std::ostream& os, const TargetView& v) {
     const Target& t  = v.target;
     const int  addr_w = v.bits == 64 ? 16 : 8;
 
-    os << BOLD << CYAN << t.name() << RST << '\n';
+    os << DIM << t.name() << ":" << RST << "\n";
 
     std::string mode;
     for (const auto& c : t.context())
@@ -46,17 +46,20 @@ std::ostream& operator<<(std::ostream& os, const TargetView& v) {
 
         // indicator + address
         if (is_target)
-            os << GREEN << "  > " << RST << BLUE;
+            os << CYAN << "   > " << RST << BLUE;
         else
-            os << DIM << "    " << BLUE;
+            os << DIM << "     " << BLUE;
         os << "0x" << std::hex << std::setw(addr_w) << std::setfill('0') << c.ea
            << RST << std::dec;
 
         // hex bytes
         std::ostringstream hex_ss;
         hex_ss << std::hex << std::setfill('0');
-        for (uint8_t b : c.raw) hex_ss << std::setw(2) << static_cast<int>(b);
-        os << "  " << GREY
+        for (uint8_t b : c.raw) 
+            hex_ss << std::setw(2) << static_cast<int>(b);
+        const char *color = is_target ? GREY : DIM;
+
+        os << "  " << color
            << std::left << std::setw(8) << std::setfill(' ') << hex_ss.str()
            << RST << std::right;
 
