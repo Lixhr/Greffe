@@ -4,7 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 
-PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets)
+PatchLayout::PatchLayout(ProjectInfo& pinfo, TargetManager& targets)
     : _pinfo(pinfo)
     , _patch_plans(targets.plans())
     , _cursor(pinfo.getRegions())
@@ -68,7 +68,8 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         shstub = create_shstub(plan);
 
     // Build the trampoline, retrying in the next region if it doesn't fit.
-    // branch_to_trampoline depends on plan->addr() so it's inside the loop too.
+    _cursor.select_closest(plan->target.ea());
+
     PatchBranch branch{0, {}};
     for (;;) {
         _cursor.align(plan->stubs->instr_alignment());

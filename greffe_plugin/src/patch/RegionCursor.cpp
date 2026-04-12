@@ -1,65 +1,105 @@
 #include "patch/RegionCursor.hpp"
+#include <algorithm>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 
-RegionCursor::RegionCursor(const std::vector<PatchRegion>& regions)
-    : _regions(regions) {}
+RegionCursor::RegionCursor(std::vector<PatchRegion>& regions)
+    : _regions(regions)
+{}
 
-uint64_t RegionCursor::aligned_intra(uint8_t alignment) const {
-    if (alignment <= 1)
-        return _intra_offset;
-    return (_intra_offset + alignment - 1) & ~static_cast<uint64_t>(alignment - 1);
+PatchRegion& RegionCursor::current_region() {
+    if (_order_idx >= _order.size())
+        throw std::runtime_error("RegionCursor: all patch regions exhausted");
+    return _regions[_order[_order_idx]];
+}
+
+const PatchRegion& RegionCursor::current_region() const {
+    if (_order_idx >= _order.size())
+        throw std::runtime_error("RegionCursor: all patch regions exhausted");
+    return _regions[_order[_order_idx]];
+}
+
+void RegionCursor::select_closest(ea_t target) {
+    if (_regions.empty())
+        throw std::runtime_error("RegionCursor: no patch regions defined");
+
+    _order.resize(_regions.size());
+    std::iota(_order.begin(), _order.end(), 0);
+    std::stable_sort(_order.begin(), _order.end(), [&](size_t a, size_t b) {
+        ea_t ca = _regions[a].cursor, cb = _regions[b].cursor;
+        auto dist = [target](ea_t v) { return v > target ? v - target : target - v; };
+        return dist(ca) < dist(cb);
+    });
+
+    _order_idx           = 0;
+    _align_pending       = false;
+    _cursor_before_align = 0;
 }
 
 ea_t RegionCursor::current_addr() const {
-    if (_region_idx >= _regions.size())
-        throw std::runtime_error("RegionCursor: no patch regions defined");
-    return _regions[_region_idx].base + _intra_offset;
+    return current_region().cursor;
 }
 
 void RegionCursor::align(uint8_t alignment) {
-    if (_region_idx >= _regions.size())
-        throw std::runtime_error("RegionCursor: no patch regions defined");
-    uint64_t aligned = aligned_intra(alignment);
-    if (aligned >= _regions[_region_idx].size())
-        next_region();  // alignment pushed past region end, spill into next
-    else
-        _intra_offset = aligned;
+    auto& r              = current_region();
+    _cursor_before_align = r.cursor;
+    _align_pending       = true;
+
+    if (alignment > 1)
+        r.cursor = (r.cursor + alignment - 1) & ~static_cast<ea_t>(alignment - 1);
+
+    if (r.cursor >= r.end) {
+        r.cursor       = _cursor_before_align; // restore before leaving region
+        _align_pending = false;
+        next_region();
+    }
 }
 
 bool RegionCursor::fits(uint64_t size) const {
-    if (_region_idx >= _regions.size())
-        return false;
-    return _intra_offset + size <= _regions[_region_idx].size();
+    const auto& r = current_region();
+    return r.cursor + size <= r.end;
 }
 
 void RegionCursor::advance(uint64_t size) {
-    _intra_offset += size;
+    current_region().cursor += size;
+    _align_pending       = false;
+    _cursor_before_align = 0;
 }
 
 void RegionCursor::next_region() {
-    if (_region_idx + 1 >= _regions.size())
+    // Roll back any speculative alignment on the region we're leaving.
+    if (_align_pending) {
+        _regions[_order[_order_idx]].cursor = _cursor_before_align;
+        _align_pending       = false;
+        _cursor_before_align = 0;
+    }
+
+    ++_order_idx;
+    if (_order_idx >= _order.size())
         throw std::runtime_error("RegionCursor: all patch regions exhausted");
-    ++_region_idx;
-    _intra_offset = 0;
 }
 
 ea_t RegionCursor::alloc(uint8_t alignment, uint64_t size) {
-    while (_region_idx < _regions.size()) {
-        uint64_t offset = aligned_intra(alignment);
-        if (offset + size <= _regions[_region_idx].size()) {
-            _intra_offset  = offset;
-            ea_t addr      = _regions[_region_idx].base + offset;
-            _intra_offset += size;
-            return addr;
+    for (auto& r : _regions) {
+        ea_t candidate = r.cursor;
+        if (alignment > 1)
+            candidate = (candidate + alignment - 1) & ~static_cast<ea_t>(alignment - 1);
+        if (candidate + size <= r.end) {
+            r.cursor = candidate + size;
+            return candidate;
         }
-        ++_region_idx;
-        _intra_offset = 0;
     }
     throw std::runtime_error("RegionCursor: all patch regions exhausted");
 }
 
 void RegionCursor::reset() {
-    _region_idx   = 0;
-    _intra_offset = 0;
+    if (_regions.empty())
+        throw std::runtime_error("RegionCursor: no patch regions defined");
+    for (auto& r : _regions)
+        r.cursor = r.base;
+    _order.clear();
+    _order_idx           = 0;
+    _align_pending       = false;
+    _cursor_before_align = 0;
 }

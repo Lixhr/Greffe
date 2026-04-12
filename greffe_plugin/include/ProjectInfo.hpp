@@ -19,7 +19,8 @@ struct ProjectInfo {
         const std::filesystem::path&      getBinPath()       const { return bin_path; }
         const std::string&                getArch()          const { return arch; }
         const std::string&                getEndianness()    const { return endianness; }
-        const std::vector<PatchRegion>&   getRegions()       const { return _regions; }
+        const std::vector<PatchRegion>&   getRegions() const { return _regions; }
+              std::vector<PatchRegion>&   getRegions()       { return _regions; }
         std::string                       getModeAt(ea_t ea) const;
 
     private:

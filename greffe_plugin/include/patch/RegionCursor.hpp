@@ -6,38 +6,42 @@
 #include "ida.hpp"
 
 struct PatchRegion {
-    ea_t     base;
-    ea_t     end;
-    uint64_t size() const { return end - base; }
+    ea_t base;
+    ea_t end;
+    ea_t cursor;
+    PatchRegion(ea_t b, ea_t e) : base(b), end(e), cursor(b) {}
+    uint64_t size()      const { return end - base; }
+    uint64_t remaining() const { return end - cursor; }
 };
 
 // Cursor over an ordered list of patch regions.
-// Allocations are contiguous within a single region
-// when a region fills up the cursor moves to the next one.
 class RegionCursor {
-public:
-    explicit RegionCursor(const std::vector<PatchRegion>& regions);
+    public:
+        explicit RegionCursor(std::vector<PatchRegion>& regions);
 
-    ea_t alloc(uint8_t alignment, uint64_t size);
+        void select_closest(ea_t target);
 
-    void align(uint8_t alignment);
+        ea_t alloc(uint8_t alignment, uint64_t size);
 
-    bool fits(uint64_t size) const;
+        void align(uint8_t alignment);
 
-    // (caller guarantees it fits)
-    void advance(uint64_t size);
+        bool fits(uint64_t size) const;
 
-    // Throws std::runtime_error if no more regions are available.
-    void next_region();
+        void advance(uint64_t size);
 
-    ea_t current_addr() const;
+        void next_region();
 
-    void reset();
+        ea_t current_addr() const;
 
-private:
-    uint64_t aligned_intra(uint8_t alignment) const;
+        void reset();
 
-    const std::vector<PatchRegion>& _regions;
-    size_t   _region_idx   = 0;
-    uint64_t _intra_offset = 0;
+    private:
+        PatchRegion&       current_region();
+        const PatchRegion& current_region() const;
+
+        std::vector<PatchRegion>& _regions;
+        std::vector<size_t>       _order;                // indices into _regions, proximity-sorted
+        size_t                    _order_idx           = 0;
+        bool                      _align_pending       = false;
+        ea_t                      _cursor_before_align = 0;
 };

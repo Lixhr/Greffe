@@ -14,7 +14,7 @@ class TargetManager;
 
 class PatchLayout {
     public:
-        PatchLayout(const ProjectInfo& pinfo, TargetManager& targets);
+        PatchLayout(ProjectInfo& pinfo, TargetManager& targets);
 
         void                             create_patch_entry(PatchPlan *plan);
         void                             rebuild();
@@ -30,7 +30,7 @@ class PatchLayout {
         const SharedStub*  create_shstub(PatchPlan *plan);
         void               insert_branch(PatchBranch branch);
 
-        const ProjectInfo&        _pinfo;
+        ProjectInfo&              _pinfo;
 
         // PatchLayoutEntries
         std::vector<PatchPlan>&   _patch_plans;

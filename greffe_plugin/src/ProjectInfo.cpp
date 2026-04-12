@@ -87,9 +87,11 @@ void ProjectInfo::add_region(ea_t start, ea_t end) {
     } else if (left_adj) {
         std::prev(pos)->end = end;
     } else if (right_adj) {
-        pos->base = start;
+        // Prepend space before pos: reset cursor to use the new space first.
+        pos->base   = start;
+        pos->cursor = start;
     } else {
-        _regions.insert(pos, { start, end });
+        _regions.insert(pos, PatchRegion(start, end));
     }
 }
 
