@@ -61,7 +61,36 @@ void ProjectInfo::add_region(ea_t start, ea_t end) {
            << " >= 0x" << end;
         throw std::runtime_error(ss.str());
     }
-    _regions.push_back({ start, end });
+
+    auto it = std::find_if(_regions.begin(), _regions.end(),
+        [start, end](const PatchRegion& p) {
+            return start < p.end && end > p.base;
+        });
+
+    if (it != _regions.end()) {
+        std::ostringstream ss;
+        ss << "patch region 0x" << std::hex << start << "-0x" << end
+           << " overlaps existing region 0x" << it->base << "-0x" << it->end;
+        throw std::runtime_error(ss.str());
+    }
+
+    auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,
+        [](const PatchRegion& p, ea_t val) { return p.base < val; });
+
+    bool left_adj  = (pos != _regions.begin()) && (std::prev(pos)->end == start);
+    bool right_adj = (pos != _regions.end())   && (pos->base == end);
+
+    if (left_adj && right_adj) {
+        auto left = std::prev(pos);
+        left->end = pos->end;
+        _regions.erase(pos);
+    } else if (left_adj) {
+        std::prev(pos)->end = end;
+    } else if (right_adj) {
+        pos->base = start;
+    } else {
+        _regions.insert(pos, { start, end });
+    }
 }
 
 std::string ProjectInfo::getModeAt(ea_t ea) const {

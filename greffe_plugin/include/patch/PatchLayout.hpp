@@ -31,8 +31,11 @@ class PatchLayout {
         void               insert_branch(PatchBranch branch);
 
         const ProjectInfo&        _pinfo;
+
+        // PatchLayoutEntries
         std::vector<PatchPlan>&   _patch_plans;
-        RegionCursor              _cursor;
         std::vector<SharedStub>   _shstubs;
         std::vector<PatchBranch>  _branches;
+
+        RegionCursor              _cursor;
 };
