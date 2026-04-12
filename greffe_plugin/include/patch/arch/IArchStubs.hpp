@@ -20,9 +20,9 @@ class IArchStubs {
                                                     uint64_t shstub_addr,
                                                     uint8_t  **ptr_array) = 0;
         virtual std::vector<uint8_t> relocate_and_branch_back(
-                                            const std::vector<const ContextEntry*>& instrs,
-                                            uint64_t                                dest_addr,
-                                            uint64_t                                branch_to) = 0;
+                                            const std::vector<ContextEntry>& instrs,
+                                            uint64_t                         dest_addr,
+                                            uint64_t                         branch_to) = 0;
 
         virtual std::string_view name()            const = 0;
         virtual uint8_t          instr_alignment() const = 0;

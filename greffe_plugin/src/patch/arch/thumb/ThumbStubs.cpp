@@ -136,18 +136,18 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at,
 }
 
 std::vector<uint8_t> ThumbStubs::relocate_and_branch_back(
-                        const std::vector<const ContextEntry*>& instrs,
-                        uint64_t                                dest_addr,
-                        uint64_t                                branch_to) {
+                        const std::vector<ContextEntry>& instrs,
+                        uint64_t                         dest_addr,
+                        uint64_t                         branch_to) {
     std::vector<uint8_t> buf(256, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(dest_addr);
 
-    for (const ContextEntry* e : instrs) {
+    for (const ContextEntry& e : instrs) {
         GumThumbRelocator r;
-        gum_thumb_relocator_init(&r, e->raw.data(), &w);
-        r.input_pc = static_cast<GumAddress>(e->ea);
+        gum_thumb_relocator_init(&r, e.raw.data(), &w);
+        r.input_pc = static_cast<GumAddress>(e.ea);
         gum_thumb_relocator_read_one(&r, nullptr);
         gum_thumb_relocator_write_one(&r);
         gum_thumb_relocator_clear(&r);

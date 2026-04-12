@@ -1,17 +1,10 @@
 #include "SharedStub.hpp"
-#include <vector>
 
-SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, uint64_t initial_offset, uint64_t addr) {
-    stubs   = std::move(s);
-    _offset = initial_offset;
-    _name   = stubs->name();
-    _addr   = addr;
-
+SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, uint64_t addr) {
+    stubs  = std::move(s);
+    _name  = stubs->name();
+    _addr  = addr;
     _bytes = stubs->build_shared_stub(addr);
 }
 
 std::string_view SharedStub::name() const { return _name; }
-
-uint64_t SharedStub::end() const {
-    return _offset + _bytes.size();
-}

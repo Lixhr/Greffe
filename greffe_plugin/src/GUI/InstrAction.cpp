@@ -12,8 +12,15 @@ static const char ACTION_NAME[] = "greffe:add_instr";
 struct InstrActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *ctx) override {
         ea_t ea = ctx->cur_value;
+
+        if (!g_ctx || !g_ctx->pinfo.has_regions()) {
+            greffe_msg("define a patch region first "
+                       "(select a range → Set as greffe patch region)\n");
+            return 0;
+        }
+
         greffe_msg("add target at 0x%llx\n", (ulonglong)ea);
-        // TODO: g_ctx->targets.add(ea, *g_ctx);
+        g_ctx->targets.add(ea, *g_ctx);
         return 1;
     }
 

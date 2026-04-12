@@ -3,51 +3,31 @@
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
-#include <iomanip>
 
-PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets) :
-                         _pinfo(pinfo)
-                       , _patch_plans(targets.plans())
-                       , _patch_offset(pinfo.getBits(), pinfo.getPatchBase())
-                        {}
+PatchLayout::PatchLayout(const ProjectInfo& pinfo, TargetManager& targets)
+    : _pinfo(pinfo)
+    , _patch_plans(targets.plans())
+    , _cursor(pinfo.getRegions())
+{}
 
-const std::vector<PatchPlan> & PatchLayout::patch_plans() const { return _patch_plans; }
-const std::vector<SharedStub>& PatchLayout::shstubs()     const { return _shstubs;     }
-const std::vector<PatchBranch>& PatchLayout::branches()   const { return _branches;    }
-uint64_t                       PatchLayout::current_offset() const { return _patch_offset; }
-
-uint64_t PatchLayout::offset_to_addr(uint64_t offset)     const {
-    return offset + _pinfo.getPatchBase();
-}
-
-
-void PatchLayout::set_trampoline_addr(PatchPlan* plan) {
-
-    _patch_offset = plan->stubs->align_offset(_patch_offset);
-
-    plan->set_addr(offset_to_addr(_patch_offset));
-}
+const std::vector<PatchPlan>&   PatchLayout::patch_plans() const { return _patch_plans; }
+std::vector<PatchPlan>&         PatchLayout::patch_plans()       { return _patch_plans; }
+const std::vector<SharedStub>&  PatchLayout::shstubs()     const { return _shstubs;     }
+const std::vector<PatchBranch>& PatchLayout::branches()    const { return _branches;    }
 
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
     auto it = std::find_if(_shstubs.begin(), _shstubs.end(),
-        [plan](const SharedStub& shstub) {
-            return shstub.name() == plan->stubs->name();
-        });
-
-    if (it != _shstubs.end())
-        return &*it;
-    return nullptr;
+        [plan](const SharedStub& s) { return s.name() == plan->stubs->name(); });
+    return it != _shstubs.end() ? &*it : nullptr;
 }
 
 const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
-    uint64_t offset = plan->stubs->align_offset(_patch_offset);
-
-    _shstubs.push_back(SharedStub(plan->stubs,
-                                  offset, 
-                                  offset_to_addr(offset)));
-
-    SharedStub &new_shstub = _shstubs.back();
-    return &new_shstub;
+    // Build at a dummy address to determine size (size is address-independent
+    // for all current arch stubs), then allocate at the real address.
+    auto probe = plan->stubs->build_shared_stub(0);
+    uint64_t addr = _cursor.alloc(plan->stubs->instr_alignment(), probe.size());
+    _shstubs.push_back(SharedStub(plan->stubs, addr));
+    return &_shstubs.back();
 }
 
 void PatchLayout::insert_branch(PatchBranch branch) {
@@ -81,24 +61,42 @@ void PatchLayout::insert_branch(PatchBranch branch) {
     _branches.insert(pos, std::move(branch));
 }
 
+void PatchLayout::create_patch_entry(PatchPlan *plan) {
+    const SharedStub *shstub = get_shstub(plan);
+    if (!shstub)
+        shstub = create_shstub(plan);
+
+    // Build the trampoline, retrying in the next region if it doesn't fit.
+    // branch_to_trampoline depends on plan->addr() so it's inside the loop too.
+    PatchBranch branch{0, {}};
+    for (;;) {
+        _cursor.align(plan->stubs->instr_alignment());
+        plan->set_addr(_cursor.current_addr());
+        plan->bytes().clear();
+
+        branch = TrampolineBuilder::branch_to_trampoline(*plan);
+        TrampolineBuilder::init_trampoline(*plan, *shstub);
+        TrampolineBuilder::relocate_and_branch_back(*plan);
+
+        if (_cursor.fits(plan->bytes().size())) {
+            _cursor.advance(plan->bytes().size());
+            break;
+        }
+        _cursor.next_region();
+    }
+
+    insert_branch(std::move(branch));
+}
+
 void PatchLayout::rebuild() {
-    _patch_offset = 0;
+    _cursor.reset();
     _shstubs.clear();
     _branches.clear();
     for (auto& plan : _patch_plans)
         create_patch_entry(&plan);
 }
 
-void PatchLayout::create_patch_entry(PatchPlan *plan) {
-    // get the shared-stubs
-    const SharedStub *shstub = get_shstub(plan);
-    if (!shstub) {
-        shstub = create_shstub(plan);
-        _patch_offset += shstub->bytes().size();
-    }
-
-    set_trampoline_addr(plan);
-    insert_branch(TrampolineBuilder::branch_to_trampoline(*plan));
-    _patch_offset += TrampolineBuilder::init_trampoline(*plan, *shstub);
-    _patch_offset += TrampolineBuilder::relocate_and_branch_back(*plan);
+void PatchLayout::place_handler_bin(HandlerBin& bin) {
+    uint64_t addr = _cursor.alloc(4, static_cast<uint64_t>(bin.size()));
+    bin.set_addr(addr);
 }

@@ -1,51 +1,28 @@
 #pragma once
 
-#include <filesystem>
-#include <mutex>
-#include <optional>
 #include <string>
 #include <vector>
 #include "PatchPlan.hpp"
+#include "ida.hpp"
 
 class ProjectInfo;
 class GreffeCTX;
 
-struct SavedProject {
-    std::optional<uint64_t> bin_base;
-    std::optional<uint64_t> patch_base;
-};
-
 class TargetManager {
     public:
-        explicit                         TargetManager();
-      
-        const PatchPlan&                 add(const std::string& target, GreffeCTX& cxt);
-        // bool                             add_direct(const json& entry, GreffeCTX& cxt);
-        void                             remove(const std::string& target, GreffeCTX& ctx);
-        const std::vector<PatchPlan>&    plans() const;
-        std::vector<PatchPlan>&          plans();
+        TargetManager() = default;
 
-        void                             save(const std::filesystem::path& path,
-                                         uint64_t                     bin_base,
-                                         std::optional<uint64_t>      patch_base) const;
-
-        SavedProject                     load(const std::filesystem::path& path, const ProjectInfo& pinfo);
+        void                          add(ea_t ea, GreffeCTX& ctx);
+        void                          remove(size_t idx, GreffeCTX& ctx);
+        const std::vector<PatchPlan>& plans() const;
+        std::vector<PatchPlan>&       plans();
 
     private:
-        // json                             fetch_entry(const std::string& target);
-        // static std::vector<ContextEntry> parse_context(const json& entry);
-        static void                      validate_context_modes(const std::string& target,
-                                                                uint64_t ea,
-                                                                const std::vector<ContextEntry>& context);
+        std::pair<PatchPlan*, bool> append_target(ea_t               ea,
+                                                  ea_t               end_ea,
+                                                  const std::string& name,
+                                                  const ProjectInfo& pinfo);
+        std::pair<PatchPlan*, bool> add_internal(ea_t ea, GreffeCTX& ctx);
 
-        // std::pair<PatchPlan*, bool>      add_internal(const json& entry,
-                                                    //   GreffeCTX& cxt);
-
-        // std::pair<PatchPlan*, bool>      append_target(const json& entry,
-                                                    //    std::vector<ContextEntry> context,
-                                                    //    const ProjectInfo& pinfo);
-
-        void                             set_trampoline_addr(PatchPlan* plan, uint32_t plan_index,
-                                                             uint64_t patch_base);
         std::vector<PatchPlan> _plans;
 };

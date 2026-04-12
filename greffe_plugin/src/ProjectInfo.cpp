@@ -2,11 +2,15 @@
 #include "MakefileTemplates.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 #include "kernwin.hpp"
 #include "utils.hpp"
+#include <idp.hpp>
+#include <segregs.hpp>
 
 void ProjectInfo::setupProjectDir() {
     project_dir = bin_path.parent_path() / "__greffe_workdir";
@@ -15,11 +19,14 @@ void ProjectInfo::setupProjectDir() {
         std::filesystem::create_directory(project_dir);
 
     std::filesystem::path dest_mk = project_dir / "Makefile";
-    if (!std::filesystem::exists(dest_mk)) {
+    bool needs_write = !std::filesystem::exists(dest_mk)
+                    || std::filesystem::file_size(dest_mk) == 0;
+    if (needs_write) {
+        std::string_view content = MakefileTemplates::get(arch);
         std::ofstream f(dest_mk);
         if (!f)
             throw std::runtime_error("cannot create " + dest_mk.string());
-        f << MakefileTemplates::get(arch);
+        f << content;
     }
 
     std::string display = project_dir.string();
@@ -31,56 +38,45 @@ void ProjectInfo::setupProjectDir() {
     greffe_msg("Workdir: %s\n", display.c_str());
 }
 
+void ProjectInfo::populateData() {
+    char buf[QMAXPATH];
+    if (getinf_buf(INF_INPUT_FILE_PATH, buf, sizeof(buf)) == -1)
+        throw std::runtime_error("Failed to retrieve input file path");
 
-// static uint64_t prompt_patch_base() {
-//     char* raw = readline("patch_base (hex): ");
-//     if (!raw)
-//         throw std::runtime_error("patch_base is required");
-//     std::string s = raw;
-//     free(raw);
-//     try {
-//         std::size_t pos = 0;
-//         uint64_t v = std::stoull(s, &pos, 0);
-//         if (pos != s.size()) throw std::invalid_argument("");
-//         return v;
-//     } catch (...) {
-//         throw std::runtime_error("invalid address: " + s);
-//     }
-// }
-
-
-void ProjectInfo::populateData(void) {
-    {
-        char buf[QMAXPATH];
-        if (getinf_buf(INF_INPUT_FILE_PATH, buf, sizeof(buf)) == -1)
-            throw std::runtime_error("Failed to retrieve input file path");
-
-        bin_path = buf;
-    }
-
+    bin_path   = buf;
     arch       = inf_get_procname().c_str();
     endianness = inf_is_be()    ? "be" : "le";
     bits       = inf_is_64bit() ?  64  :  32;
     bin_base   = inf_get_baseaddr();
 }
 
-
 ProjectInfo::ProjectInfo() {
     populateData();
     setupProjectDir();
 }
 
-// void ProjectInfo::initPatchBase(uint64_t bin_base) {
-//     uint64_t usr_base = prompt_patch_base();
+void ProjectInfo::add_region(ea_t start, ea_t end) {
+    if (end <= start) {
+        std::ostringstream ss;
+        ss << "invalid patch region: 0x" << std::hex << start
+           << " >= 0x" << end;
+        throw std::runtime_error(ss.str());
+    }
+    _regions.push_back({ static_cast<uint64_t>(start),
+                         static_cast<uint64_t>(end) });
+}
 
-//     if (bits == 64 && usr_base & 0xF)
-//         throw std::invalid_argument("patch_base must be 0x10 aligned");
+std::string ProjectInfo::getModeAt(ea_t ea) const {
+    char buf[32];
+    get_idp_name(buf, sizeof(buf));
+    std::string idp = buf;
+    std::transform(idp.begin(), idp.end(), idp.begin(), ::tolower);
 
-//     if (usr_base < bin_base) 
-//         throw std::invalid_argument("patch_base < bin_base");
-
-//     if (bits == 32 && usr_base >= UINT32_MAX)
-//         throw std::invalid_argument("patch_base > UINT32_MAX (32 bits arch)");
-
-//     patch_base = usr_base;
-// }
+    if (idp == "arm") {
+        int t_reg = str2reg("T");
+        if (t_reg >= 0 && get_sreg(ea, t_reg) == 1)
+            return "thumb";
+        return "";
+    }
+    return "";
+}

@@ -7,7 +7,7 @@
 namespace MakefileTemplates {
 
 static const std::pair<std::string_view, std::string_view> table[] = {
-    { "arm", R"makefile(CC      := arm-none-eabi-gcc
+    { "ARM", R"makefile(CC      := arm-none-eabi-gcc
 OBJCOPY := arm-none-eabi-objcopy
 CFLAGS  := -fno-pic -nostdlib -Os -ffunction-sections -fdata-sections -Ttext=0x0
 

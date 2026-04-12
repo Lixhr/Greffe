@@ -62,10 +62,10 @@ SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.cpp' -o -name '*.cc' \))
 OBJS := $(patsubst $(SRC_DIR)/%,$(OBJ_DIR)/%.o,$(SRCS))
 
 STD   := -std=c++17
-WARNS := -Wall -Wextra -Werror
+WARNS := -Wall -Wextra -Werror 
 
 INCS     := -I$(INC_DIR) -I$(INC_DIR)/patch -I$(INC_DIR)/CLI -I$(INC_DIR)/patch/arch $(FRIDA_INCS)
-CXXFLAGS := $(STD) $(WARNS) -fPIC $(INCS) $(IDA_INCS) $(IDA_DEFS) $(QT_INCS)
+CXXFLAGS := $(STD) $(WARNS) -fPIC $(INCS) $(IDA_INCS) $(IDA_DEFS) $(QT_INCS) -g
 LDFLAGS  := -shared $(IDA_LIBS) $(FRIDA_LDFLAGS) $(QT_LIBS)
 
 all: check-idasdk $(PLUGIN_TARGET)

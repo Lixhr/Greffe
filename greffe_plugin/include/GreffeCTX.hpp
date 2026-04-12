@@ -2,22 +2,14 @@
 
 #include "ProjectInfo.hpp"
 #include "TargetManager.hpp"
-#include "PatchLayout.hpp"
-#include <filesystem>
-#include <stdexcept>
-
-class PatchLayout;
-class TargetManager;
+#include "patch/PatchLayout.hpp"
 
 struct GreffeCTX {
     ProjectInfo   pinfo;
     TargetManager targets;
     PatchLayout   layout;
-    bool          running = true;
 
-    public:
-        GreffeCTX();
+    GreffeCTX();
 };
 
 extern std::unique_ptr<GreffeCTX> g_ctx;
-

@@ -3,6 +3,7 @@
 #include <kernwin.hpp>
 #include "GUI/Actions.hpp"
 #include "utils.hpp"
+#include "GreffeCTX.hpp"
 
 extern plugin_t PLUGIN;
 
@@ -19,8 +20,17 @@ struct RegionActionHandler : public action_handler_t {
 
         ea_t start_ea = p1.at->toea();
         ea_t end_ea   = p2.at->toea();
-        greffe_msg("patch region: 0x%llx - 0x%llx\n", (ulonglong)start_ea, (ulonglong)end_ea);
-        // TODO: g_ctx->pinfo.setPatchRegion(start_ea, end_ea);
+
+        if (!g_ctx)
+            g_ctx = std::make_unique<GreffeCTX>();
+
+        try {
+            g_ctx->pinfo.add_region(start_ea, end_ea);
+            greffe_msg("patch region added: 0x%llx - 0x%llx\n",
+                       (ulonglong)start_ea, (ulonglong)end_ea);
+        } catch (const std::exception& e) {
+            greffe_msg("%s\n", e.what());
+        }
         return 1;
     }
 

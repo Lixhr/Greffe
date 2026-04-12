@@ -14,19 +14,16 @@ struct ContextEntry {
 
 class Target {
     public:
-        Target(std::string name, uint64_t ea, uint64_t end_ea,
-               std::vector<ContextEntry> context);
+        Target(std::string name, uint64_t ea, uint64_t end_ea);
 
-        const std::string&               name()    const;
-        uint64_t                         ea()      const;
-        uint64_t                         end_ea()  const;
-        const std::vector<ContextEntry>& context() const;
+        const std::string& name()   const;
+        uint64_t           ea()     const;
+        uint64_t           end_ea() const;
 
     private:
-        std::string               _name;
-        uint64_t                  _ea;
-        uint64_t                  _end_ea;
-        std::vector<ContextEntry> _context;
+        std::string _name;
+        uint64_t    _ea;
+        uint64_t    _end_ea;
 };
 
 struct TargetView {

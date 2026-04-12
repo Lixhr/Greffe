@@ -1,9 +1,12 @@
 #include "TrampolineBuilder.hpp"
 #include "PatchSession.hpp"
 #include <stdexcept>
-#include <algorithm>
-#include <iomanip>
-#include <iostream>
+#include <sstream>
+
+#include <bytes.hpp>
+#include <funcs.hpp>
+#include <xref.hpp>
+#include "utils.hpp"
 
 PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     const Target& t     = plan.target;
@@ -11,32 +14,51 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
 
     std::vector<uint8_t> branch = stubs.branch(t.ea(), plan.addr());
 
-    const auto& ctx = t.context();
-    auto it = std::find_if(ctx.begin(), ctx.end(),
-        [&t](const ContextEntry& c) { return c.ea == t.ea(); });
-
-    if (it == ctx.end())
-        throw std::runtime_error("Target instruction not found on context ??");
+    func_t *func = get_func(static_cast<ea_t>(t.ea()));
+    if (!func) {
+        std::ostringstream ss;
+        ss << "no function at 0x" << std::hex << t.ea();
+        throw std::runtime_error(ss.str());
+    }
 
     size_t len = 0;
-    std::vector<const ContextEntry*> relocd_indices;
+    std::vector<ContextEntry> relocd;
+    ea_t cur = static_cast<ea_t>(t.ea());
 
-    while (it != ctx.end()) {
-        if (it->ea > t.ea() && it->is_xref_target)
+    while (true) {
+        if (!func_contains(func, cur))
+            throw std::runtime_error("Patched branch overlaps end of function");
+
+        asize_t size = get_item_size(cur);
+        if (size == 0) {
+            std::ostringstream ss;
+            ss << "failed to get item size at 0x" << std::hex << cur;
+            throw std::runtime_error(ss.str());
+        }
+
+        ContextEntry entry;
+        entry.ea  = static_cast<uint64_t>(cur);
+        entry.raw.resize(size);
+        if (get_bytes(entry.raw.data(), size, cur) == -1) {
+            std::ostringstream ss;
+            ss << "failed to read bytes at 0x" << std::hex << cur;
+            throw std::runtime_error(ss.str());
+        }
+        entry.is_xref_target = get_first_fcref_to(cur) != BADADDR;
+
+        if (cur > static_cast<ea_t>(t.ea()) && entry.is_xref_target)
             throw std::runtime_error("Patched branch overlaps a CODE XREF");
 
-        len += it->raw.size();
-        relocd_indices.push_back(&*it);
-        ++it;
+        len += size;
+        relocd.push_back(std::move(entry));
+        cur += size;
 
         if (len >= branch.size()) {
-            plan.trampoline_ret_addr = it->ea;
-            plan.relocd_instr        = std::move(relocd_indices);
+            plan.trampoline_ret_addr = static_cast<uint64_t>(cur);
+            plan.relocd_instr        = std::move(relocd);
             return PatchBranch(t.ea(), std::move(branch));
         }
     }
-
-    throw std::runtime_error("Patched branch overlaps end of function");
 }
 
 size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
