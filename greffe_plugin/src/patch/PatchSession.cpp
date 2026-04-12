@@ -2,7 +2,7 @@
 #include <fstream>
 #include <stdexcept>
 
-PatchSession::PatchSession(const std::filesystem::path& bin_path, uint64_t bin_base)
+PatchSession::PatchSession(const std::filesystem::path& bin_path, ea_t bin_base)
     : _bin_base(bin_base) {
     std::ifstream src(bin_path, std::ios::binary);
     if (!src)
@@ -12,7 +12,7 @@ PatchSession::PatchSession(const std::filesystem::path& bin_path, uint64_t bin_b
                    std::istreambuf_iterator<char>{});
 }
 
-void PatchSession::patch(uint64_t address, const std::vector<uint8_t>& bytes) {
+void PatchSession::patch(ea_t address, const std::vector<uint8_t>& bytes) {
     if (bytes.empty())
         return;
 

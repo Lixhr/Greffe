@@ -5,10 +5,10 @@
 #include "PatchPlan.hpp"
 #include "ProjectInfo.hpp"
 #include "TargetManager.hpp"
-#include "patch/HandlerBin.hpp"
 #include "patch/SharedStub.hpp"
 #include "patch/PatchBranch.hpp"
 #include "patch/RegionCursor.hpp"
+#include "HandlerBin.hpp"
 
 class TargetManager;
 

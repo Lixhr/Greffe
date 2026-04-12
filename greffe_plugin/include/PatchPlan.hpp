@@ -13,7 +13,7 @@ class PatchPlan : public PatchLayoutEntry {
             : target(std::move(t)) { stubs = std::move(s); }
 
         Target                              target;
-        uint64_t                            trampoline_ret_addr   = 0;
+        ea_t                                trampoline_ret_addr   = 0;
         std::vector<ContextEntry>           relocd_instr          = {};
         size_t                              handler_offset = 0;
 };

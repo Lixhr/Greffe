@@ -71,7 +71,7 @@ static const action_desc_t s_action = ACTION_DESC_LITERAL(
     "Apply greffe patches",
     &s_handler,
     "Shift+P",
-    "Build handlers and apply all greffe patches to the database",
+    "Build handlers and apply all greffes",
     -1
 );
 

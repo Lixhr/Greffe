@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <ostream>
+#include "ida.hpp"
 
 struct ContextEntry {
-    uint64_t             ea;
+    ea_t                 ea;
     std::vector<uint8_t> raw;
     std::string          mode;
     bool        is_xref_target = false;
@@ -14,21 +14,14 @@ struct ContextEntry {
 
 class Target {
     public:
-        Target(std::string name, uint64_t ea, uint64_t end_ea);
+        Target(std::string name, ea_t ea, ea_t end_ea);
 
         const std::string& name()   const;
-        uint64_t           ea()     const;
-        uint64_t           end_ea() const;
+        ea_t               ea()     const;
+        ea_t               end_ea() const;
 
     private:
         std::string _name;
-        uint64_t    _ea;
-        uint64_t    _end_ea;
+        ea_t        _ea;
+        ea_t        _end_ea;
 };
-
-struct TargetView {
-    const Target& target;
-    int           bits;
-};
-
-std::ostream& operator<<(std::ostream& os, const TargetView& v);

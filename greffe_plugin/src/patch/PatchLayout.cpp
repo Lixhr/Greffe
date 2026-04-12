@@ -22,10 +22,11 @@ const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
 }
 
 const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
-    // Build at a dummy address to determine size (size is address-independent
-    // for all current arch stubs), then allocate at the real address.
+    // Build at a dummy address to determine size
+    // then allocate at the real address.
     auto probe = plan->stubs->build_shared_stub(0);
-    uint64_t addr = _cursor.alloc(plan->stubs->instr_alignment(), probe.size());
+    ea_t addr  = _cursor.alloc(plan->stubs->instr_alignment(), probe.size());
+
     _shstubs.push_back(SharedStub(plan->stubs, addr));
     return &_shstubs.back();
 }
@@ -37,7 +38,7 @@ void PatchLayout::insert_branch(PatchBranch branch) {
 
     auto pos = std::lower_bound(_branches.begin(), _branches.end(), branch, cmp);
 
-    auto hex = [](uint64_t v) {
+    auto hex = [](ea_t v) {
         std::ostringstream ss;
         ss << "0x" << std::hex << v;
         return ss.str();
@@ -97,6 +98,6 @@ void PatchLayout::rebuild() {
 }
 
 void PatchLayout::place_handler_bin(HandlerBin& bin) {
-    uint64_t addr = _cursor.alloc(4, static_cast<uint64_t>(bin.size()));
+    ea_t addr = _cursor.alloc(0x10, static_cast<ea_t>(bin.size()));
     bin.set_addr(addr);
 }

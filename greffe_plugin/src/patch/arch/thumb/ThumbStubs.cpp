@@ -11,7 +11,7 @@ extern "C" {
 
 std::string_view ThumbStubs::name() const { return "Thumb"; }
 
-void ThumbStubs::write_ptr(uint8_t* dst, uint64_t addr) const {
+void ThumbStubs::write_ptr(uint8_t* dst, ea_t addr) const {
     uint32_t v = static_cast<uint32_t>(addr);
     dst[0] = static_cast<uint8_t>(v);
     dst[1] = static_cast<uint8_t>(v >> 8);
@@ -74,7 +74,7 @@ void ThumbStubs::restore_ctx(GumThumbWriter *w) {
     }
 }
 
-static inline void write_branch(GumThumbWriter *w, uint64_t from, uint64_t to) {
+static inline void write_branch(GumThumbWriter *w, ea_t from, ea_t to) {
     if (gum_thumb_writer_can_branch_directly_between(w, from, to))
         gum_thumb_writer_put_b_imm(w, static_cast<GumAddress>(to));
     else
@@ -82,7 +82,7 @@ static inline void write_branch(GumThumbWriter *w, uint64_t from, uint64_t to) {
                                              static_cast<GumAddress>(to));
 }
 
-std::vector<uint8_t> ThumbStubs::branch(uint64_t from, uint64_t to) {
+std::vector<uint8_t> ThumbStubs::branch(ea_t from, ea_t to) {
     std::vector<uint8_t> buf(16, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
@@ -92,7 +92,7 @@ std::vector<uint8_t> ThumbStubs::branch(uint64_t from, uint64_t to) {
     return thumb_collect(w, buf, "ThumbStubs::branch");
 }
 
-std::vector<uint8_t> ThumbStubs::call(uint64_t from, uint64_t to) {
+std::vector<uint8_t> ThumbStubs::call(ea_t from, ea_t to) {
     std::vector<uint8_t> buf(16, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
@@ -101,8 +101,8 @@ std::vector<uint8_t> ThumbStubs::call(uint64_t from, uint64_t to) {
     return thumb_collect(w, buf, "ThumbStubs::call");
 }
 
-std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at, 
-                                                 uint64_t shstub_addr, 
+std::vector<uint8_t> ThumbStubs::trampoline_init(ea_t at, 
+                                                 ea_t shstub_addr, 
                                                  uint8_t  **ptr_array) {
     std::vector<uint8_t> buf(128, 0);
     GumThumbWriter w;
@@ -137,8 +137,8 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(uint64_t at,
 
 std::vector<uint8_t> ThumbStubs::relocate_and_branch_back(
                         const std::vector<ContextEntry>& instrs,
-                        uint64_t                         dest_addr,
-                        uint64_t                         branch_to) {
+                        ea_t                         dest_addr,
+                        ea_t                         branch_to) {
     std::vector<uint8_t> buf(256, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
@@ -153,14 +153,14 @@ std::vector<uint8_t> ThumbStubs::relocate_and_branch_back(
         gum_thumb_relocator_clear(&r);
     }
 
-    uint64_t br_from = dest_addr + (reinterpret_cast<uint8_t*>(w.code)
+    ea_t br_from = dest_addr + (reinterpret_cast<uint8_t*>(w.code)
                                   - reinterpret_cast<uint8_t*>(w.base));
     write_branch(&w, br_from, branch_to);
 
     return thumb_collect(w, buf, "ThumbStubs::relocate_and_branch_back");
 }
 
-std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
+std::vector<uint8_t> ThumbStubs::build_shared_stub(ea_t at) {
     std::vector<uint8_t> buf(0x400, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
@@ -178,7 +178,6 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(uint64_t at) {
 
     // space is reserved at the bottom of our stack
     // it stores the 'ret' to be available on POP PC
-    // gum_thumb_writer_put_str_reg_reg(&w, ARM_REG_R0, ARM_REG_SP);
     gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, 0x3c);
 
     // call the handler                                                                                                                                                       

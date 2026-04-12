@@ -15,7 +15,7 @@ class HandlerBin : public PatchLayoutEntry {
 
         size_t size() const { return _bytes.size(); }
 
-        uint64_t handler_addr(const std::string& sym) const {
+        ea_t handler_addr(const std::string& sym) const {
             auto it = _offsets.find(sym);
             if (it == _offsets.end())
                 throw std::runtime_error("HandlerBin: symbol not found: " + sym);

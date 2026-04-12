@@ -1,6 +1,5 @@
 #include "ProjectInfo.hpp"
 #include "MakefileTemplates.hpp"
-#include <cstdlib>
 #include <cstring>
 #include <algorithm>
 #include <filesystem>
@@ -62,8 +61,7 @@ void ProjectInfo::add_region(ea_t start, ea_t end) {
            << " >= 0x" << end;
         throw std::runtime_error(ss.str());
     }
-    _regions.push_back({ static_cast<uint64_t>(start),
-                         static_cast<uint64_t>(end) });
+    _regions.push_back({ start, end });
 }
 
 std::string ProjectInfo::getModeAt(ea_t ea) const {

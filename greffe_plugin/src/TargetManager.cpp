@@ -16,10 +16,6 @@
 #include <sstream>
 #include <stdexcept>
 
-// ---------------------------------------------------------------------------
-// Handler stub creation
-// ---------------------------------------------------------------------------
-
 static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
     namespace fs = std::filesystem;
 
@@ -48,9 +44,6 @@ static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
     f << "void handler_" << sanitize(t.name()) << "(void)\n{\n}\n";
 }
 
-// ---------------------------------------------------------------------------
-// Target name resolution
-// ---------------------------------------------------------------------------
 
 static std::string create_target_name(ea_t ea) {
     func_t *func = get_func(ea);
@@ -76,10 +69,6 @@ static std::string create_target_name(ea_t ea) {
     return name.c_str();
 }
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
 static std::shared_ptr<IArchStubs> resolve_stubs(ea_t ea, const ProjectInfo& pinfo) {
     return StubsFactory::create(pinfo.getBits(), pinfo.getModeAt(ea));
 }
@@ -88,15 +77,15 @@ std::pair<PatchPlan*, bool> TargetManager::append_target(ea_t               ea,
                                                          ea_t               end_ea,
                                                          const std::string& name,
                                                          const ProjectInfo& pinfo) {
-    auto it = std::lower_bound(_plans.begin(), _plans.end(), (uint64_t)ea,
-        [](const PatchPlan& p, uint64_t val) { return p.target.ea() < val; });
+    auto it = std::lower_bound(_plans.begin(), _plans.end(), ea,
+        [](const PatchPlan& p, ea_t val) { return p.target.ea() < val; });
 
-    if (it != _plans.end() && it->target.ea() == (uint64_t)ea)
+    if (it != _plans.end() && it->target.ea() == ea)
         return {&*it, false};
 
     auto stubs = resolve_stubs(ea, pinfo);
     it = _plans.emplace(it, PatchPlan{
-        Target{name, (uint64_t)ea, (uint64_t)end_ea},
+        Target{name, ea, end_ea},
         std::move(stubs)
     });
     return {&*it, true};
@@ -114,8 +103,8 @@ std::pair<PatchPlan*, bool> TargetManager::add_internal(ea_t ea, GreffeCTX& ctx)
             ctx.layout.create_patch_entry(plan);
             create_handler_stub(plan->target, pinfo);
         } catch (...) {
-            auto it = std::lower_bound(_plans.begin(), _plans.end(), (uint64_t)ea,
-                [](const PatchPlan& p, uint64_t val) { return p.target.ea() < val; });
+            auto it = std::lower_bound(_plans.begin(), _plans.end(), ea,
+                [](const PatchPlan& p, ea_t val) { return p.target.ea() < val; });
             _plans.erase(it);
             throw;
         }
@@ -123,9 +112,6 @@ std::pair<PatchPlan*, bool> TargetManager::add_internal(ea_t ea, GreffeCTX& ctx)
     return {plan, inserted};
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 void TargetManager::add(ea_t ea, GreffeCTX& ctx) {
     try {
@@ -149,5 +135,4 @@ void TargetManager::remove(size_t idx, GreffeCTX& ctx) {
     fs::remove(handler);
 }
 
-const std::vector<PatchPlan>& TargetManager::plans() const { return _plans; }
 std::vector<PatchPlan>&       TargetManager::plans()       { return _plans; }

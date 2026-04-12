@@ -11,7 +11,7 @@ uint64_t RegionCursor::aligned_intra(uint8_t alignment) const {
     return (_intra_offset + alignment - 1) & ~static_cast<uint64_t>(alignment - 1);
 }
 
-uint64_t RegionCursor::current_addr() const {
+ea_t RegionCursor::current_addr() const {
     if (_region_idx >= _regions.size())
         throw std::runtime_error("RegionCursor: no patch regions defined");
     return _regions[_region_idx].base + _intra_offset;
@@ -22,7 +22,7 @@ void RegionCursor::align(uint8_t alignment) {
         throw std::runtime_error("RegionCursor: no patch regions defined");
     uint64_t aligned = aligned_intra(alignment);
     if (aligned >= _regions[_region_idx].size())
-        next_region();  // alignment pushed past region end → spill into next
+        next_region();  // alignment pushed past region end, spill into next
     else
         _intra_offset = aligned;
 }
@@ -44,13 +44,13 @@ void RegionCursor::next_region() {
     _intra_offset = 0;
 }
 
-uint64_t RegionCursor::alloc(uint8_t alignment, uint64_t size) {
+ea_t RegionCursor::alloc(uint8_t alignment, uint64_t size) {
     while (_region_idx < _regions.size()) {
         uint64_t offset = aligned_intra(alignment);
         if (offset + size <= _regions[_region_idx].size()) {
-            _intra_offset      = offset;
-            uint64_t addr      = _regions[_region_idx].base + offset;
-            _intra_offset     += size;
+            _intra_offset  = offset;
+            ea_t addr      = _regions[_region_idx].base + offset;
+            _intra_offset += size;
             return addr;
         }
         ++_region_idx;

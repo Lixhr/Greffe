@@ -24,35 +24,11 @@ static void idaapi term() {
     unregister_instr_action();
     unregister_region_action();
     greffe_msg("plugin unloaded\n");
-    // gum_deinit_embedded();
 }
 
 static bool idaapi run(size_t) {
     if (!g_ctx)
         g_ctx = std::make_unique<GreffeCTX>();
-
-
-    // TWidget *g_widget = find_widget("Greffe");
-
-    // if ( g_widget == nullptr ) {
-    //     g_widget = create_empty_widget("Greffe");
-
-    //     QWidget *qw = reinterpret_cast<QWidget *>(g_widget);
-    //     QVBoxLayout *layout = new QVBoxLayout(qw);
-    //     QPushButton *btn = new QPushButton("Patch!", qw);
-    //     layout->addWidget(btn);
-    //     layout->addStretch();
-    //     qw->setLayout(layout);
-
-    //     QObject::connect(btn, &QPushButton::clicked, []() {
-    //         msg("[greffe] Patch! clicked\n");
-    //     });
-
-    //     display_widget(g_widget, WOPN_DP_TAB | WOPN_RESTORE);
-    // }
-    // else {
-    //     close_widget(g_widget, WCLS_SAVE);
-    // }
     return true;
 }
 

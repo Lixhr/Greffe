@@ -12,14 +12,14 @@ struct ProjectInfo {
         void                              populateData();
         void                              add_region(ea_t start, ea_t end);
 
-        bool                              has_regions()  const { return !_regions.empty(); }
-        int                               getBits()      const { return bits; }
-        uint64_t                          getBinBase()   const { return bin_base; }
-        const std::filesystem::path&      getProjectDir() const { return project_dir; }
-        const std::filesystem::path&      getBinPath()    const { return bin_path; }
-        const std::string&                getArch()       const { return arch; }
-        const std::string&                getEndianness() const { return endianness; }
-        const std::vector<PatchRegion>&   getRegions()    const { return _regions; }
+        bool                              has_regions()      const { return !_regions.empty(); }
+        int                               getBits()          const { return bits; }
+        uint64_t                          getBinBase()       const { return bin_base; }
+        const std::filesystem::path&      getProjectDir()    const { return project_dir; }
+        const std::filesystem::path&      getBinPath()       const { return bin_path; }
+        const std::string&                getArch()          const { return arch; }
+        const std::string&                getEndianness()    const { return endianness; }
+        const std::vector<PatchRegion>&   getRegions()       const { return _regions; }
         std::string                       getModeAt(ea_t ea) const;
 
     private:

@@ -10,15 +10,15 @@ class PatchLayoutEntry {
         virtual     ~PatchLayoutEntry() = default;
 
         void                        set_offset(uint64_t offset);
-        void                        set_addr(uint64_t addr);
-        uint64_t                    offset() const;
-        uint64_t                    addr()   const;
-        const std::vector<uint8_t>& bytes()  const;
+        void                        set_addr(ea_t addr);
         std::vector<uint8_t>&       bytes();
+        uint64_t                    offset() const;
+        ea_t                        addr()   const;
+        const std::vector<uint8_t>& bytes()  const;
 
         std::shared_ptr<IArchStubs> stubs;
     protected:
         uint64_t             _offset = 0;
-        uint64_t             _addr   = 0;
+        ea_t                 _addr   = 0;
         std::vector<uint8_t> _bytes  = {};
 };
