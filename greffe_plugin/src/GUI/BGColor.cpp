@@ -18,11 +18,16 @@ struct RangeColorHooks : public event_listener_t {
         if (code == processor_t::ev_get_bg_color) {
             bgcolor_t *color = va_arg(va, bgcolor_t *);
             ea_t       ea    = va_arg(va, ea_t);
+            const ColoredRange *best = nullptr;
             for (const auto& r : s_ranges) {
                 if (ea >= r.start && ea < r.end) {
-                    *color = r.color;
-                    return 1;
+                    if (!best || (r.end - r.start) < (best->end - best->start))
+                        best = &r;
                 }
+            }
+            if (best) {
+                *color = best->color;
+                return 1;
             }
         }
         return 0;

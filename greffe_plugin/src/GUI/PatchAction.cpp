@@ -30,26 +30,18 @@ struct PatchActionHandler : public action_handler_t {
                 std::string sym = "handler_" + sanitize(plan.target.name());
                 plan.stubs->write_ptr(plan.bytes().data() + plan.handler_offset,
                                       bin.handler_addr(sym));
+
+                ea_t    pointer_addr = plan.addr() + plan.handler_offset;
+                patch_bytes(pointer_addr,
+                            plan.bytes().data() + plan.handler_offset,
+                            plan.stubs->sizeof_ptr());
+                set_range_color(pointer_addr, pointer_addr + plan.stubs->sizeof_ptr(), Color::HANDLER_CODE);
             }
 
-            for (const auto& branch : g_ctx->layout.branches())
-                patch_bytes(static_cast<ea_t>(branch.addr()),
-                            branch.bytes().data(),
-                            static_cast<ssize_t>(branch.bytes().size()));
-
-            for (const auto& plan : g_ctx->layout.patch_plans())
-                patch_bytes(static_cast<ea_t>(plan.addr()),
-                            plan.bytes().data(),
-                            static_cast<ssize_t>(plan.bytes().size()));
-
-            for (const auto& shstub : g_ctx->layout.shstubs())
-                patch_bytes(static_cast<ea_t>(shstub.addr()),
-                            shstub.bytes().data(),
-                            static_cast<ssize_t>(shstub.bytes().size()));
-
-            patch_bytes(static_cast<ea_t>(bin.addr()),
+            patch_bytes(bin.addr(),
                         bin.bytes().data(),
                         static_cast<ssize_t>(bin.bytes().size()));
+            bin.set_color(Color::HANDLER_CODE);
 
             greffe_msg("patched %zu target(s)\n",
                        g_ctx->layout.patch_plans().size());

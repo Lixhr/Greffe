@@ -15,6 +15,7 @@ class PatchLayoutEntry {
         uint64_t                    offset() const;
         ea_t                        addr()   const;
         const std::vector<uint8_t>& bytes()  const;
+        void                        set_color(bgcolor_t color) const;
 
         std::shared_ptr<IArchStubs> stubs;
     protected:

@@ -28,6 +28,7 @@ struct RegionActionHandler : public action_handler_t {
             g_ctx->pinfo.add_region(start_ea, end_ea);
             greffe_msg("patch region added: 0x%llx - 0x%llx\n",
                        (ulonglong)start_ea, (ulonglong)end_ea);
+            set_range_color(start_ea, end_ea, Color::PATCH_REGION);
         } catch (const std::exception& e) {
             greffe_msg("%s\n", e.what());
         }

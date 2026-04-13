@@ -1,8 +1,11 @@
 #include "PatchLayout.hpp"
 #include "TrampolineBuilder.hpp"
+#include <ida.hpp>
+#include <bytes.hpp>
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
+#include "utils.hpp"
 
 PatchLayout::PatchLayout(ProjectInfo& pinfo, TargetManager& targets)
     : _pinfo(pinfo)
@@ -28,7 +31,10 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     ea_t addr  = _cursor.alloc(plan->stubs->instr_alignment(), probe.size());
 
     _shstubs.push_back(SharedStub(plan->stubs, addr));
-    return &_shstubs.back();
+    const SharedStub& shstub = _shstubs.back();
+    patch_bytes(shstub.addr(), shstub.bytes().data(), shstub.bytes().size());
+    shstub.set_color(Color::PATCHED);
+    return &shstub;
 }
 
 void PatchLayout::insert_branch(PatchBranch branch) {
@@ -87,7 +93,15 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         _cursor.next_region();
     }
 
+    ea_t                     branch_addr  = branch.addr();
+    std::vector<uint8_t>     branch_bytes = branch.bytes();
     insert_branch(std::move(branch));
+
+    patch_bytes(plan->addr(),   plan->bytes().data(),   plan->bytes().size());
+    plan->set_color(Color::PATCHED);
+
+    patch_bytes(branch_addr,    branch_bytes.data(),    branch_bytes.size());
+    branch.set_color(Color::RELOCATED);
 }
 
 void PatchLayout::rebuild() {
