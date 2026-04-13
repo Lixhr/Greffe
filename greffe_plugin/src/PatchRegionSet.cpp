@@ -4,12 +4,18 @@
 #include <numeric>
 #include <stdexcept>
 
+
+
+void region_bzero(ea_t ea, size_t size) {
+    std::vector<uint8_t> zeroes(size);
+    patch_bytes(ea, zeroes.data(), zeroes.size());
+}
+
 void PatchRegionSet::order_insert(ea_t start, ea_t end) {
     auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,
         [](const PatchRegion& p, ea_t val) { return p.base < val; });
 
     _regions.insert(pos, PatchRegion(start, end));
-    set_range_color(start, end, Color::PATCH_REGION);
 }
 
 void PatchRegionSet::interval_subtraction(std::vector<PatchRegion>::iterator it,

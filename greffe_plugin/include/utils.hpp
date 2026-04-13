@@ -1,3 +1,5 @@
+#pragma once
+
 #include "kernwin.hpp"
 #include "ida.hpp"
 

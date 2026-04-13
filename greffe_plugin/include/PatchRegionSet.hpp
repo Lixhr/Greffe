@@ -4,13 +4,24 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include "bytes.hpp"
+#include "utils.hpp"
+
+void region_bzero(ea_t ea, size_t size);
 
 struct PatchRegion {
     ea_t base;
     ea_t end;
     ea_t cursor;
 
-    PatchRegion(ea_t b, ea_t e) : base(b), end(e), cursor(b) {}
+    PatchRegion(ea_t b, ea_t e) : base(b), end(e), cursor(b) {
+        size_t size = end - base;
+
+        // clear the patching region on 
+        region_bzero(b, size);
+        del_items(b, DELIT_DELNAMES, size);
+        set_range_color(base, end, Color::PATCH_REGION);
+    }
 
     uint64_t size()              const { return end - base; }
     uint64_t remaining()         const { return end - cursor; }
@@ -25,7 +36,6 @@ struct PatchRegion {
 
 class PatchRegionSet {
     public:
-        // Region management
         void add_region(ea_t start, ea_t end);
         bool has_regions() const { return !_regions.empty(); }
 
