@@ -58,9 +58,9 @@ void ProjectInfo::order_insert(ea_t start, ea_t end) {
     auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,
         [](const PatchRegion& p, ea_t val) { return p.base < val; });
 
-    _regions.insert(pos, PatchRegion(start, end));\
+    _regions.insert(pos, PatchRegion(start, end));
     set_range_color(start, end, Color::PATCH_REGION);
-}    
+}
 
 void ProjectInfo::interval_subtraction(std::vector<PatchRegion>::iterator it,
                                                                      ea_t start,
@@ -83,6 +83,21 @@ void ProjectInfo::interval_subtraction(std::vector<PatchRegion>::iterator it,
         order_insert(s, e);
 }
 
+void ProjectInfo::merge_regions() {
+    auto it = _regions.begin();
+    while (it != _regions.end()) {
+        auto next = std::next(it);
+        if (next == _regions.end())
+            break;
+        if ((it->end >= next->base) && (next->cursor = next->base)) {
+            it->end = std::max(it->end, next->end);
+            _regions.erase(next);
+        } else {
+            ++it;
+        }
+    }
+}
+
 void ProjectInfo::add_region(ea_t start, ea_t end) {
     auto it = std::lower_bound(_regions.begin(), _regions.end(), start,
         [](const PatchRegion& p, ea_t val) { return p.base < val; });
@@ -96,6 +111,7 @@ void ProjectInfo::add_region(ea_t start, ea_t end) {
     else {
         order_insert(start, end);
     }
+    merge_regions();
 }
 
 std::string ProjectInfo::getModeAt(ea_t ea) const {

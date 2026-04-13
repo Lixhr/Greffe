@@ -27,6 +27,7 @@ struct ProjectInfo {
         void    setupProjectDir();
         void    order_insert(ea_t start, ea_t end);
         void    interval_subtraction(std::vector<PatchRegion>::iterator it, ea_t start, ea_t end);
+        void    merge_regions();
 
         std::filesystem::path    bin_path;
         std::filesystem::path    project_dir;
