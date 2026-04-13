@@ -24,7 +24,9 @@ struct ProjectInfo {
         std::string                       getModeAt(ea_t ea) const;
 
     private:
-        void setupProjectDir();
+        void    setupProjectDir();
+        void    order_insert(ea_t start, ea_t end);
+        void    interval_subtraction(std::vector<PatchRegion>::iterator it, ea_t start, ea_t end);
 
         std::filesystem::path    bin_path;
         std::filesystem::path    project_dir;

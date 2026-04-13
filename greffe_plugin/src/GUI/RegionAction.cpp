@@ -28,7 +28,15 @@ struct RegionActionHandler : public action_handler_t {
             g_ctx->pinfo.add_region(start_ea, end_ea);
             greffe_msg("patch region added: 0x%llx - 0x%llx\n",
                        (ulonglong)start_ea, (ulonglong)end_ea);
-            set_range_color(start_ea, end_ea, Color::PATCH_REGION);
+
+
+            msg("%lx\n", sizeof(ea_t));
+            /// debug
+            for (const auto r : g_ctx->pinfo.getRegions()) {
+                msg("Region: %llx - %llx, cursor=%llx\n", r.base, r.end, r.cursor);
+            }
+            ///
+
         } catch (const std::exception& e) {
             greffe_msg("%s\n", e.what());
         }

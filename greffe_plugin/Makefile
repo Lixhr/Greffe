@@ -61,7 +61,8 @@ STD   := -std=c++17
 WARNS := -Wall -Wextra -Werror 
 
 INCS     := -I$(INC_DIR) -I$(INC_DIR)/patch -I$(INC_DIR)/CLI -I$(INC_DIR)/patch/arch $(FRIDA_INCS)
-CXXFLAGS := $(STD) $(WARNS) -fPIC $(INCS) $(IDA_INCS) $(IDA_DEFS) $(QT_INCS) -g
+CXXFLAGS := $(STD) $(WARNS) -fPIC $(INCS) $(IDA_INCS) $(IDA_DEFS) $(QT_INCS) -g \
+            -D__EA64__
 LDFLAGS  := -shared $(IDA_LIBS) $(FRIDA_LDFLAGS) $(QT_LIBS)
 
 all: check-idasdk $(PLUGIN_TARGET)
