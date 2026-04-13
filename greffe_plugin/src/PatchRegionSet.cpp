@@ -1,15 +1,10 @@
 #include "PatchRegionSet.hpp"
 #include "utils.hpp"
+#include <bytes.hpp>
 #include <algorithm>
 #include <numeric>
 #include <stdexcept>
 
-
-
-void region_bzero(ea_t ea, size_t size) {
-    std::vector<uint8_t> zeroes(size);
-    patch_bytes(ea, zeroes.data(), zeroes.size());
-}
 
 void PatchRegionSet::order_insert(ea_t start, ea_t end) {
     auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,

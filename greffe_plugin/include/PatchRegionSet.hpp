@@ -7,7 +7,6 @@
 #include "bytes.hpp"
 #include "utils.hpp"
 
-void region_bzero(ea_t ea, size_t size);
 
 struct PatchRegion {
     ea_t base;
@@ -17,10 +16,8 @@ struct PatchRegion {
     PatchRegion(ea_t b, ea_t e) : base(b), end(e), cursor(b) {
         size_t size = end - base;
 
-        // clear the patching region on 
-        region_bzero(b, size);
-        del_items(b, DELIT_DELNAMES, size);
-        set_range_color(base, end, Color::PATCH_REGION);
+        std::vector<uint8_t> zeroes(size);
+        write_data_patch(b, zeroes.data(), size, Color::PATCH_REGION);
     }
 
     uint64_t size()              const { return end - base; }

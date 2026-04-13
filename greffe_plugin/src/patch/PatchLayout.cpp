@@ -32,8 +32,7 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
 
     _shstubs.push_back(SharedStub(plan->stubs, addr));
     const SharedStub& shstub = _shstubs.back();
-    patch_bytes(shstub.addr(), shstub.bytes().data(), shstub.bytes().size());
-    shstub.set_color(Color::PATCHED);
+    write_code_patch(shstub.addr(), shstub.bytes().data(), shstub.bytes().size(), Color::PATCHED);
     return &shstub;
 }
 
@@ -97,11 +96,8 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     std::vector<uint8_t>     branch_bytes = branch.bytes();
     insert_branch(std::move(branch));
 
-    patch_bytes(plan->addr(),   plan->bytes().data(),   plan->bytes().size());
-    plan->set_color(Color::PATCHED);
-
-    patch_bytes(branch_addr,    branch_bytes.data(),    branch_bytes.size());
-    branch.set_color(Color::RELOCATED);
+    write_code_patch(plan->addr(), plan->bytes().data(), plan->bytes().size(), Color::PATCHED);
+    write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
 }
 
 void PatchLayout::rebuild() {

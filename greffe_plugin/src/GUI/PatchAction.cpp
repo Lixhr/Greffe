@@ -1,7 +1,6 @@
 #include <ida.hpp>
 #include <idp.hpp>
 #include <kernwin.hpp>
-#include <bytes.hpp>
 #include "GUI/Actions.hpp"
 #include "GreffeCTX.hpp"
 #include "patch/HandlerCompiler.hpp"
@@ -31,17 +30,14 @@ struct PatchActionHandler : public action_handler_t {
                 plan.stubs->write_ptr(plan.bytes().data() + plan.handler_offset,
                                       bin.handler_addr(sym));
 
-                ea_t    pointer_addr = plan.addr() + plan.handler_offset;
-                patch_bytes(pointer_addr,
-                            plan.bytes().data() + plan.handler_offset,
-                            plan.stubs->sizeof_ptr());
-                set_range_color(pointer_addr, pointer_addr + plan.stubs->sizeof_ptr(), Color::HANDLER_CODE);
+                ea_t pointer_addr = plan.addr() + plan.handler_offset;
+                write_data_patch(pointer_addr,
+                                 plan.bytes().data() + plan.handler_offset,
+                                 plan.stubs->sizeof_ptr(),
+                                 Color::HANDLER_CODE);
             }
 
-            patch_bytes(bin.addr(),
-                        bin.bytes().data(),
-                        static_cast<ssize_t>(bin.bytes().size()));
-            bin.set_color(Color::HANDLER_CODE);
+            write_code_patch(bin.addr(), bin.bytes().data(), bin.bytes().size(), Color::HANDLER_CODE);
 
             greffe_msg("patched %zu target(s)\n",
                        g_ctx->layout.patch_plans().size());
