@@ -10,7 +10,7 @@
 PatchLayout::PatchLayout(ProjectInfo& pinfo, TargetManager& targets)
     : _pinfo(pinfo)
     , _patch_plans(targets.plans())
-    , _cursor(pinfo.getRegions())
+    , _regions(pinfo.getRegionsSet())
 {}
 
 const std::vector<PatchPlan>&   PatchLayout::patch_plans() const { return _patch_plans; }
@@ -28,7 +28,7 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     // Build at a dummy address to determine size
     // then allocate at the real address.
     auto probe = plan->stubs->build_shared_stub(0);
-    ea_t addr  = _cursor.alloc(plan->stubs->instr_alignment(), probe.size());
+    ea_t addr  = _regions.alloc(plan->stubs->instr_alignment(), probe.size());
 
     _shstubs.push_back(SharedStub(plan->stubs, addr));
     const SharedStub& shstub = _shstubs.back();
@@ -74,23 +74,23 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         shstub = create_shstub(plan);
 
     // Build the trampoline, retrying in the next region if it doesn't fit.
-    _cursor.select_closest(plan->target.ea());
+    _regions.select_closest(plan->target.ea());
 
     PatchBranch branch{0, {}};
     for (;;) {
-        _cursor.align(plan->stubs->instr_alignment());
-        plan->set_addr(_cursor.current_addr());
+        _regions.align(plan->stubs->instr_alignment());
+        plan->set_addr(_regions.current_addr());
         plan->bytes().clear();
 
         branch = TrampolineBuilder::branch_to_trampoline(*plan);
         TrampolineBuilder::init_trampoline(*plan, *shstub);
         TrampolineBuilder::relocate_and_branch_back(*plan);
 
-        if (_cursor.fits(plan->bytes().size())) {
-            _cursor.advance(plan->bytes().size());
+        if (_regions.fits(plan->bytes().size())) {
+            _regions.advance(plan->bytes().size());
             break;
         }
-        _cursor.next_region();
+        _regions.next_region();
     }
 
     ea_t                     branch_addr  = branch.addr();
@@ -105,7 +105,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
 }
 
 void PatchLayout::rebuild() {
-    _cursor.reset();
+    _regions.reset();
     _shstubs.clear();
     _branches.clear();
     for (auto& plan : _patch_plans)
@@ -113,7 +113,7 @@ void PatchLayout::rebuild() {
 }
 
 void PatchLayout::place_handler_bin(HandlerBin& bin) {
-    ea_t addr = _cursor.alloc(0x10, static_cast<ea_t>(bin.size()));
+    ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(bin.size()));
     bin.set_addr(addr);
 }
 

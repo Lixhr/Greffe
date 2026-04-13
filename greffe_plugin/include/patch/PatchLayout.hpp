@@ -7,7 +7,7 @@
 #include "TargetManager.hpp"
 #include "patch/SharedStub.hpp"
 #include "patch/PatchBranch.hpp"
-#include "patch/RegionCursor.hpp"
+#include "PatchRegionSet.hpp"
 #include "HandlerBin.hpp"
 
 class TargetManager;
@@ -37,5 +37,5 @@ class PatchLayout {
         std::vector<SharedStub>   _shstubs;
         std::vector<PatchBranch>  _branches;
 
-        RegionCursor              _cursor;
+        PatchRegionSet&           _regions;
 };

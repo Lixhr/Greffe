@@ -13,9 +13,8 @@ struct InstrActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *ctx) override {
         ea_t ea = ctx->cur_value;
 
-        if (!g_ctx || !g_ctx->pinfo.has_regions()) {
-            greffe_msg("define a patch region first "
-                       "(select a range → Set as greffe patch region)\n");
+        if (!g_ctx || !g_ctx->pinfo.getRegionsSet().has_regions()) {
+            greffe_msg("define a patch region first\n");
             return 0;
         }
 
