@@ -10,8 +10,8 @@ extern plugin_t PLUGIN;
 static const char ACTION_NAME[] = "greffe:add_instr";
 
 struct InstrActionHandler : public action_handler_t {
-    int idaapi activate(action_activation_ctx_t *ctx) override {
-        ea_t ea = ctx->cur_value;
+    int idaapi activate(action_activation_ctx_t *) override {
+        ea_t ea = get_screen_ea();
 
         if (!g_ctx || !g_ctx->pinfo.getRegionsSet().has_regions()) {
             greffe_msg("define a patch region first\n");

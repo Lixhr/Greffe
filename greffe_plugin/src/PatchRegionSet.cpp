@@ -4,8 +4,6 @@
 #include <numeric>
 #include <stdexcept>
 
-// ── Region management ────────────────────────────────────────────────────────
-
 void PatchRegionSet::order_insert(ea_t start, ea_t end) {
     auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,
         [](const PatchRegion& p, ea_t val) { return p.base < val; });
@@ -64,7 +62,8 @@ void PatchRegionSet::add_region(ea_t start, ea_t end) {
     merge_regions();
 }
 
-// ── Traversal ────────────────────────────────────────────────────────────────
+
+
 
 PatchRegion& PatchRegionSet::current_region() {
     if (_order_idx >= _order.size())
