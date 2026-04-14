@@ -3,12 +3,20 @@
 #include <bytes.hpp>
 #include <algorithm>
 #include <numeric>
+#include <sstream>
 #include <stdexcept>
-
+#include "GreffeCTX.hpp"
 
 void PatchRegionSet::order_insert(ea_t start, ea_t end) {
     auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,
         [](const PatchRegion& p, ea_t val) { return p.base < val; });
+
+    if (g_ctx && g_ctx->layout.overlaps_any(start, end)) {
+        std::ostringstream ss;
+        ss << "Patch region [0x" << std::hex << start
+           << ", 0x" << end << ") overlaps an existing patch layout entry";
+        throw std::runtime_error(ss.str());
+    }
 
     _regions.insert(pos, PatchRegion(start, end));
 }

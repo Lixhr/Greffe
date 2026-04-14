@@ -20,10 +20,11 @@ class PatchLayout {
         void                             rebuild();
         void                             place_handler_bin(HandlerBin& bin);
 
-        const std::vector<SharedStub>&   shstubs()     const;
-        const std::vector<PatchPlan>&    patch_plans() const;
+        const std::vector<SharedStub>&   shstubs()          const;
+        const std::vector<PatchPlan>&    patch_plans()      const;
         std::vector<PatchPlan>&          patch_plans();
-        const std::vector<PatchBranch>&  branches()    const;
+        const std::vector<PatchBranch>&  branches()         const;
+        bool                             overlaps_any(ea_t s, ea_t e) const;
 
     private:
         const SharedStub*  get_shstub(PatchPlan *plan);

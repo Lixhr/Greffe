@@ -18,6 +18,19 @@ std::vector<PatchPlan>&         PatchLayout::patch_plans()       { return _patch
 const std::vector<SharedStub>&  PatchLayout::shstubs()     const { return _shstubs;     }
 const std::vector<PatchBranch>& PatchLayout::branches()    const { return _branches;    }
 
+bool PatchLayout::overlaps_any(ea_t s, ea_t e) const {
+    auto check = [s, e](const auto& entries) {
+        for (const auto& entry : entries) {
+            ea_t es = entry.addr();
+            ea_t ee = es + static_cast<ea_t>(entry.bytes().size());
+            if (s < ee && e > es)
+                return true;
+        }
+        return false;
+    };
+    return check(_branches) || check(_patch_plans) || check(_shstubs);
+}
+
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
     auto it = std::find_if(_shstubs.begin(), _shstubs.end(),
         [plan](const SharedStub& s) { return s.name() == plan->stubs->name(); });
