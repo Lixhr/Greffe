@@ -38,13 +38,13 @@ class PatchRegionSet {
 
         const std::vector<PatchRegion>& regions() const { return _regions; }
 
-        // Traversal
         void select_closest(ea_t target);
         void next_region();
         void reset();
         void align(uint8_t alignment);
-        bool fits(uint64_t size)  const;
+        bool fits(uint64_t size)      const;
         void advance(uint64_t size);
+        bool overlaps_any(ea_t s, ea_t e) const;
         ea_t current_addr()       const;
         ea_t alloc(uint8_t alignment, uint64_t size);
 

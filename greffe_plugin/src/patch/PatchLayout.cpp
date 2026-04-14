@@ -82,6 +82,18 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         plan->bytes().clear();
 
         branch = TrampolineBuilder::branch_to_trampoline(*plan);
+
+        {
+            ea_t bstart = branch.addr();
+            ea_t bend   = bstart + branch.bytes().size();
+            if (_regions.overlaps_any(bstart, bend)) {
+                std::ostringstream ss;
+                ss << "Branch at 0x" << std::hex << bstart
+                   << " overlaps an existing patch region";
+                throw std::runtime_error(ss.str());
+            }
+        }
+
         TrampolineBuilder::init_trampoline(*plan, *shstub);
         TrampolineBuilder::relocate_and_branch_back(*plan);
 

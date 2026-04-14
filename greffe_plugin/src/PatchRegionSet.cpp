@@ -149,6 +149,13 @@ ea_t PatchRegionSet::alloc(uint8_t alignment, uint64_t size) {
     throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
 }
 
+bool PatchRegionSet::overlaps_any(ea_t s, ea_t e) const {
+    for (const auto& r : _regions)
+        if (r.overlaps(s, e) || (s < r.base && e > r.end))
+            return true;
+    return false;
+}
+
 void PatchRegionSet::reset() {
     if (_regions.empty())
         throw std::runtime_error("PatchRegionSet: no patch regions defined");
