@@ -9,8 +9,3 @@ ea_t     PatchLayoutEntry::addr()   const { return _addr;   }
 
 const std::vector<uint8_t>& PatchLayoutEntry::bytes() const { return _bytes; }
 std::vector<uint8_t>&       PatchLayoutEntry::bytes()       { return _bytes; }
-
-void PatchLayoutEntry::set_color(bgcolor_t color) const {
-    set_range_color(_addr, _addr + _bytes.size(), color);
-}
-

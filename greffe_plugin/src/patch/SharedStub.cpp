@@ -7,4 +7,4 @@ SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, ea_t addr) {
     _bytes = stubs->build_shared_stub(addr);
 }
 
-std::string_view SharedStub::name() const { return _name; }
+std::string SharedStub::name() const { return _name; }

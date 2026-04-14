@@ -7,8 +7,8 @@
 class SharedStub : public PatchLayoutEntry {
     public:
         SharedStub(std::shared_ptr<IArchStubs> s, ea_t addr);
-        std::string_view name() const;
+        std::string name() const;
 
     private:
-        std::string_view _name;
+        std::string _name;
 };

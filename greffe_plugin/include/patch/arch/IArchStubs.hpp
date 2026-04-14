@@ -25,7 +25,7 @@ class IArchStubs {
                                             ea_t                             dest_addr,
                                             ea_t                             branch_to) = 0;
 
-        virtual std::string_view name()            const = 0;
+        virtual std::string      name()            const = 0;
         virtual uint8_t          instr_alignment() const = 0;
         virtual uint8_t          sizeof_ptr()      const = 0;
         virtual void             write_ptr(uint8_t* dst, ea_t addr) const = 0;

@@ -4,6 +4,7 @@
 #include "kernwin.hpp"
 #include <cstdint>
 #include <cstddef>
+#include <string>
 
 #define greffe_msg(fmt, ...) msg("[greffe] " fmt, ##__VA_ARGS__)
 
@@ -23,3 +24,11 @@ void set_code_region(ea_t start, ea_t end);
 
 void write_code_patch(ea_t addr, const uint8_t *bytes, size_t size, bgcolor_t color);
 void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size, bgcolor_t color);
+
+inline std::string ida_banner(const std::string& title, size_t width = 75) {
+    std::string mid = "=============== " + title + " ";
+    size_t pad = mid.size() < width ? width - mid.size() : 0;
+    return mid + std::string(pad, '=');
+}
+
+void put_ida_banner(ea_t addr, const std::string& title);

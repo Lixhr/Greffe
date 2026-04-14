@@ -9,7 +9,7 @@ extern "C" {
 
 #include <stdexcept>
 
-std::string_view ThumbStubs::name() const { return "Thumb"; }
+std::string ThumbStubs::name() const { return "Thumb"; }
 
 void ThumbStubs::write_ptr(uint8_t* dst, ea_t addr) const {
     uint32_t v = static_cast<uint32_t>(addr);

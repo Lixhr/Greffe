@@ -17,8 +17,7 @@ class ThumbStubs final : public IArchStubs {
                                     const std::vector<ContextEntry>& instrs,
                                     ea_t                             dest_addr,
                                     ea_t                             branch_to) override;
-        // assumes the handler distance is < 16Mb
-        std::string_view     name()            const override;
+        std::string          name()            const override;
         uint8_t              instr_alignment() const override { return 4; }
         uint8_t              sizeof_ptr()      const override { return 4; }
         void                 write_ptr(uint8_t* dst, ea_t addr) const override;
