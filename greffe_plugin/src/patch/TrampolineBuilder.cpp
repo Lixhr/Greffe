@@ -4,7 +4,6 @@
 #include <sstream>
 
 #include <bytes.hpp>
-#include <funcs.hpp>
 #include <xref.hpp>
 #include "utils.hpp"
 
@@ -14,20 +13,13 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
 
     std::vector<uint8_t> branch = stubs.branch(t.ea(), plan.addr());
 
-    func_t *func = get_func(static_cast<ea_t>(t.ea()));
-    if (!func) {
-        std::ostringstream ss;
-        ss << "no function at 0x" << std::hex << t.ea();
-        throw std::runtime_error(ss.str());
-    }
-
     size_t len = 0;
     std::vector<ContextEntry> relocd;
     ea_t cur = static_cast<ea_t>(t.ea());
 
     while (true) {
-        if (!func_contains(func, cur))
-            throw std::runtime_error("Patched branch overlaps end of function");
+        if (!is_code(get_flags(cur)))
+            throw std::runtime_error("Patched branch overlaps non-instruction");
 
         asize_t size = get_item_size(cur);
         if (size == 0) {
@@ -67,7 +59,7 @@ size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
     plan.bytes() = plan.stubs->trampoline_init(plan.addr(),
                                                shstub.addr(),
                                                &ptr);
-    plan.handler_offset = static_cast<size_t>(ptr - plan.bytes().data());
+    plan.handler_address = plan.addr() + static_cast<size_t>(ptr - plan.bytes().data());
     return plan.bytes().size();
 }
 

@@ -5,6 +5,7 @@
 #include "GreffeCTX.hpp"
 #include "patch/HandlerCompiler.hpp"
 #include "utils.hpp"
+#include "name.hpp"
 
 extern plugin_t PLUGIN;
 
@@ -26,12 +27,14 @@ struct PatchActionHandler : public action_handler_t {
 
             for (auto& plan : g_ctx->layout.patch_plans()) {
                 std::string sym = "handler_" + plan.target.name();
-                plan.stubs->write_ptr(plan.bytes().data() + plan.handler_offset,
-                                      bin.handler_addr(sym));
 
-                ea_t pointer_addr = plan.addr() + plan.handler_offset;
-                write_data_patch(pointer_addr,
-                                 plan.bytes().data() + plan.handler_offset,
+                ea_t handler_addr = bin.handler_addr(sym);
+                plan.stubs->write_ptr(plan.bytes().data() + (plan.handler_address - plan.addr()),
+                                      handler_addr);
+                set_name(handler_addr & ~1, (plan.target.name() + "_handler").c_str());
+
+                write_data_patch(plan.handler_address,
+                                 plan.bytes().data() + (plan.handler_address - plan.addr()),
                                  plan.stubs->sizeof_ptr(),
                                  Color::HANDLER_CODE);
             }
