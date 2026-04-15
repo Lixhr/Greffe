@@ -45,12 +45,6 @@ static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
 
 
 static std::string create_target_name(ea_t ea) {
-    if (!get_func(ea)) {
-        std::ostringstream ss;
-        ss << "no function at 0x" << std::hex << ea;
-        throw std::runtime_error(ss.str());
-    }
-
     std::ostringstream ss;
     ss << "_0x" << std::hex << ea << "_greffe";
     return ss.str();

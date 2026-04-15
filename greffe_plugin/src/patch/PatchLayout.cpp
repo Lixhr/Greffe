@@ -46,10 +46,12 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     ea_t addr  = _regions.alloc(plan->stubs->instr_alignment(), probe.size());
 
     _shstubs.push_back(SharedStub(plan->stubs, addr));
-    const SharedStub& shstub = _shstubs.back();
+
+    SharedStub& shstub = _shstubs.back();
     write_code_patch(shstub.addr(), shstub.bytes().data(), shstub.bytes().size(), Color::PATCHED);
 
-    set_name(shstub.addr(), ("shstub_" + std::string(shstub.name())).c_str());
+    shstub.add_label(("shstub_" + std::string(shstub.name())).c_str());
+
     return &shstub;
 }
 
@@ -126,7 +128,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     insert_branch(std::move(branch));
 
     write_code_patch(plan->addr(), plan->bytes().data(), plan->bytes().size(), Color::PATCHED);
-    set_name(plan->addr(), plan->target.name().c_str());
+    plan->add_label(plan->target.name().c_str());
 
     write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
 }
@@ -137,8 +139,10 @@ void PatchLayout::rebuild() {
     _regions.reset();
     _shstubs.clear();
     _branches.clear();
-    for (auto& plan : _patch_plans)
+    for (auto& plan : _patch_plans) {
+        plan.clear_labels();
         create_patch_entry(&plan);
+    }
 }
 
 void PatchLayout::place_handler_bin(HandlerBin& bin) {

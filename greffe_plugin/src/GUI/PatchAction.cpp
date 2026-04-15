@@ -29,12 +29,13 @@ struct PatchActionHandler : public action_handler_t {
                 std::string sym = "handler_" + plan.target.name();
 
                 ea_t handler_addr = bin.handler_addr(sym);
-                plan.stubs->write_ptr(plan.bytes().data() + (plan.handler_address - plan.addr()),
-                                      handler_addr);
-                set_name(handler_addr & ~1, (plan.target.name() + "_handler").c_str());
+                uint8_t *handler_slot = plan.bytes().data() + (plan.handler_address - plan.addr());
+                plan.stubs->write_ptr(handler_slot, handler_addr);
+                bin.add_label(handler_addr & ~1, sym.c_str());
+
 
                 write_data_patch(plan.handler_address,
-                                 plan.bytes().data() + (plan.handler_address - plan.addr()),
+                                 handler_slot,
                                  plan.stubs->sizeof_ptr(),
                                  Color::HANDLER_CODE);
             }
