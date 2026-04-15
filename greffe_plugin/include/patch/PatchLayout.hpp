@@ -17,7 +17,6 @@ class PatchLayout {
         PatchLayout(ProjectInfo& pinfo, TargetManager& targets);
 
         void                             create_patch_entry(PatchPlan *plan);
-        void                             rebuild();
         void                             place_handler_bin(HandlerBin& bin);
 
         const std::vector<SharedStub>&   shstubs()          const;

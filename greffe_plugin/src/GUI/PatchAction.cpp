@@ -19,8 +19,6 @@ struct PatchActionHandler : public action_handler_t {
         }
 
         try {
-            g_ctx->layout.rebuild();
-
             HandlerBin bin = HandlerCompiler::build(g_ctx->layout.patch_plans(),
                                                     g_ctx->pinfo);
             g_ctx->layout.place_handler_bin(bin);

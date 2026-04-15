@@ -133,18 +133,6 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
 }
 
-void PatchLayout::rebuild() {
-    clear_all_range_colors();
-
-    _regions.reset();
-    _shstubs.clear();
-    _branches.clear();
-    for (auto& plan : _patch_plans) {
-        plan.clear_labels();
-        create_patch_entry(&plan);
-    }
-}
-
 void PatchLayout::place_handler_bin(HandlerBin& bin) {
     ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(bin.size()));
     bin.set_addr(addr);
