@@ -27,5 +27,4 @@ void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size, bgcolor_t co
     patch_bytes(addr, bytes, size);
     set_range_color(addr, addr + size, color);
     op_plain_offset(addr, 0, 0);
-
 }

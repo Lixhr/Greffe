@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include "utils.hpp"
 #include "funcs.hpp"
+#include "name.hpp"
 
 PatchLayout::PatchLayout(ProjectInfo& pinfo, TargetManager& targets)
     : _pinfo(pinfo)
@@ -48,8 +49,7 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     const SharedStub& shstub = _shstubs.back();
     write_code_patch(shstub.addr(), shstub.bytes().data(), shstub.bytes().size(), Color::PATCHED);
 
-    put_ida_banner(shstub.addr(), "Shared stub for " + std::string(shstub.name()));
-
+    set_name(shstub.addr(), ("shstub_" + std::string(shstub.name())).c_str());
     return &shstub;
 }
 
@@ -126,10 +126,14 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     insert_branch(std::move(branch));
 
     write_code_patch(plan->addr(), plan->bytes().data(), plan->bytes().size(), Color::PATCHED);
+    set_name(plan->addr(), plan->target.name().c_str());
+
     write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
 }
 
 void PatchLayout::rebuild() {
+    clear_all_range_colors();
+
     _regions.reset();
     _shstubs.clear();
     _branches.clear();

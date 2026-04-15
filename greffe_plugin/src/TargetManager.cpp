@@ -2,7 +2,6 @@
 #include "GreffeCTX.hpp"
 #include "ProjectInfo.hpp"
 #include "patch/arch/StubsFactory.hpp"
-#include "patch/patch_utils.hpp"
 #include "utils.hpp"
 
 #include <bytes.hpp>
@@ -22,7 +21,7 @@ static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
     auto dir = pinfo.getProjectDir() / "handlers";
     fs::create_directories(dir);
 
-    auto path = dir / (sanitize(t.name()) + ".greffe.c");
+    auto path = dir / std::string(t.name() + ".c");
     if (fs::exists(path))
         return;
 
@@ -41,32 +40,20 @@ static void create_handler_stub(const Target& t, const ProjectInfo& pinfo) {
 
     if (!attr.empty())
         f << attr << '\n';
-    f << "void handler_" << sanitize(t.name()) << "(void)\n{\n}\n";
+    f << "void handler_" << t.name() << "(void)\n{\n}\n";
 }
 
 
 static std::string create_target_name(ea_t ea) {
-    func_t *func = get_func(ea);
-    if (!func) {
+    if (!get_func(ea)) {
         std::ostringstream ss;
         ss << "no function at 0x" << std::hex << ea;
         throw std::runtime_error(ss.str());
     }
 
-    qstring name;
-    if (get_func_name(&name, ea) <= 0 || name.empty()) {
-        std::ostringstream ss;
-        ss << "sub_" << std::hex << func->start_ea;
-        return ss.str();
-    }
-
-    if (ea != func->start_ea) {
-        std::ostringstream ss;
-        ss << name.c_str() << "+" << std::hex << (ea - func->start_ea);
-        return ss.str();
-    }
-
-    return name.c_str();
+    std::ostringstream ss;
+    ss << "_0x" << std::hex << ea << "_greffe";
+    return ss.str();
 }
 
 static std::shared_ptr<IArchStubs> resolve_stubs(ea_t ea, const ProjectInfo& pinfo) {
@@ -131,7 +118,7 @@ void TargetManager::remove(size_t idx, GreffeCTX& ctx) {
     _plans.erase(it);
 
     namespace fs = std::filesystem;
-    auto handler = ctx.pinfo.getProjectDir() / "handlers" / (sanitize(name) + ".greffe.c");
+    auto handler = ctx.pinfo.getProjectDir() / "handlers" / std::string(name + ".c");
     fs::remove(handler);
 }
 
