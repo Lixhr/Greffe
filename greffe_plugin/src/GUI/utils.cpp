@@ -2,6 +2,7 @@
 #include "ua.hpp"
 #include "bytes.hpp"
 #include <lines.hpp>
+#include "offset.hpp"
 
 void set_code_region(ea_t start, ea_t end) {
     if (start == end)
@@ -21,13 +22,10 @@ void write_code_patch(ea_t addr, const uint8_t *bytes, size_t size, bgcolor_t co
     set_code_region(addr, addr + size);
 }
 
-void put_ida_banner(ea_t addr, const std::string& title) {
-    std::string banner = ida_banner(title);
-    add_extra_cmt(addr, true, "%s", banner.c_str());
-}
-
 void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size, bgcolor_t color) {
     del_items(addr, DELIT_SIMPLE, size);
     patch_bytes(addr, bytes, size);
     set_range_color(addr, addr + size, color);
+    op_plain_offset(addr, 0, 0);
+
 }
