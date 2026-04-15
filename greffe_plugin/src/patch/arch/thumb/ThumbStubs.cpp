@@ -79,7 +79,7 @@ static inline void write_branch(GumThumbWriter *w, ea_t from, ea_t to) {
         gum_thumb_writer_put_b_imm(w, static_cast<GumAddress>(to));
     else
         gum_thumb_writer_put_ldr_reg_address(w, ARM_REG_PC,
-                                             static_cast<GumAddress>(to));
+                                             static_cast<GumAddress>(to | 1)); // thumb bit set
 }
 
 std::vector<uint8_t> ThumbStubs::branch(ea_t from, ea_t to) {
