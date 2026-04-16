@@ -94,7 +94,7 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan>& plans,
     if (pid < 0)
         throw std::runtime_error("HandlerCompiler: fork() failed");
     if (pid == 0) {
-        execlp("make", "make", "-C", workdir.c_str(), nullptr);
+        execlp("make", "make", "re", "-C", workdir.c_str(), nullptr);
         _exit(127);
     }
     int status;

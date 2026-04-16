@@ -30,7 +30,12 @@ build/%.o: handlers/%.c | build
 build:
 	mkdir -p build
 
-.PHONY: all $(OBJS) build/handlers.elf build/handlers.bin
+clean:
+	rm -rf build
+
+re: clean all
+
+.PHONY: all clean re
 )makefile" },
 };
 
