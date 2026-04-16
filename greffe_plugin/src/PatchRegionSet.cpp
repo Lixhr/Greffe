@@ -163,14 +163,3 @@ bool PatchRegionSet::overlaps_any(ea_t s, ea_t e) const {
             return true;
     return false;
 }
-
-void PatchRegionSet::reset() {
-    if (_regions.empty())
-        throw std::runtime_error("PatchRegionSet: no patch regions defined");
-    for (auto& r : _regions)
-        r.cursor = r.base;
-    _order.clear();
-    _order_idx           = 0;
-    _align_pending       = false;
-    _cursor_before_align = 0;
-}

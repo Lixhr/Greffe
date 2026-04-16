@@ -59,13 +59,3 @@ void set_range_color(ea_t start, ea_t end, bgcolor_t color)
 
     request_refresh(IWID_DISASM);
 }
-
-void clear_all_range_colors()
-{
-    s_ranges.clear();
-    if (s_hooked) {
-        unhook_event_listener(HT_IDP, &s_hooks);
-        s_hooked = false;
-    }
-    request_refresh(IWID_DISASM);
-}

@@ -40,7 +40,6 @@ class PatchRegionSet {
 
         void select_closest(ea_t target);
         void next_region();
-        void reset();
         void align(uint8_t alignment);
         bool fits(uint64_t size)      const;
         void advance(uint64_t size);

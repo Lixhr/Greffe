@@ -7,8 +7,11 @@
 class PatchBranch : public PatchLayoutEntry {
     public:
         PatchBranch() = default;
-        PatchBranch(ea_t ea, std::vector<uint8_t> bytes) {
+        PatchBranch(ea_t ea, std::vector<uint8_t> bytes, ea_t ret_addr)
+            : trampoline_ret_addr(ret_addr) {
             _addr  = ea;
             _bytes = std::move(bytes);
         }
+
+        ea_t trampoline_ret_addr = 0;
 };

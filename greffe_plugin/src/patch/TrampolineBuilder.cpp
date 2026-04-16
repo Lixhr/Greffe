@@ -48,7 +48,7 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         if (len >= branch.size()) {
             plan.trampoline_ret_addr = static_cast<ea_t>(cur);
             plan.relocd_instr        = std::move(relocd);
-            return PatchBranch(t.ea(), std::move(branch));
+            return PatchBranch(t.ea(), std::move(branch), plan.trampoline_ret_addr);
         }
     }
 }

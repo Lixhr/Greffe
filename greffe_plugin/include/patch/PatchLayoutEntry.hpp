@@ -7,13 +7,10 @@
 
 class PatchLayoutEntry {
     public:
-        virtual     ~PatchLayoutEntry();
+        virtual     ~PatchLayoutEntry() = default;
 
         void                        set_offset(uint64_t offset);
         void                        set_addr(ea_t addr);
-        void                        add_label(ea_t ea, const char *str);
-        void                        add_label(const char *str);
-        void                        clear_labels();
         std::vector<uint8_t>&       bytes();
         uint64_t                    offset() const;
         ea_t                        addr()   const;
@@ -24,5 +21,4 @@ class PatchLayoutEntry {
         uint64_t             _offset = 0;
         ea_t                 _addr   = 0;
         std::vector<uint8_t> _bytes  = {};
-        std::vector<ea_t>    _labels;
 };

@@ -50,7 +50,7 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     SharedStub& shstub = _shstubs.back();
     write_code_patch(shstub.addr(), shstub.bytes().data(), shstub.bytes().size(), Color::PATCHED);
 
-    shstub.add_label(("shstub_" + std::string(shstub.name())).c_str());
+    set_name(shstub.addr(), ("shstub_" + std::string(shstub.name())).c_str());
 
     return &shstub;
 }
@@ -68,20 +68,24 @@ void PatchLayout::insert_branch(PatchBranch branch) {
         return ss.str();
     };
 
-    if (pos != _branches.begin()) {
-        const auto& pred = *std::prev(pos);
-        if (pred.addr() + pred.bytes().size() > branch.addr())
-            throw std::runtime_error(
-                "Branch at " + hex(branch.addr()) +
-                " overlaps with existing branch at " + hex(pred.addr()));
-    }
+    auto overlaps = [](const PatchBranch& a, const PatchBranch& b) {
+        return a.trampoline_ret_addr > b.addr() &&
+               b.trampoline_ret_addr > a.addr();
+    };
 
-    if (pos != _branches.end()) {
-        if (branch.addr() + branch.bytes().size() > pos->addr())
-            throw std::runtime_error(
-                "Branch at " + hex(branch.addr()) +
-                " overlaps with existing branch at " + hex(pos->addr()));
-    }
+    if (pos != _branches.end() && pos->addr() == branch.addr())
+        throw std::runtime_error(
+            "Branch already exists at " + hex(branch.addr()));
+
+    if (pos != _branches.begin() && overlaps(*std::prev(pos), branch))
+        throw std::runtime_error(
+            "Branch at " + hex(branch.addr()) +
+            " overlaps with existing branch at " + hex(std::prev(pos)->addr()));
+
+    if (pos != _branches.end() && overlaps(branch, *pos))
+        throw std::runtime_error(
+            "Branch at " + hex(branch.addr()) +
+            " overlaps with existing branch at " + hex(pos->addr()));
 
     _branches.insert(pos, std::move(branch));
 }
@@ -94,11 +98,10 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     // Build the trampoline, retrying in the next region if it doesn't fit.
     _regions.select_closest(plan->target.ea());
 
-    PatchBranch branch{0, {}};
+    PatchBranch branch{0, {}, plan->trampoline_ret_addr};
     for (;;) {
         _regions.align(plan->stubs->instr_alignment());
         plan->set_addr(_regions.current_addr());
-        plan->bytes().clear();
 
         branch = TrampolineBuilder::branch_to_trampoline(*plan);
 
@@ -128,7 +131,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     insert_branch(std::move(branch));
 
     write_code_patch(plan->addr(), plan->bytes().data(), plan->bytes().size(), Color::PATCHED);
-    plan->add_label(plan->target.name().c_str());
+    set_name(plan->addr(), plan->target.name().c_str());
 
     write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
 }
