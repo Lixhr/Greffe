@@ -6,7 +6,9 @@
 #include <vector>
 #include "bytes.hpp"
 #include "utils.hpp"
-
+#include "xref.hpp"
+#include "name.hpp"
+#include "auto.hpp"
 
 struct PatchRegion {
     ea_t base;
@@ -18,6 +20,20 @@ struct PatchRegion {
 
         std::vector<uint8_t> zeroes(size);
         write_data_patch(b, zeroes.data(), size, Color::PATCH_REGION);
+
+        create_byte(b, e - b, true);
+
+        for (ea_t i = b; i < e; i ++) {
+            xrefblk_t xb;                                                                                                                                                                                 
+            for ( bool ok = xb.first_to(i, XREF_ALL); ok; ok = xb.next_to() )                                                                                                                           
+            {
+                greffe_msg("%llx\n", xb.from);
+                if (xb.iscode)
+                    del_cref(xb.from, i, false);
+                else
+                    del_dref(xb.from, i);    
+            } 
+        }
     }
 
     uint64_t size()              const { return end - base; }
@@ -28,6 +44,11 @@ struct PatchRegion {
 
     bool overlaps(ea_t s, ea_t e) const { return s < end && e > base; }
     bool contains(ea_t addr)      const { return addr >= base && addr < end; }
+
+    void refresh_data_items() {
+        if (cursor < end)
+            create_byte(cursor, end - cursor, true);
+    }
 };
 
 
@@ -46,6 +67,7 @@ class PatchRegionSet {
         bool overlaps_any(ea_t s, ea_t e) const;
         ea_t current_addr()       const;
         ea_t alloc(uint8_t alignment, uint64_t size);
+        void refresh_all_data_items();
 
     private:
         void order_insert(ea_t start, ea_t end);

@@ -134,6 +134,8 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     set_name(plan->addr(), plan->target.name().c_str());
 
     write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
+
+    _regions.refresh_all_data_items();
 }
 
 void PatchLayout::place_handler_bin(HandlerBin& bin) {

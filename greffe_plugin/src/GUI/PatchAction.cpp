@@ -39,6 +39,7 @@ struct PatchActionHandler : public action_handler_t {
             }
 
             write_code_patch(bin.addr(), bin.bytes().data(), bin.bytes().size(), Color::HANDLER_CODE);
+            g_ctx->pinfo.getRegionsSet().refresh_all_data_items();
 
             greffe_msg("patched %zu target(s)\n",
                        g_ctx->layout.patch_plans().size());

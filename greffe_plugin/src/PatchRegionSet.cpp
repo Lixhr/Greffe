@@ -50,6 +50,7 @@ void PatchRegionSet::merge_regions() {
         if (it->end >= next->base) {
             it->end = std::max(it->end, next->end);
             _regions.erase(next);
+            it->refresh_data_items();
         } else {
             ++it;
         }
@@ -162,4 +163,9 @@ bool PatchRegionSet::overlaps_any(ea_t s, ea_t e) const {
         if (r.overlaps(s, e) || (s < r.base && e > r.end))
             return true;
     return false;
+}
+
+void PatchRegionSet::refresh_all_data_items() {
+    for (auto& r : _regions)
+        r.refresh_data_items();
 }
