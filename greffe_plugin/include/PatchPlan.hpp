@@ -10,10 +10,10 @@
 class PatchPlan : public PatchLayoutEntry {
     public:
         PatchPlan(Target t, std::shared_ptr<IArchStubs> s)
-            : target(std::move(t)) { stubs = std::move(s); }
+            : PatchLayoutEntry(PLEType::entry_plan), target(std::move(t)) { stubs = std::move(s); }
 
         Target                              target;
         ea_t                                trampoline_ret_addr   = 0;
         std::vector<ContextEntry>           relocd_instr          = {};
-        ea_t                                handler_address = 0;
+        ea_t                                handler_ptr_addr = 0;
 };

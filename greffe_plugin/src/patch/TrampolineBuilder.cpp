@@ -1,11 +1,10 @@
 #include "TrampolineBuilder.hpp"
-#include "PatchSession.hpp"
 #include <stdexcept>
 #include <sstream>
-
 #include <bytes.hpp>
 #include <xref.hpp>
 #include "utils.hpp"
+#include "offset.hpp"
 
 PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     const Target& t     = plan.target;
@@ -59,7 +58,7 @@ size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
     plan.bytes() = plan.stubs->trampoline_init(plan.addr(),
                                                shstub.addr(),
                                                &ptr);
-    plan.handler_address = plan.addr() + static_cast<size_t>(ptr - plan.bytes().data());
+    plan.handler_ptr_addr = plan.addr() + static_cast<size_t>(ptr - plan.bytes().data());
     return plan.bytes().size();
 }
 

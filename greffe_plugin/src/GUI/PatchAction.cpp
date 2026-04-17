@@ -6,6 +6,7 @@
 #include "patch/HandlerCompiler.hpp"
 #include "utils.hpp"
 #include "name.hpp"
+#include "offset.hpp"
 
 extern plugin_t PLUGIN;
 
@@ -13,32 +14,31 @@ static const char PATCH_ACTION_NAME[] = "greffe:patch";
 
 struct PatchActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *) override {
-        if (!g_ctx || g_ctx->targets.plans().empty()) {
+        if (!g_ctx || g_ctx->layout.patch_plans().empty()) {
             greffe_msg("no targets to patch\n");
             return 0;
         }
 
         try {
-            HandlerBin bin = HandlerCompiler::build(g_ctx->layout.patch_plans(),
-                                                    g_ctx->pinfo);
-            g_ctx->layout.place_handler_bin(bin);
+            g_ctx->layout.place_handler_bin();
 
-            for (auto& plan : g_ctx->layout.patch_plans()) {
-                std::string sym = "handler_" + plan.target.name();
+            // for (auto& plan : g_ctx->layout.patch_plans()) {
+            //     // std::string sym = "handler_" + plan.target.name();
 
-                ea_t handler_addr = bin.handler_addr(sym);
-                uint8_t *handler_slot = plan.bytes().data() + (plan.handler_address - plan.addr());
-                plan.stubs->write_ptr(handler_slot, handler_addr);
-                set_name(handler_addr & ~1, sym.c_str());
+            //     // ea_t handler_addr = bin.handler_addr(sym);
+            //     // uint8_t *handler_slot = plan.bytes().data() + (plan.handler_ptr_addr - plan.addr());
+            //     // set_name(handler_addr & ~1, sym.c_str());
 
 
-                write_data_patch(plan.handler_address,
-                                 handler_slot,
-                                 plan.stubs->sizeof_ptr(),
-                                 Color::HANDLER_CODE);
-            }
+            //     // plan.stubs->write_ptr(handler_slot, handler_addr);
 
-            write_code_patch(bin.addr(), bin.bytes().data(), bin.bytes().size(), Color::HANDLER_CODE);
+            //     // write_data_patch(plan.handler_ptr_addr,
+            //     //                  handler_slot,
+            //     //                  plan.stubs->sizeof_ptr(),
+            //     //                  Color::HANDLER_CODE);
+            //     // op_plain_offset(plan.handler_ptr_addr, 0, 0);
+            // }
+
             g_ctx->pinfo.getRegionsSet().refresh_all_data_items();
 
             greffe_msg("patched %zu target(s)\n",

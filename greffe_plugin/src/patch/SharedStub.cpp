@@ -1,6 +1,6 @@
 #include "SharedStub.hpp"
 
-SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, ea_t addr) {
+SharedStub::SharedStub(std::shared_ptr<IArchStubs> s, ea_t addr) : PatchLayoutEntry(PLEType::entry_shstub) {
     stubs  = std::move(s);
     _name  = stubs->name();
     _addr  = addr;

@@ -8,10 +8,11 @@
 #include "utils.hpp"
 #include "funcs.hpp"
 #include "name.hpp"
+#include "HandlerCompiler.hpp"
+#include "GreffeCTX.hpp"
 
-PatchLayout::PatchLayout(ProjectInfo& pinfo, TargetManager& targets)
+PatchLayout::PatchLayout(ProjectInfo& pinfo)
     : _pinfo(pinfo)
-    , _patch_plans(targets.plans())
     , _regions(pinfo.getRegionsSet())
 {}
 
@@ -19,6 +20,7 @@ const std::vector<PatchPlan>&   PatchLayout::patch_plans() const { return _patch
 std::vector<PatchPlan>&         PatchLayout::patch_plans()       { return _patch_plans; }
 const std::vector<SharedStub>&  PatchLayout::shstubs()     const { return _shstubs;     }
 const std::vector<PatchBranch>& PatchLayout::branches()    const { return _branches;    }
+const HandlerBin&               PatchLayout::handler()     const { return _handlerbin; }
 
 bool PatchLayout::overlaps_any(ea_t s, ea_t e) const {
     auto check = [s, e](const auto& entries) {
@@ -48,9 +50,9 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     _shstubs.push_back(SharedStub(plan->stubs, addr));
 
     SharedStub& shstub = _shstubs.back();
-    write_code_patch(shstub.addr(), shstub.bytes().data(), shstub.bytes().size(), Color::PATCHED);
 
-    set_name(shstub.addr(), ("shstub_" + std::string(shstub.name())).c_str());
+    // write_code_patch(shstub.addr(), shstub.bytes().data(), shstub.bytes().size(), Color::PATCHED);
+    // set_name(shstub.addr(), ("shstub_" + std::string(shstub.name())).c_str());
 
     return &shstub;
 }
@@ -126,20 +128,25 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         _regions.next_region();
     }
 
-    ea_t                     branch_addr  = branch.addr();
+    // ea_t                     branch_addr  = branch.addr();
     std::vector<uint8_t>     branch_bytes = branch.bytes();
     insert_branch(std::move(branch));
 
-    write_code_patch(plan->addr(), plan->bytes().data(), plan->bytes().size(), Color::PATCHED);
-    set_name(plan->addr(), plan->target.name().c_str());
+    // write_code_patch(plan->addr(), plan->bytes().data(), plan->bytes().size(), Color::PATCHED);
+    // set_name(plan->addr(), plan->target.name().c_str());
 
-    write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
+    // write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
 
     _regions.refresh_all_data_items();
 }
 
-void PatchLayout::place_handler_bin(HandlerBin& bin) {
-    ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(bin.size()));
-    bin.set_addr(addr);
+void PatchLayout::place_handler_bin() {
+    _handlerbin = HandlerCompiler::build(g_ctx->layout.patch_plans(),
+                                         g_ctx->pinfo);
+
+    ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(_handlerbin.size()));
+    _handlerbin.set_addr(addr);
+    // set_code_region(bin.addr(), bin.addr() + bin.size());
+    // write_code_patch(bin.addr(), bin.bytes().data(), bin.bytes().size(), Color::HANDLER_CODE);
 }
 

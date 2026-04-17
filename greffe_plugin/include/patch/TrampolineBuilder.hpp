@@ -1,7 +1,6 @@
 #pragma once
 
 #include "PatchPlan.hpp"
-#include "PatchSession.hpp"
 #include "arch/IArchStubs.hpp"
 #include "SharedStub.hpp"
 #include "PatchBranch.hpp"

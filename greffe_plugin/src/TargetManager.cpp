@@ -54,18 +54,19 @@ static std::shared_ptr<IArchStubs> resolve_stubs(ea_t ea, const ProjectInfo& pin
     return StubsFactory::create(pinfo.getBits(), pinfo.getModeAt(ea));
 }
 
-std::pair<PatchPlan*, bool> TargetManager::append_target(ea_t               ea,
-                                                         ea_t               end_ea,
-                                                         const std::string& name,
-                                                         const ProjectInfo& pinfo) {
-    auto it = std::lower_bound(_plans.begin(), _plans.end(), ea,
+std::pair<PatchPlan*, bool> TargetManager::append_target(ea_t                    ea,
+                                                         ea_t                    end_ea,
+                                                         const std::string&      name,
+                                                         const ProjectInfo&      pinfo,
+                                                         std::vector<PatchPlan>& plans) {
+    auto it = std::lower_bound(plans.begin(), plans.end(), ea,
         [](const PatchPlan& p, ea_t val) { return p.target.ea() < val; });
 
-    if (it != _plans.end() && it->target.ea() == ea)
+    if (it != plans.end() && it->target.ea() == ea)
         return {&*it, false};
 
     auto stubs = resolve_stubs(ea, pinfo);
-    it = _plans.emplace(it, PatchPlan{
+    it = plans.emplace(it, PatchPlan{
         Target{name, ea, end_ea},
         std::move(stubs)
     });
@@ -78,15 +79,16 @@ std::pair<PatchPlan*, bool> TargetManager::add_internal(ea_t ea, GreffeCTX& ctx)
     std::string name   = create_target_name(ea);
     ea_t        end_ea = get_item_end(ea);
 
-    auto [plan, inserted] = append_target(ea, end_ea, name, pinfo);
+    auto& plans = ctx.layout.patch_plans();
+    auto [plan, inserted] = append_target(ea, end_ea, name, pinfo, plans);
     if (inserted) {
         try {
             ctx.layout.create_patch_entry(plan);
             create_handler_stub(plan->target, pinfo);
         } catch (...) {
-            auto it = std::lower_bound(_plans.begin(), _plans.end(), ea,
+            auto it = std::lower_bound(plans.begin(), plans.end(), ea,
                 [](const PatchPlan& p, ea_t val) { return p.target.ea() < val; });
-            _plans.erase(it);
+            plans.erase(it);
             throw;
         }
     }
@@ -103,17 +105,17 @@ void TargetManager::add(ea_t ea, GreffeCTX& ctx) {
     }
 }
 
-void TargetManager::remove(size_t idx, GreffeCTX& ctx) {
-    if (idx >= _plans.size())
-        throw std::runtime_error("index out of range");
+// void TargetManager::remove(size_t idx, GreffeCTX& ctx) {
+//     auto& plans = ctx.layout.patch_plans();
+//     if (idx >= plans.size())
+//         throw std::runtime_error("index out of range");
 
-    auto it = _plans.begin() + static_cast<ptrdiff_t>(idx);
-    const std::string name = it->target.name();
-    _plans.erase(it);
+//     auto it = plans.begin() + static_cast<ptrdiff_t>(idx);
+//     const std::string name = it->target.name();
+//     plans.erase(it);
 
-    namespace fs = std::filesystem;
-    auto handler = ctx.pinfo.getProjectDir() / "handlers" / std::string(name + ".c");
-    fs::remove(handler);
-}
+//     namespace fs = std::filesystem;
+//     auto handler = ctx.pinfo.getProjectDir() / "handlers" / std::string(name + ".c");
+//     fs::remove(handler);
+// }
 
-std::vector<PatchPlan>&       TargetManager::plans()       { return _plans; }

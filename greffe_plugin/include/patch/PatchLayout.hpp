@@ -4,25 +4,23 @@
 #include <vector>
 #include "PatchPlan.hpp"
 #include "ProjectInfo.hpp"
-#include "TargetManager.hpp"
 #include "patch/SharedStub.hpp"
 #include "patch/PatchBranch.hpp"
 #include "PatchRegionSet.hpp"
 #include "HandlerBin.hpp"
 
-class TargetManager;
-
 class PatchLayout {
     public:
-        PatchLayout(ProjectInfo& pinfo, TargetManager& targets);
+        PatchLayout(ProjectInfo& pinfo);
 
         void                             create_patch_entry(PatchPlan *plan);
-        void                             place_handler_bin(HandlerBin& bin);
+        void                             place_handler_bin();
 
         const std::vector<SharedStub>&   shstubs()          const;
         const std::vector<PatchPlan>&    patch_plans()      const;
         std::vector<PatchPlan>&          patch_plans();
         const std::vector<PatchBranch>&  branches()         const;
+        const HandlerBin&                handler()          const;
         bool                             overlaps_any(ea_t s, ea_t e) const;
 
     private:
@@ -33,9 +31,9 @@ class PatchLayout {
         ProjectInfo&              _pinfo;
 
         // PatchLayoutEntries
-        std::vector<PatchPlan>&   _patch_plans;
+        std::vector<PatchPlan>    _patch_plans;
         std::vector<SharedStub>   _shstubs;
         std::vector<PatchBranch>  _branches;
-
+        HandlerBin                _handlerbin;
         PatchRegionSet&           _regions;
 };

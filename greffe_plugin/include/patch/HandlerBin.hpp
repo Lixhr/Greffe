@@ -8,10 +8,10 @@
 
 class HandlerBin : public PatchLayoutEntry {
     public:
-        HandlerBin() = default;
+        HandlerBin() : PatchLayoutEntry(PLEType::entry_handlerbin) {}
         HandlerBin(std::vector<uint8_t>                         bytes,
                 std::unordered_map<std::string, uint64_t>       offsets) :
-                _offsets(std::move(offsets)) { _bytes = std::move(bytes); }
+                PatchLayoutEntry(PLEType::entry_handlerbin), _offsets(std::move(offsets)) { _bytes = std::move(bytes); }
 
         size_t size() const { return _bytes.size(); }
 
