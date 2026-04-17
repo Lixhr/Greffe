@@ -65,6 +65,7 @@ std::pair<PatchPlan*, bool> TargetManager::append_target(ea_t                   
     if (it != plans.end() && it->target.ea() == ea)
         return {&*it, false};
 
+
     auto stubs = resolve_stubs(ea, pinfo);
     it = plans.emplace(it, PatchPlan{
         Target{name, ea, end_ea},

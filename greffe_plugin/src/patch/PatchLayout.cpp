@@ -11,13 +11,18 @@
 #include "HandlerCompiler.hpp"
 #include "GreffeCTX.hpp"
 
+static std::string hex(ea_t v) {
+    std::ostringstream ss;
+    ss << "0x" << std::hex << v;
+    return ss.str();
+}
+
 PatchLayout::PatchLayout(ProjectInfo& pinfo)
     : _pinfo(pinfo)
     , _regions(pinfo.getRegionsSet())
 {}
 
 const std::vector<PatchPlan>&   PatchLayout::patch_plans() const { return _patch_plans; }
-std::vector<PatchPlan>&         PatchLayout::patch_plans()       { return _patch_plans; }
 const std::vector<SharedStub>&  PatchLayout::shstubs()     const { return _shstubs;     }
 const std::vector<PatchBranch>& PatchLayout::branches()    const { return _branches;    }
 const HandlerBin&               PatchLayout::handler()     const { return _handlerbin; }
@@ -64,12 +69,6 @@ void PatchLayout::insert_branch(PatchBranch branch) {
 
     auto pos = std::lower_bound(_branches.begin(), _branches.end(), branch, cmp);
 
-    auto hex = [](ea_t v) {
-        std::ostringstream ss;
-        ss << "0x" << std::hex << v;
-        return ss.str();
-    };
-
     auto overlaps = [](const PatchBranch& a, const PatchBranch& b) {
         return a.trampoline_ret_addr > b.addr() &&
                b.trampoline_ret_addr > a.addr();
@@ -90,6 +89,34 @@ void PatchLayout::insert_branch(PatchBranch branch) {
             " overlaps with existing branch at " + hex(pos->addr()));
 
     _branches.insert(pos, std::move(branch));
+}
+
+void PatchLayout::add_entry(std::unique_ptr<PatchLayoutEntry> entry) {
+    ea_t addr = entry->addr();
+    ea_t end  = addr + static_cast<ea_t>(entry->bytes().size());
+
+    auto pos = std::lower_bound(_entries.begin(), _entries.end(), addr,
+        [](const std::unique_ptr<PatchLayoutEntry>& e, ea_t val) {
+            return e->addr() < val;
+        });
+
+    if (pos != _entries.begin()) {
+        const auto& prev = *std::prev(pos);
+        ea_t prev_end = prev->addr() + static_cast<ea_t>(prev->bytes().size());
+        if (prev_end > addr)
+            throw std::runtime_error(
+                "Entry at " + hex(addr) +
+                " overlaps existing entry at " + hex(prev->addr()));
+    }
+
+    if (pos != _entries.end()) {
+        if (end > (*pos)->addr())
+            throw std::runtime_error(
+                "Entry at " + hex(addr) +
+                " overlaps existing entry at " + hex((*pos)->addr()));
+    }
+
+    _entries.insert(pos, std::move(entry));
 }
 
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
