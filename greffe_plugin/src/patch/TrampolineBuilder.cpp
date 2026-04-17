@@ -7,14 +7,13 @@
 #include "offset.hpp"
 
 PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
-    const Target& t     = plan.target;
-    IArchStubs&   stubs = *plan.stubs;
+    IArchStubs& stubs = *plan.stubs;
 
-    std::vector<uint8_t> branch = stubs.branch(t.ea(), plan.addr());
+    std::vector<uint8_t> branch = stubs.branch(plan.ea, plan.addr());
 
     size_t len = 0;
     std::vector<ContextEntry> relocd;
-    ea_t cur = static_cast<ea_t>(t.ea());
+    ea_t cur = plan.ea;
 
     while (true) {
         if (!is_code(get_flags(cur)))
@@ -37,7 +36,7 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         }
         entry.is_xref_target = get_first_fcref_to(cur) != BADADDR;
 
-        if (cur > static_cast<ea_t>(t.ea()) && entry.is_xref_target)
+        if (cur > plan.ea && entry.is_xref_target)
             throw std::runtime_error("Patched branch overlaps a CODE XREF");
 
         len += size;
@@ -47,7 +46,7 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         if (len >= branch.size()) {
             plan.trampoline_ret_addr = static_cast<ea_t>(cur);
             plan.relocd_instr        = std::move(relocd);
-            return PatchBranch(t.ea(), std::move(branch), plan.trampoline_ret_addr);
+            return PatchBranch(plan.ea, std::move(branch), plan.trampoline_ret_addr);
         }
     }
 }

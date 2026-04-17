@@ -1,5 +1,5 @@
 #include "thumb/ThumbStubs.hpp"
-#include "Target.hpp"
+#include "ContextEntry.hpp"
 
 extern "C" {
 #include <gum/arch-arm/gumthumbwriter.h>

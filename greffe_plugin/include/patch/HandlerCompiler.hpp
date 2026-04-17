@@ -6,5 +6,5 @@
 #include <vector>
 
 namespace HandlerCompiler {
-    HandlerBin build(const std::vector<PatchPlan>& plans, const ProjectInfo& pinfo);
+    HandlerBin build(const std::vector<PatchPlan *> plans, const ProjectInfo& pinfo);
 }

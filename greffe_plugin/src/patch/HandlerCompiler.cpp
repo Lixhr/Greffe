@@ -74,8 +74,8 @@ parse_symbols(const std::filesystem::path& elf_path) {
     return result;
 }
 
-HandlerBin HandlerCompiler::build(const std::vector<PatchPlan>& plans,
-                                   const ProjectInfo& pinfo) {
+HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
+                                  const ProjectInfo& pinfo) {
     namespace fs = std::filesystem;
 
     const fs::path& workdir = pinfo.getProjectDir();
@@ -86,7 +86,7 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan>& plans,
             throw std::runtime_error("HandlerCompiler: cannot write greffe_active.mk");
         mk << "ACTIVE_GREFFE_SRCS :=";
         for (const auto& p : plans)
-            mk << " handlers/" << p.target.name() << ".c";
+            mk << " handlers/" << p->name << ".c";
         mk << '\n';
     }
 
@@ -112,7 +112,7 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan>& plans,
 
     std::unordered_map<std::string, uint64_t> offsets;
     for (const auto& p : plans) {
-        std::string sym = "handler_" + p.target.name();
+        std::string sym = "handler_" + p->name;
         auto it = symbols.find(sym);
         if (it == symbols.end())
             throw std::runtime_error("HandlerCompiler: symbol not found in ELF: " + sym);

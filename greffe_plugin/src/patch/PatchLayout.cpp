@@ -22,28 +22,40 @@ PatchLayout::PatchLayout(ProjectInfo& pinfo)
     , _regions(pinfo.getRegionsSet())
 {}
 
-const std::vector<PatchPlan>&   PatchLayout::patch_plans() const { return _patch_plans; }
-const std::vector<SharedStub>&  PatchLayout::shstubs()     const { return _shstubs;     }
-const std::vector<PatchBranch>& PatchLayout::branches()    const { return _branches;    }
-const HandlerBin&               PatchLayout::handler()     const { return _handlerbin; }
+template <typename T, PLEType Type>
+static std::vector<T*> filter_entries(const std::vector<unique_ple_t>& entries) {
+    std::vector<T*> result;
+    for (const auto& e : entries)
+        if (e->type() == Type)
+            result.push_back(static_cast<T*>(e.get()));
+    return result;
+}
+
+const std::vector<PatchPlan*>   PatchLayout::patch_plans() const { return filter_entries<PatchPlan,  entry_plan>      (_entries); }
+const std::vector<SharedStub*>  PatchLayout::shstubs()     const { return filter_entries<SharedStub, entry_shstub>    (_entries); }
+const std::vector<PatchBranch*> PatchLayout::branches()    const { return filter_entries<PatchBranch,entry_branch>    (_entries); }
+const std::vector<HandlerBin*>  PatchLayout::handlers()    const { return filter_entries<HandlerBin, entry_handlerbin>(_entries); }
 
 bool PatchLayout::overlaps_any(ea_t s, ea_t e) const {
-    auto check = [s, e](const auto& entries) {
-        for (const auto& entry : entries) {
-            ea_t es = entry.addr();
-            ea_t ee = es + static_cast<ea_t>(entry.bytes().size());
-            if (s < ee && e > es)
-                return true;
-        }
-        return false;
-    };
-    return check(_branches) || check(_patch_plans) || check(_shstubs);
+    (void)s;
+    (void)e;
+    // for (const auto& entry : g_ctx->layout._entries) {
+    //     ea_t es = entry.addr();
+    //     ea_t ee = es + static_cast<ea_t>(entry.bytes().size());
+    //     if (s < ee && e > es)
+    //         return true;
+    // }
+    return false;
 }
 
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
-    auto it = std::find_if(_shstubs.begin(), _shstubs.end(),
-        [plan](const SharedStub& s) { return s.name() == plan->stubs->name(); });
-    return it != _shstubs.end() ? &*it : nullptr;
+    auto* it = entry_find_if([&](PatchLayoutEntry& e) {
+        if (e.type() == entry_shstub)
+            return static_cast<const SharedStub&>(e).name() == plan->stubs->name();
+        return false;
+    }); 
+
+    return static_cast<const SharedStub *>(it);
 }
 
 const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
@@ -52,46 +64,13 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     auto probe = plan->stubs->build_shared_stub(0);
     ea_t addr  = _regions.alloc(plan->stubs->instr_alignment(), probe.size());
 
-    _shstubs.push_back(SharedStub(plan->stubs, addr));
-
-    SharedStub& shstub = _shstubs.back();
-
-    // write_code_patch(shstub.addr(), shstub.bytes().data(), shstub.bytes().size(), Color::PATCHED);
-    // set_name(shstub.addr(), ("shstub_" + std::string(shstub.name())).c_str());
-
-    return &shstub;
+    SharedStub* new_stub = static_cast<SharedStub*>(
+        add_entry(std::make_unique<SharedStub>(plan->stubs, addr))
+    );
+    return new_stub;
 }
 
-void PatchLayout::insert_branch(PatchBranch branch) {
-    auto cmp = [](const PatchBranch& a, const PatchBranch& b) {
-        return a.addr() < b.addr();
-    };
-
-    auto pos = std::lower_bound(_branches.begin(), _branches.end(), branch, cmp);
-
-    auto overlaps = [](const PatchBranch& a, const PatchBranch& b) {
-        return a.trampoline_ret_addr > b.addr() &&
-               b.trampoline_ret_addr > a.addr();
-    };
-
-    if (pos != _branches.end() && pos->addr() == branch.addr())
-        throw std::runtime_error(
-            "Branch already exists at " + hex(branch.addr()));
-
-    if (pos != _branches.begin() && overlaps(*std::prev(pos), branch))
-        throw std::runtime_error(
-            "Branch at " + hex(branch.addr()) +
-            " overlaps with existing branch at " + hex(std::prev(pos)->addr()));
-
-    if (pos != _branches.end() && overlaps(branch, *pos))
-        throw std::runtime_error(
-            "Branch at " + hex(branch.addr()) +
-            " overlaps with existing branch at " + hex(pos->addr()));
-
-    _branches.insert(pos, std::move(branch));
-}
-
-void PatchLayout::add_entry(std::unique_ptr<PatchLayoutEntry> entry) {
+PatchLayoutEntry* PatchLayout::add_entry(unique_ple_t entry) {
     ea_t addr = entry->addr();
     ea_t end  = addr + static_cast<ea_t>(entry->bytes().size());
 
@@ -116,7 +95,7 @@ void PatchLayout::add_entry(std::unique_ptr<PatchLayoutEntry> entry) {
                 " overlaps existing entry at " + hex((*pos)->addr()));
     }
 
-    _entries.insert(pos, std::move(entry));
+    return _entries.insert(pos, std::move(entry))->get();
 }
 
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
@@ -125,7 +104,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         shstub = create_shstub(plan);
 
     // Build the trampoline, retrying in the next region if it doesn't fit.
-    _regions.select_closest(plan->target.ea());
+    _regions.select_closest(plan->ea);
 
     PatchBranch branch{0, {}, plan->trampoline_ret_addr};
     for (;;) {
@@ -133,7 +112,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         plan->set_addr(_regions.current_addr());
 
         branch = TrampolineBuilder::branch_to_trampoline(*plan);
-
+        
         {
             ea_t bstart = branch.addr();
             ea_t bend   = bstart + branch.bytes().size();
@@ -155,25 +134,18 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         _regions.next_region();
     }
 
-    // ea_t                     branch_addr  = branch.addr();
     std::vector<uint8_t>     branch_bytes = branch.bytes();
-    insert_branch(std::move(branch));
-
-    // write_code_patch(plan->addr(), plan->bytes().data(), plan->bytes().size(), Color::PATCHED);
-    // set_name(plan->addr(), plan->target.name().c_str());
-
-    // write_code_patch(branch_addr,  branch_bytes.data(),  branch_bytes.size(),  Color::RELOCATED);
+    add_entry(std::make_unique<PatchBranch>(std::move(branch)));
 
     _regions.refresh_all_data_items();
 }
 
 void PatchLayout::place_handler_bin() {
-    _handlerbin = HandlerCompiler::build(g_ctx->layout.patch_plans(),
-                                         g_ctx->pinfo);
+    HandlerBin bin = HandlerCompiler::build(g_ctx->layout.patch_plans(),
+                                            g_ctx->pinfo);
 
-    ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(_handlerbin.size()));
-    _handlerbin.set_addr(addr);
-    // set_code_region(bin.addr(), bin.addr() + bin.size());
-    // write_code_patch(bin.addr(), bin.bytes().data(), bin.bytes().size(), Color::HANDLER_CODE);
+    ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(bin.size()));
+    bin.set_addr(addr);
+    add_entry(std::make_unique<HandlerBin>(std::move(bin)));
 }
 

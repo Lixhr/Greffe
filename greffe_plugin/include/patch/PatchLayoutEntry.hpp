@@ -12,6 +12,7 @@ enum PLEType {
     entry_handlerbin
 };
 
+
 class PatchLayoutEntry {
     public:
         virtual     ~PatchLayoutEntry() = default;
@@ -34,3 +35,5 @@ class PatchLayoutEntry {
         std::vector<uint8_t> _bytes  = {};
         PLEType              _type;
 };
+
+typedef std::unique_ptr<PatchLayoutEntry> unique_ple_t;
