@@ -32,7 +32,8 @@ class PatchRegionSet {
         void reclaim(ea_t start, ea_t end);
         bool has_regions() const { return !_regions.empty(); }
 
-        const std::vector<PatchRegion>& regions() const { return _regions; }
+        const std::vector<PatchRegion>& regions()         const { return _regions; }
+        std::vector<PatchRegion>&       regions_mutable()       { return _regions; }
 
         bool overlaps_any(ea_t s, ea_t e) const;
         ea_t alloc_best_fit(uint8_t alignment, uint64_t size);

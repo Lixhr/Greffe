@@ -111,23 +111,17 @@ void PatchLayout::sort_queue_by_type() {
 }
 
 void PatchLayout::commit() {
-    std::vector<PatchPlan*>     plans;
-    std::vector<SharedStub*>    shstubs;
-    std::vector<PatchBranch*>   branches;
-    std::vector<HandlerBin*>    handlers;
-
     for (auto& e : _queue) {
-        PatchLayoutEntry* raw = e.get();
-        ea_t addr = raw->ea();
-
-        // bounds already checked
+        ea_t addr = e->ea();
         auto pos = std::lower_bound(_entries.begin(), _entries.end(), addr,
             [](const unique_ple_t& x, ea_t val) { return x->ea() < val; });
-
         _entries.insert(pos, std::move(e));
     }
 
     _queue.clear();
+
+    for (auto& r : _regions.regions_mutable())
+        r.refresh_data_items();
 }
 
 void PatchLayout::rollback() {
@@ -144,7 +138,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
 
     uint8_t alignment = plan->stubs->instr_alignment();
 
-    // Build sorted candidate list (best-fit: smallest region first).
+    // best-fit: smallest region first.
     const auto& regions = _regions.regions();
     std::vector<size_t> order(regions.size());
     std::iota(order.begin(), order.end(), 0);
