@@ -56,6 +56,9 @@ struct InstrActionHandler : public action_handler_t {
                 return 0;
             }
             GreffeCTX &ctx = *g_ctx;
+            ctx.layout.free_if([](PatchLayoutEntry& e){
+                return e.type() == PLEType::entry_handlerbin;
+            });
 
             auto stubs = StubsFactory::create(ctx.pinfo.getBits(), ctx.pinfo.getModeAt(ea));
             auto plan  = std::make_unique<PatchPlan>(create_target_name(ea), ea, get_item_end(ea), std::move(stubs));
