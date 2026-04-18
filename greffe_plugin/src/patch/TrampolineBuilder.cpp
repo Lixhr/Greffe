@@ -62,11 +62,11 @@ size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
 }
 
 size_t TrampolineBuilder::relocate_and_branch_back(PatchPlan& plan) {
-    uint64_t dest_addr = plan.ea() + plan.bytes().size();
-
     auto tail = plan.stubs->relocate_and_branch_back(plan.relocd_instr,
-                                                     dest_addr,
+                                                     plan.end_ea(),
                                                      plan.trampoline_ret_addr);
-    plan.bytes().insert(plan.bytes().end(), tail.begin(), tail.end());
+    plan.bytes().insert(plan.bytes().end(),
+                        tail.begin(), 
+                        tail.end());
     return tail.size();
 }

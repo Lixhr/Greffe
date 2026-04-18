@@ -39,7 +39,7 @@ const std::vector<HandlerBin*>  PatchLayout::handlers()    const { return filter
 bool PatchLayout::overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_t e) const {
     for (const auto& entry : vec) {
         ea_t es = entry->ea();
-        ea_t ee = es + static_cast<ea_t>(entry->bytes().size());
+        ea_t ee = entry->end_ea();
         if (s < ee && e > es)
             return true;
     }
@@ -78,8 +78,7 @@ static void check_collision(const std::vector<unique_ple_t>& vec, ea_t addr, ea_
 
     if (pos != vec.begin()) {
         const auto& prev = *std::prev(pos);
-        ea_t prev_end = prev->ea() + static_cast<ea_t>(prev->bytes().size());
-        if (prev_end > addr)
+        if (prev->end_ea() > addr)
             throw std::runtime_error(
                 "Entry at " + hex(addr) +
                 " overlaps existing entry at " + hex(prev->ea()));
@@ -95,10 +94,9 @@ static void check_collision(const std::vector<unique_ple_t>& vec, ea_t addr, ea_
 
 PatchLayoutEntry* PatchLayout::queue_entry(unique_ple_t entry) {
     ea_t addr = entry->ea();
-    ea_t end  = addr + entry->bytes().size();
 
-    check_collision(_entries, addr, end);
-    check_collision(_queue,   addr, end);
+    check_collision(_entries, addr, entry->end_ea());
+    check_collision(_queue,   addr, entry->end_ea());
 
     auto pos = std::lower_bound(_queue.begin(), _queue.end(), addr,
         [](const unique_ple_t& e, ea_t val) { return e->ea() < val; });
@@ -153,16 +151,12 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         plan->set_addr(_regions.current_addr());
 
         branch = TrampolineBuilder::branch_to_trampoline(*plan);
-        
-        {
-            ea_t bstart = branch.ea();
-            ea_t bend   = bstart + branch.bytes().size();
-            if (_regions.overlaps_any(bstart, bend)) {
-                std::ostringstream ss;
-                ss << "Branch at 0x" << std::hex << bstart
-                   << " overlaps an existing patch region";
-                throw std::runtime_error(ss.str());
-            }
+
+        if (_regions.overlaps_any(branch.ea(), branch.end_ea())) {
+            std::ostringstream ss;
+            ss << "Branch at 0x" << std::hex << branch.ea()
+               << " overlaps an existing patch region";
+            throw std::runtime_error(ss.str());
         }
 
         TrampolineBuilder::init_trampoline(*plan, *shstub);

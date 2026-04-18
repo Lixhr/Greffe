@@ -61,18 +61,17 @@ struct InstrActionHandler : public action_handler_t {
             auto plan  = std::make_unique<PatchPlan>(create_target_name(ea), ea, get_item_end(ea), std::move(stubs));
 
             ctx.layout.create_patch_entry(plan.get());
-            PatchPlan *inserted = static_cast<PatchPlan*>(ctx.layout.queue_entry(std::move(plan)));
+            auto inserted = static_cast<PatchPlan*>(ctx.layout.queue_entry(std::move(plan)));
             create_handler_stub(inserted, ctx.pinfo);
 
             commit_gui(ctx.layout);
-
             ctx.layout.commit();
             greffe_msg("add target at 0x%llx\n", (ulonglong)ea);
         }
         catch (const std::exception &e) {
             greffe_msg("error: %s\n", e.what());
             g_ctx->layout.rollback();
-            return (0);
+            return 0;
         }
 
         return 1;
