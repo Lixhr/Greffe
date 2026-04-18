@@ -20,20 +20,17 @@ struct PatchActionHandler : public action_handler_t {
         }
 
         try {
-            g_ctx->layout.free_if([](PatchLayoutEntry& e){
-                return e.type() == PLEType::entry_handlerbin;
-            });
+            g_ctx->layout.free_handler_bin();
 
             HandlerBin *bin = g_ctx->layout.place_handler_bin();
 
             for (auto& plan : g_ctx->layout.patch_plans()) {
                 std::string sym = "handler_" + plan->name;
 
-                ea_t handler_addr = bin->handler_addr(sym);
-                uint8_t *handler_slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
-                set_name(handler_addr & ~1, sym.c_str());
+                plan->handler_addr = bin->handler_addr(sym);
 
-                plan->stubs->write_ptr(handler_slot, handler_addr);
+                uint8_t *handler_slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
+                plan->stubs->write_ptr(handler_slot, plan->handler_addr);
 
                 write_data_patch(plan->handler_ptr_addr,
                                  handler_slot,

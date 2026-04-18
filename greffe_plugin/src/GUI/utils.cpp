@@ -5,6 +5,7 @@
 #include "offset.hpp"
 #include "PatchLayout.hpp"
 #include "name.hpp"
+#include "funcs.hpp"
 
 void set_code_region(ea_t start, ea_t end) {
     if (start == end)
@@ -53,5 +54,15 @@ void commit_gui(PatchLayout &layout) {
             default: break;
         }
     });
+
+    // plans are already in _entries: committed at add
+    // handler_addr is define on patch
+    for (PatchPlan *plan : layout.patch_plans()) {
+        if (plan->handler_addr) {
+            add_func(plan->handler_addr);
+            set_name(plan->handler_addr & ~1, (plan->name + "_handler").c_str());
+        }
+    }
+
     request_refresh(IWID_DISASM);
 }

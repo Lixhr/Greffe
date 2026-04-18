@@ -22,7 +22,7 @@ struct PatchRegion {
     uint64_t size()              const { return end - base; }
     bool     overlaps(ea_t s, ea_t e) const { return s < end && e > base; }
     bool     contains(ea_t addr) const { return addr >= base && addr < end; }
-    void     refresh_data_items();
+    void     clear_region();
 };
 
 

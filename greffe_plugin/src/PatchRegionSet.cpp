@@ -7,10 +7,8 @@
 #include "GreffeCTX.hpp"
 
 PatchRegion::PatchRegion(ea_t b, ea_t e) : base(b), end(e) {
-    size_t sz = e - b;
-    std::vector<uint8_t> zeroes(sz);
-    write_data_patch(b, zeroes.data(), sz);
-    create_byte(b, e - b, true);
+    clear_region();
+
     for (ea_t i = b; i < e; i++) {
         xrefblk_t xb;
         for (bool ok = xb.first_to(i, XREF_ALL); ok; ok = xb.next_to())
@@ -19,7 +17,10 @@ PatchRegion::PatchRegion(ea_t b, ea_t e) : base(b), end(e) {
     }
 }
 
-void PatchRegion::refresh_data_items() {
+void PatchRegion::clear_region() {
+    size_t sz = end - base;
+    std::vector<uint8_t> zeroes(sz);
+    write_data_patch(base, zeroes.data(), sz);
     create_byte(base, end - base, true);
 }
 
@@ -72,7 +73,7 @@ void PatchRegionSet::merge_regions() {
         if (it->end >= next->base) {
             it->end = std::max(it->end, next->end);
             _regions.erase(next);
-            it->refresh_data_items();
+            it->clear_region();
         } else {
             ++it;
         }

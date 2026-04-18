@@ -19,6 +19,7 @@ class PatchLayout {
         PatchLayoutEntry*                queue_entry(unique_ple_t entry);
         void                             create_patch_entry(PatchPlan *plan);
         HandlerBin *                     place_handler_bin();
+        void                             free_handler_bin();
 
 
         const std::vector<SharedStub*>         shstubs()          const;
@@ -59,8 +60,6 @@ class PatchLayout {
 
             for (auto& [start, end] : freed) {
                 free_entry(start, end);
-                // #include "utils.hpp"
-                msg("%llx - %llx\n", start, end);
             }
         }
 

@@ -121,7 +121,7 @@ void PatchLayout::commit() {
     _queue.clear();
 
     for (auto& r : _regions.regions_mutable())
-        r.refresh_data_items();
+        r.clear_region();
 }
 
 void PatchLayout::rollback() {
@@ -183,6 +183,23 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
 
 void PatchLayout::free_entry(ea_t start, ea_t end) {
     _regions.reclaim(start, end);
+}
+
+void PatchLayout::free_handler_bin() {
+    for (PatchPlan *plan : patch_plans()) {
+        if (!plan->handler_addr) continue;
+        size_t n = plan->stubs->sizeof_ptr();
+        std::vector<uint8_t> zeroes(n, 0);
+        uint8_t *slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
+        std::fill(slot, slot + n, 0);
+        write_data_patch(plan->handler_ptr_addr, zeroes.data(), n);
+        plan->handler_addr = 0;
+    }
+    for (HandlerBin *bin : handlers()) {
+        std::vector<uint8_t> zeroes(bin->size(), 0);
+        write_data_patch(bin->ea(), zeroes.data(), bin->size());
+    }
+    free_if([](PatchLayoutEntry& e){ return e.type() == PLEType::entry_handlerbin; });
 }
 
 HandlerBin *PatchLayout::place_handler_bin() {
