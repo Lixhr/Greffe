@@ -3,6 +3,7 @@
 #include <ida.hpp>
 #include <bytes.hpp>
 #include <algorithm>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 #include "utils.hpp"
@@ -61,10 +62,8 @@ const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
 }
 
 const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
-    // Build at a dummy address to determine size
-    // then allocate at the real address.
     auto probe = plan->stubs->build_shared_stub(0);
-    ea_t addr  = _regions.alloc(plan->stubs->instr_alignment(), probe.size());
+    ea_t addr  = _regions.alloc_best_fit(plan->stubs->instr_alignment(), probe.size());
 
     SharedStub* new_stub = static_cast<SharedStub*>(
         queue_entry(std::make_unique<SharedStub>(plan->stubs, addr))
@@ -129,12 +128,13 @@ void PatchLayout::commit() {
     }
 
     _queue.clear();
-    _regions.commit();
 }
 
-void    PatchLayout::rollback() {
+void PatchLayout::rollback() {
+    for (const auto& e : _queue)
+        if (e->type() != PLEType::entry_branch)
+            _regions.reclaim(e->ea(), e->end_ea());
     _queue.clear();
-    _regions.rollback();
 }
 
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
@@ -142,15 +142,35 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     if (!shstub)
         shstub = create_shstub(plan);
 
-    // Build the trampoline, retrying in the next region if it doesn't fit.
-    _regions.select_closest(plan->ea());
+    uint8_t alignment = plan->stubs->instr_alignment();
 
-    PatchBranch branch{0, {}, plan->trampoline_ret_addr};
-    for (;;) {
-        _regions.align(plan->stubs->instr_alignment());
-        plan->set_addr(_regions.current_addr());
+    // Build sorted candidate list (best-fit: smallest region first).
+    const auto& regions = _regions.regions();
+    std::vector<size_t> order(regions.size());
+    std::iota(order.begin(), order.end(), 0);
+    std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+        return regions[a].size() < regions[b].size();
+    });
 
-        branch = TrampolineBuilder::branch_to_trampoline(*plan);
+    for (size_t idx : order) {
+        const PatchRegion& r = regions[idx];
+        ea_t candidate = r.base;
+        if (alignment > 1)
+            candidate = (candidate + alignment - 1) & ~static_cast<ea_t>(alignment - 1);
+        if (candidate >= r.end)
+            continue;
+
+        plan->set_addr(candidate);
+        PatchBranch branch = TrampolineBuilder::branch_to_trampoline(*plan);
+        TrampolineBuilder::init_trampoline(*plan, *shstub);
+        TrampolineBuilder::relocate_and_branch_back(*plan);
+        uint64_t size = plan->bytes().size();
+
+        if (candidate + size > r.end) {
+            plan->bytes().clear();
+            plan->relocd_instr.clear();
+            continue;
+        }
 
         if (_regions.overlaps_any(branch.ea(), branch.end_ea())) {
             std::ostringstream ss;
@@ -159,27 +179,27 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
             throw std::runtime_error(ss.str());
         }
 
-        TrampolineBuilder::init_trampoline(*plan, *shstub);
-        TrampolineBuilder::relocate_and_branch_back(*plan);
-
-        if (_regions.fits(plan->bytes().size())) {
-            _regions.advance(plan->bytes().size());
-            break;
-        }
-        _regions.next_region();
+        _regions.commit_alloc(candidate, size);
+        queue_entry(std::make_unique<PatchBranch>(std::move(branch)));
+        return;
     }
 
-    std::vector<uint8_t>     branch_bytes = branch.bytes();
-    queue_entry(std::make_unique<PatchBranch>(std::move(branch)));
+    throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
 }
 
-void PatchLayout::place_handler_bin() {
+void PatchLayout::free_entry(ea_t start, ea_t end) {
+    _regions.reclaim(start, end);
+}
+
+HandlerBin *PatchLayout::place_handler_bin() {
     HandlerBin bin = HandlerCompiler::build(g_ctx->layout.patch_plans(),
                                             g_ctx->pinfo);
 
-    ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(bin.size()));
+    ea_t addr = _regions.alloc_largest(0x10, static_cast<ea_t>(bin.size()));
     bin.set_addr(addr);
-    queue_entry(std::make_unique<HandlerBin>(std::move(bin)));
+
+    return static_cast<HandlerBin*>(
+           queue_entry(std::make_unique<HandlerBin>(std::move(bin))));
 }
 
 

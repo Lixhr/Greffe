@@ -2,10 +2,26 @@
 #include "utils.hpp"
 #include <bytes.hpp>
 #include <algorithm>
-#include <numeric>
-#include <sstream>
 #include <stdexcept>
+#include <sstream>
 #include "GreffeCTX.hpp"
+
+PatchRegion::PatchRegion(ea_t b, ea_t e) : base(b), end(e) {
+    size_t sz = e - b;
+    std::vector<uint8_t> zeroes(sz);
+    write_data_patch(b, zeroes.data(), sz, Color::PATCH_REGION);
+    create_byte(b, e - b, true);
+    for (ea_t i = b; i < e; i++) {
+        xrefblk_t xb;
+        for (bool ok = xb.first_to(i, XREF_ALL); ok; ok = xb.next_to())
+            if (xb.iscode) del_cref(xb.from, i, false);
+            else           del_dref(xb.from, i);
+    }
+}
+
+void PatchRegion::refresh_data_items() {
+    create_byte(base, end - base, true);
+}
 
 void PatchRegionSet::order_insert(ea_t start, ea_t end) {
     auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,
@@ -19,6 +35,12 @@ void PatchRegionSet::order_insert(ea_t start, ea_t end) {
     }
 
     _regions.insert(pos, PatchRegion(start, end));
+}
+
+void PatchRegionSet::raw_insert(ea_t start, ea_t end) {
+    auto pos = std::lower_bound(_regions.begin(), _regions.end(), start,
+        [](const PatchRegion& p, ea_t val) { return p.base < val; });
+    _regions.insert(pos, PatchRegion(start, end, PatchRegion::raw_t{}));
 }
 
 void PatchRegionSet::interval_subtraction(std::vector<PatchRegion>::iterator it,
@@ -72,87 +94,9 @@ void PatchRegionSet::add_region(ea_t start, ea_t end) {
     merge_regions();
 }
 
-PatchRegion& PatchRegionSet::current_region() {
-    if (_order_idx >= _order.size())
-        throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
-    return _regions[_order[_order_idx]];
-}
-
-const PatchRegion& PatchRegionSet::current_region() const {
-    if (_order_idx >= _order.size())
-        throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
-    return _regions[_order[_order_idx]];
-}
-
-void PatchRegionSet::select_closest(ea_t target) {
-    if (_regions.empty())
-        throw std::runtime_error("PatchRegionSet: no patch regions defined");
-
-    _order.resize(_regions.size());
-    std::iota(_order.begin(), _order.end(), 0);
-    std::stable_sort(_order.begin(), _order.end(), [&](size_t a, size_t b) {
-        ea_t ca = _regions[a].cursor, cb = _regions[b].cursor;
-        auto dist = [target](ea_t v) { return v > target ? v - target : target - v; };
-        return dist(ca) < dist(cb);
-    });
-
-    _order_idx           = 0;
-    _align_pending       = false;
-    _cursor_before_align = 0;
-}
-
-ea_t PatchRegionSet::current_addr() const {
-    return current_region().cursor;
-}
-
-bool PatchRegionSet::fits(uint64_t size) const {
-    return current_region().fits(size);
-}
-
-void PatchRegionSet::advance(uint64_t size) {
-    current_region().advance(size);
-    _align_pending       = false;
-    _cursor_before_align = 0;
-}
-
-void PatchRegionSet::align(uint8_t alignment) {
-    auto& r              = current_region();
-    _cursor_before_align = r.cursor;
-    _align_pending       = true;
-
-    if (alignment > 1)
-        r.cursor = (r.cursor + alignment - 1) & ~static_cast<ea_t>(alignment - 1);
-
-    if (r.cursor >= r.end) {
-        r.cursor       = _cursor_before_align;
-        _align_pending = false;
-        next_region();
-    }
-}
-
-void PatchRegionSet::next_region() {
-    if (_align_pending) {
-        _regions[_order[_order_idx]].cursor = _cursor_before_align;
-        _align_pending       = false;
-        _cursor_before_align = 0;
-    }
-
-    ++_order_idx;
-    if (_order_idx >= _order.size())
-        throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
-}
-
-ea_t PatchRegionSet::alloc(uint8_t alignment, uint64_t size) {
-    for (auto& r : _regions) {
-        ea_t candidate = r.cursor;
-        if (alignment > 1)
-            candidate = (candidate + alignment - 1) & ~static_cast<ea_t>(alignment - 1);
-        if (candidate + size <= r.end) {
-            r.cursor = candidate + size;
-            return candidate;
-        }
-    }
-    throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
+void PatchRegionSet::reclaim(ea_t start, ea_t end) {
+    raw_insert(start, end);
+    merge_regions();
 }
 
 bool PatchRegionSet::overlaps_any(ea_t s, ea_t e) const {
@@ -162,16 +106,70 @@ bool PatchRegionSet::overlaps_any(ea_t s, ea_t e) const {
     return false;
 }
 
-void PatchRegionSet::commit() {
-    for (auto& r : _regions) {
-        r.commit_cursor();
-        r.refresh_data_items();
-    }
+ea_t PatchRegionSet::split_alloc(std::vector<PatchRegion>::iterator it,
+                                  ea_t aligned, uint64_t size) {
+    ea_t region_base = it->base;
+    ea_t region_end  = it->end;
+    _regions.erase(it);
+
+    if (aligned > region_base)
+        raw_insert(region_base, aligned);
+    if (aligned + size < region_end)
+        raw_insert(aligned + size, region_end);
+
+    return aligned;
 }
 
-void PatchRegionSet::rollback() {
-    for (auto& r : _regions)
-        r.reset_cursor();
-    _align_pending       = false;
-    _cursor_before_align = 0;
+void PatchRegionSet::commit_alloc(ea_t addr, uint64_t size) {
+    for (auto it = _regions.begin(); it != _regions.end(); ++it) {
+        if (it->base <= addr && it->end > addr) {
+            split_alloc(it, addr, size);
+            return;
+        }
+    }
+    throw std::runtime_error("PatchRegionSet: commit_alloc: region not found");
+}
+
+ea_t PatchRegionSet::alloc_best_fit(uint8_t alignment, uint64_t size) {
+    auto best         = _regions.end();
+    ea_t best_aligned = 0;
+
+    for (auto it = _regions.begin(); it != _regions.end(); ++it) {
+        ea_t candidate = it->base;
+        if (alignment > 1)
+            candidate = (candidate + alignment - 1) & ~static_cast<ea_t>(alignment - 1);
+        if (candidate + size > it->end)
+            continue;
+        if (best == _regions.end() || it->size() < best->size()) {
+            best         = it;
+            best_aligned = candidate;
+        }
+    }
+
+    if (best == _regions.end())
+        throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
+
+    return split_alloc(best, best_aligned, size);
+}
+
+ea_t PatchRegionSet::alloc_largest(uint8_t alignment, uint64_t size) {
+    auto best         = _regions.end();
+    ea_t best_aligned = 0;
+
+    for (auto it = _regions.begin(); it != _regions.end(); ++it) {
+        ea_t candidate = it->base;
+        if (alignment > 1)
+            candidate = (candidate + alignment - 1) & ~static_cast<ea_t>(alignment - 1);
+        if (candidate + size > it->end)
+            continue;
+        if (best == _regions.end() || it->size() > best->size()) {
+            best         = it;
+            best_aligned = candidate;
+        }
+    }
+
+    if (best == _regions.end())
+        throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
+
+    return split_alloc(best, best_aligned, size);
 }

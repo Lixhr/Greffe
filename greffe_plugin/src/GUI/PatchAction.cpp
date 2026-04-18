@@ -20,31 +20,36 @@ struct PatchActionHandler : public action_handler_t {
         }
 
         try {
-            g_ctx->layout.place_handler_bin();
+            g_ctx->layout.free_if([](PatchLayoutEntry& e){
+                return e.type() == PLEType::entry_handlerbin;
+            });
 
-            // for (auto& plan : g_ctx->layout.patch_plans()) {
-            //     // std::string sym = "handler_" + plan.target.name();
+            HandlerBin *bin = g_ctx->layout.place_handler_bin();
 
-            //     // ea_t handler_addr = bin.handler_addr(sym);
-            //     // uint8_t *handler_slot = plan.bytes().data() + (plan.handler_ptr_addr - plan.ea());
-            //     // set_name(handler_addr & ~1, sym.c_str());
+            for (auto& plan : g_ctx->layout.patch_plans()) {
+                std::string sym = "handler_" + plan->name;
 
+                ea_t handler_addr = bin->handler_addr(sym);
+                uint8_t *handler_slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
+                set_name(handler_addr & ~1, sym.c_str());
 
-            //     // plan.stubs->write_ptr(handler_slot, handler_addr);
+                plan->stubs->write_ptr(handler_slot, handler_addr);
 
-            //     // write_data_patch(plan.handler_ptr_addr,
-            //     //                  handler_slot,
-            //     //                  plan.stubs->sizeof_ptr(),
-            //     //                  Color::HANDLER_CODE);
-            //     // op_plain_offset(plan.handler_ptr_addr, 0, 0);
-            // }
+                write_data_patch(plan->handler_ptr_addr,
+                                 handler_slot,
+                                 plan->stubs->sizeof_ptr(),
+                                 Color::HANDLER_CODE);
+                op_plain_offset(plan->handler_ptr_addr, 0, 0);
+            }
 
-            g_ctx->pinfo.getRegionsSet().commit();
+            commit_gui(g_ctx->layout);
+            g_ctx->layout.commit();
 
-            greffe_msg("patched %zu target(s)\n",
-                       g_ctx->layout.patch_plans().size());
+            greffe_msg("patched %zu target(s)\n", g_ctx->layout.patch_plans().size());
+            return 0;
         } catch (const std::exception& e) {
             greffe_msg("patch failed: %s\n", e.what());
+            g_ctx->layout.rollback();
         }
         return 1;
     }

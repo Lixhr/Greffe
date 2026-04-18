@@ -29,4 +29,4 @@ std::shared_ptr<IArchStubs> StubsFactory::create(int bits, std::string_view mode
 
     throw std::runtime_error("StubsFactory: unknown arch "
                              + std::to_string(bits) + "/" + std::string(mode));
-}
+}  

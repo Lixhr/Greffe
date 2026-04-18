@@ -18,7 +18,7 @@ class PatchLayout {
 
         PatchLayoutEntry*                queue_entry(unique_ple_t entry);
         void                             create_patch_entry(PatchPlan *plan);
-        void                             place_handler_bin();
+        HandlerBin *                     place_handler_bin();
 
 
         const std::vector<SharedStub*>         shstubs()          const;
@@ -38,6 +38,33 @@ class PatchLayout {
         }
 
         template <typename F>
+        void entries_delete_if(F&& fn) {
+            auto erase = [&](std::vector<unique_ple_t>& vec) {
+                vec.erase(std::remove_if(vec.begin(), vec.end(),
+                    [&](const unique_ple_t& e) { return fn(*e); }),
+                    vec.end());
+            };
+            erase(_entries);
+        }
+
+        template <typename F>
+        void free_if(F&& fn) {
+            std::vector<std::pair<ea_t, ea_t>> freed;
+            for (const auto& e : _entries)
+                if (fn(*e))
+                    freed.emplace_back(e->ea(), e->end_ea());
+            _entries.erase(std::remove_if(_entries.begin(), _entries.end(),
+                [&](const unique_ple_t& e) { return fn(*e); }),
+                _entries.end());
+
+            for (auto& [start, end] : freed) {
+                free_entry(start, end);
+                // #include "utils.hpp"
+                msg("%llx - %llx\n", start, end);
+            }
+        }
+
+        template <typename F>
         void foreach_queue(F&& fn) const {
             for (const auto& e : _queue)
                 fn(*e);
@@ -53,6 +80,7 @@ class PatchLayout {
         const SharedStub*  create_shstub(PatchPlan *plan);
 
         bool overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_t e) const;
+        void free_entry(ea_t start, ea_t end);
 
         ProjectInfo&              _pinfo;
         PatchRegionSet&           _regions;
