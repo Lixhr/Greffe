@@ -15,11 +15,13 @@ static plugmod_t *idaapi init() {
     register_instr_action();
     register_region_action();
     register_patch_action();
+    init_color_hook();
     greffe_msg("plugin loaded\n");
     return PLUGIN_OK;
 }
 
 static void idaapi term() {
+    term_color_hook();
     unregister_patch_action();
     unregister_instr_action();
     unregister_region_action();

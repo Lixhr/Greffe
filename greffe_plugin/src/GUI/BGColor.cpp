@@ -2,60 +2,49 @@
 #include <idp.hpp>
 #include <kernwin.hpp>
 #include "utils.hpp"
-#include <vector>
-#include <algorithm>
+#include "GreffeCTX.hpp"
+#include "PatchPlan.hpp"
 
-struct ColoredRange {
-    ea_t      start;
-    ea_t      end;
-    bgcolor_t color;
-};
+extern plugin_t PLUGIN;
 
-static std::vector<ColoredRange> s_ranges;
+static bgcolor_t color_for_entry(PatchLayoutEntry& e, ea_t ea) {
+    if (e.type() == PLEType::entry_plan) {
+        PatchPlan& plan = static_cast<PatchPlan&>(e);
+        size_t sizeof_ptr = e.stubs->sizeof_ptr();
+        if (ea >= plan.handler_ptr_addr && ea < plan.handler_ptr_addr + sizeof_ptr)
+            return Color::HANDLER_CODE;
+        return Color::TARGET;
+    }
+    switch (e.type()) {
+        case PLEType::entry_branch:     return Color::TARGET;
+        case PLEType::entry_handlerbin: return Color::HANDLER_CODE;
+        case PLEType::entry_shstub:     return Color::PATCHED;
+        default:                        return DEFCOLOR;
+    }
+}
 
 struct RangeColorHooks : public event_listener_t {
     ssize_t idaapi on_event(ssize_t code, va_list va) override {
-        if (code == processor_t::ev_get_bg_color) {
-            bgcolor_t *color = va_arg(va, bgcolor_t *);
-            ea_t       ea    = va_arg(va, ea_t);
-            const ColoredRange *best = nullptr;
-            for (const auto& r : s_ranges) {
-                if (ea >= r.start && ea < r.end) {
-                    if (!best || (r.end - r.start) < (best->end - best->start))
-                        best = &r;
-                }
-            }
-            if (best) {
-                *color = best->color;
-                return 1;
-            }
+        if (code != processor_t::ev_get_bg_color || !g_ctx) return 0;
+        bgcolor_t *color = va_arg(va, bgcolor_t *);
+        ea_t       ea    = va_arg(va, ea_t);
+
+        auto *entry = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry& e) {
+            return ea >= e.ea() && ea < e.end_ea();
+        });
+        if (entry) {
+            *color = color_for_entry(*entry, ea);
+            return 1;
         }
+
+        for (const auto& r : g_ctx->pinfo.getRegionsSet().regions())
+            if (r.contains(ea)) { *color = Color::PATCH_REGION; return 1; }
+
         return 0;
     }
 };
 
-extern plugin_t PLUGIN;
-
 static RangeColorHooks s_hooks;
-static bool            s_hooked = false;
 
-void set_range_color(ea_t start, ea_t end, bgcolor_t color)
-{
-    s_ranges.erase(
-        std::remove_if(s_ranges.begin(), s_ranges.end(),
-            [&](const ColoredRange& r) { return r.start == start && r.end == end; }),
-        s_ranges.end());
-
-    if (color != DEFCOLOR)
-        s_ranges.push_back({start, end, color});
-
-    if (!s_ranges.empty() && !s_hooked) {
-        hook_event_listener(HT_IDP, &s_hooks, &PLUGIN);
-        s_hooked = true;
-    } else if (s_ranges.empty() && s_hooked) {
-        unhook_event_listener(HT_IDP, &s_hooks);
-        s_hooked = false;
-    }
-
-    request_refresh(IWID_DISASM);
-}
+void init_color_hook() { hook_event_listener(HT_IDP, &s_hooks, &PLUGIN); }
+void term_color_hook() { unhook_event_listener(HT_IDP, &s_hooks); }

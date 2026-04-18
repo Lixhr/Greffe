@@ -37,8 +37,7 @@ struct PatchActionHandler : public action_handler_t {
 
                 write_data_patch(plan->handler_ptr_addr,
                                  handler_slot,
-                                 plan->stubs->sizeof_ptr(),
-                                 Color::HANDLER_CODE);
+                                 plan->stubs->sizeof_ptr());
                 op_plain_offset(plan->handler_ptr_addr, 0, 0);
             }
 

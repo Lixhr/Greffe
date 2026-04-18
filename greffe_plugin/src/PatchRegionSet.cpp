@@ -9,7 +9,7 @@
 PatchRegion::PatchRegion(ea_t b, ea_t e) : base(b), end(e) {
     size_t sz = e - b;
     std::vector<uint8_t> zeroes(sz);
-    write_data_patch(b, zeroes.data(), sz, Color::PATCH_REGION);
+    write_data_patch(b, zeroes.data(), sz);
     create_byte(b, e - b, true);
     for (ea_t i = b; i < e; i++) {
         xrefblk_t xb;
