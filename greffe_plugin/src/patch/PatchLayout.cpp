@@ -36,16 +36,18 @@ const std::vector<SharedStub*>  PatchLayout::shstubs()     const { return filter
 const std::vector<PatchBranch*> PatchLayout::branches()    const { return filter_entries<PatchBranch,entry_branch>    (_entries); }
 const std::vector<HandlerBin*>  PatchLayout::handlers()    const { return filter_entries<HandlerBin, entry_handlerbin>(_entries); }
 
-bool PatchLayout::overlaps_any(ea_t s, ea_t e) const {
-    (void)s;
-    (void)e;
-    // for (const auto& entry : g_ctx->layout._entries) {
-    //     ea_t es = entry.addr();
-    //     ea_t ee = es + static_cast<ea_t>(entry.bytes().size());
-    //     if (s < ee && e > es)
-    //         return true;
-    // }
+bool PatchLayout::overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_t e) const {
+    for (const auto& entry : vec) {
+        ea_t es = entry->ea();
+        ea_t ee = es + static_cast<ea_t>(entry->bytes().size());
+        if (s < ee && e > es)
+            return true;
+    }
     return false;
+}
+
+bool PatchLayout::overlaps_any(ea_t s, ea_t e) const {
+    return overlaps_vec(_entries, s, e) || overlaps_vec(_queue, s, e);
 }
 
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
@@ -65,37 +67,75 @@ const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     ea_t addr  = _regions.alloc(plan->stubs->instr_alignment(), probe.size());
 
     SharedStub* new_stub = static_cast<SharedStub*>(
-        add_entry(std::make_unique<SharedStub>(plan->stubs, addr))
+        queue_entry(std::make_unique<SharedStub>(plan->stubs, addr))
     );
     return new_stub;
 }
 
-PatchLayoutEntry* PatchLayout::add_entry(unique_ple_t entry) {
-    ea_t addr = entry->addr();
-    ea_t end  = addr + static_cast<ea_t>(entry->bytes().size());
+static void check_collision(const std::vector<unique_ple_t>& vec, ea_t addr, ea_t end) {
+    auto pos = std::lower_bound(vec.begin(), vec.end(), addr,
+        [](const unique_ple_t& e, ea_t val) { return e->ea() < val; });
 
-    auto pos = std::lower_bound(_entries.begin(), _entries.end(), addr,
-        [](const std::unique_ptr<PatchLayoutEntry>& e, ea_t val) {
-            return e->addr() < val;
-        });
-
-    if (pos != _entries.begin()) {
+    if (pos != vec.begin()) {
         const auto& prev = *std::prev(pos);
-        ea_t prev_end = prev->addr() + static_cast<ea_t>(prev->bytes().size());
+        ea_t prev_end = prev->ea() + static_cast<ea_t>(prev->bytes().size());
         if (prev_end > addr)
             throw std::runtime_error(
                 "Entry at " + hex(addr) +
-                " overlaps existing entry at " + hex(prev->addr()));
+                " overlaps existing entry at " + hex(prev->ea()));
     }
 
-    if (pos != _entries.end()) {
-        if (end > (*pos)->addr())
+    if (pos != vec.end()) {
+        if (end > (*pos)->ea())
             throw std::runtime_error(
                 "Entry at " + hex(addr) +
-                " overlaps existing entry at " + hex((*pos)->addr()));
+                " overlaps existing entry at " + hex((*pos)->ea()));
     }
+}
 
-    return _entries.insert(pos, std::move(entry))->get();
+PatchLayoutEntry* PatchLayout::queue_entry(unique_ple_t entry) {
+    ea_t addr = entry->ea();
+    ea_t end  = addr + entry->bytes().size();
+
+    check_collision(_entries, addr, end);
+    check_collision(_queue,   addr, end);
+
+    auto pos = std::lower_bound(_queue.begin(), _queue.end(), addr,
+        [](const unique_ple_t& e, ea_t val) { return e->ea() < val; });
+
+    return _queue.insert(pos, std::move(entry))->get();
+}
+
+void PatchLayout::sort_queue_by_type() {
+    std::stable_sort(_queue.begin(), _queue.end(),
+        [](const unique_ple_t& a, const unique_ple_t& b) {
+            return a->type() < b->type();
+        });
+}
+
+void PatchLayout::commit() {
+    std::vector<PatchPlan*>     plans;
+    std::vector<SharedStub*>    shstubs;
+    std::vector<PatchBranch*>   branches;
+    std::vector<HandlerBin*>    handlers;
+
+
+    for (auto& e : _queue) {
+        PatchLayoutEntry* raw = e.get();
+        ea_t addr = raw->ea();
+
+        // bounds already checked
+        auto pos = std::lower_bound(_entries.begin(), _entries.end(), addr,
+            [](const unique_ple_t& x, ea_t val) { return x->ea() < val; });
+
+        _entries.insert(pos, std::move(e));
+    }
+}
+
+void PatchLayout::flush() {
+    _queue.clear();
+
+    _regions.refresh_all_data_items();
 }
 
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
@@ -104,7 +144,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         shstub = create_shstub(plan);
 
     // Build the trampoline, retrying in the next region if it doesn't fit.
-    _regions.select_closest(plan->ea);
+    _regions.select_closest(plan->ea());
 
     PatchBranch branch{0, {}, plan->trampoline_ret_addr};
     for (;;) {
@@ -114,7 +154,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
         branch = TrampolineBuilder::branch_to_trampoline(*plan);
         
         {
-            ea_t bstart = branch.addr();
+            ea_t bstart = branch.ea();
             ea_t bend   = bstart + branch.bytes().size();
             if (_regions.overlaps_any(bstart, bend)) {
                 std::ostringstream ss;
@@ -135,9 +175,7 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
     }
 
     std::vector<uint8_t>     branch_bytes = branch.bytes();
-    add_entry(std::make_unique<PatchBranch>(std::move(branch)));
-
-    _regions.refresh_all_data_items();
+    queue_entry(std::make_unique<PatchBranch>(std::move(branch)));
 }
 
 void PatchLayout::place_handler_bin() {
@@ -146,6 +184,6 @@ void PatchLayout::place_handler_bin() {
 
     ea_t addr = _regions.alloc(0x10, static_cast<ea_t>(bin.size()));
     bin.set_addr(addr);
-    add_entry(std::make_unique<HandlerBin>(std::move(bin)));
+    queue_entry(std::make_unique<HandlerBin>(std::move(bin)));
 }
 

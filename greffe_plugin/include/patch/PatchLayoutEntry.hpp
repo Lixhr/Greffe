@@ -5,11 +5,13 @@
 #include <vector>
 #include "patch/arch/IArchStubs.hpp"
 
+
+// The order is important here, because the gui are applied by type's order
 enum PLEType {
     entry_shstub,
-    entry_plan,
     entry_branch,
-    entry_handlerbin
+    entry_handlerbin,
+    entry_plan
 };
 
 
@@ -21,10 +23,10 @@ class PatchLayoutEntry {
         void                        set_addr(ea_t addr);
         std::vector<uint8_t>&       bytes();
         uint64_t                    offset() const;
-        ea_t                        addr()   const;
+        ea_t                        ea()   const;
+        ea_t                        end_ea()   const;
         const std::vector<uint8_t>& bytes()  const;
         PLEType                     type()   const;
-        void                        free();
 
         std::shared_ptr<IArchStubs> stubs;
     protected:

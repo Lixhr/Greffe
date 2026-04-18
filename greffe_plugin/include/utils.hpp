@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <string>
+#include "PatchLayout.hpp"
 
 #define greffe_msg(fmt, ...) msg("[greffe] " fmt, ##__VA_ARGS__)
 
@@ -22,5 +23,6 @@ void clear_all_range_colors();
 void region_bzero(ea_t ea, size_t size);
 void set_code_region(ea_t start, ea_t end);
 
-void write_code_patch(ea_t addr, const uint8_t *bytes, size_t size, bgcolor_t color);
+void write_code_patch(ea_t ea, const uint8_t *bytes, ea_t end_ea);
 void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size, bgcolor_t color);
+void commit_gui(PatchLayout &layout);

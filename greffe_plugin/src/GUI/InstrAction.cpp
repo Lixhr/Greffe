@@ -32,7 +32,7 @@ static void create_handler_stub(const PatchPlan* plan, const ProjectInfo& pinfo)
     };
 
     std::string_view attr;
-    const std::string mode = pinfo.getModeAt(static_cast<ea_t>(plan->ea));
+    const std::string mode = pinfo.getModeAt(static_cast<ea_t>(plan->target_ea));
     for (const auto& [m, a] : attr_table)
         if (mode == m) { attr = a; break; }
 
@@ -57,19 +57,24 @@ struct InstrActionHandler : public action_handler_t {
             }
             GreffeCTX &ctx = *g_ctx;
 
-            // g_ctx->targets.add(ea, *g_ctx);
-
             auto stubs = StubsFactory::create(ctx.pinfo.getBits(), ctx.pinfo.getModeAt(ea));
             auto plan  = std::make_unique<PatchPlan>(create_target_name(ea), ea, get_item_end(ea), std::move(stubs));
 
-            g_ctx->layout.create_patch_entry(plan.get());
-            PatchPlan *inserted = static_cast<PatchPlan*>(ctx.layout.add_entry(std::move(plan)));
+            ctx.layout.create_patch_entry(plan.get());
+            PatchPlan *inserted = static_cast<PatchPlan*>(ctx.layout.queue_entry(std::move(plan)));
             create_handler_stub(inserted, ctx.pinfo);
 
+            commit_gui(ctx.layout);
+
+            ctx.layout.commit();
+            g_ctx->layout.flush();
+            g_ctx->layout._regions.refresh_all_data_items()
             greffe_msg("add target at 0x%llx\n", (ulonglong)ea);
         }
         catch (const std::exception &e) {
             greffe_msg("error: %s\n", e.what());
+            // g_ctx->layout.flush();
+            // replaced by a rollback
             return (0);
         }
 

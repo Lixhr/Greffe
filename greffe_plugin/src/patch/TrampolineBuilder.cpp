@@ -9,11 +9,11 @@
 PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
     IArchStubs& stubs = *plan.stubs;
 
-    std::vector<uint8_t> branch = stubs.branch(plan.ea, plan.addr());
+    std::vector<uint8_t> branch = stubs.branch(plan.target_ea, plan.ea());
 
     size_t len = 0;
     std::vector<ContextEntry> relocd;
-    ea_t cur = plan.ea;
+    ea_t cur = plan.target_ea;
 
     while (true) {
         if (!is_code(get_flags(cur)))
@@ -36,7 +36,7 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         }
         entry.is_xref_target = get_first_fcref_to(cur) != BADADDR;
 
-        if (cur > plan.ea && entry.is_xref_target)
+        if (cur > plan.target_ea && entry.is_xref_target)
             throw std::runtime_error("Patched branch overlaps a CODE XREF");
 
         len += size;
@@ -46,7 +46,7 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         if (len >= branch.size()) {
             plan.trampoline_ret_addr = static_cast<ea_t>(cur);
             plan.relocd_instr        = std::move(relocd);
-            return PatchBranch(plan.ea, std::move(branch), plan.trampoline_ret_addr);
+            return PatchBranch(plan.target_ea, std::move(branch), plan.trampoline_ret_addr);
         }
     }
 }
@@ -54,15 +54,15 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
 size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
                                            const SharedStub &shstub) {
     uint8_t *ptr = nullptr;
-    plan.bytes() = plan.stubs->trampoline_init(plan.addr(),
-                                               shstub.addr(),
+    plan.bytes() = plan.stubs->trampoline_init(plan.ea(),
+                                               shstub.ea(),
                                                &ptr);
-    plan.handler_ptr_addr = plan.addr() + static_cast<size_t>(ptr - plan.bytes().data());
+    plan.handler_ptr_addr = plan.ea() + static_cast<size_t>(ptr - plan.bytes().data());
     return plan.bytes().size();
 }
 
 size_t TrampolineBuilder::relocate_and_branch_back(PatchPlan& plan) {
-    uint64_t dest_addr = plan.addr() + plan.bytes().size();
+    uint64_t dest_addr = plan.ea() + plan.bytes().size();
 
     auto tail = plan.stubs->relocate_and_branch_back(plan.relocd_instr,
                                                      dest_addr,
