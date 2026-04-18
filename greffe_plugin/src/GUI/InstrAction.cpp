@@ -67,14 +67,11 @@ struct InstrActionHandler : public action_handler_t {
             commit_gui(ctx.layout);
 
             ctx.layout.commit();
-            g_ctx->layout.flush();
-            g_ctx->layout._regions.refresh_all_data_items()
             greffe_msg("add target at 0x%llx\n", (ulonglong)ea);
         }
         catch (const std::exception &e) {
             greffe_msg("error: %s\n", e.what());
-            // g_ctx->layout.flush();
-            // replaced by a rollback
+            g_ctx->layout.rollback();
             return (0);
         }
 

@@ -44,7 +44,7 @@ class PatchLayout {
         }
 
         void                             commit();
-        void                             flush();
+        void                             rollback();
         void                             sort_queue_by_type();
         bool                             overlaps_any(ea_t s, ea_t e) const;
 

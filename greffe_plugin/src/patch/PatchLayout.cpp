@@ -119,7 +119,6 @@ void PatchLayout::commit() {
     std::vector<PatchBranch*>   branches;
     std::vector<HandlerBin*>    handlers;
 
-
     for (auto& e : _queue) {
         PatchLayoutEntry* raw = e.get();
         ea_t addr = raw->ea();
@@ -130,12 +129,14 @@ void PatchLayout::commit() {
 
         _entries.insert(pos, std::move(e));
     }
+
+    _queue.clear();
+    _regions.commit();
 }
 
-void PatchLayout::flush() {
+void    PatchLayout::rollback() {
     _queue.clear();
-
-    _regions.refresh_all_data_items();
+    _regions.rollback();
 }
 
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
@@ -186,4 +187,5 @@ void PatchLayout::place_handler_bin() {
     bin.set_addr(addr);
     queue_entry(std::make_unique<HandlerBin>(std::move(bin)));
 }
+
 

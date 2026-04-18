@@ -14,8 +14,9 @@ struct PatchRegion {
     ea_t base;
     ea_t end;
     ea_t cursor;
+    ea_t old_cursor;
 
-    PatchRegion(ea_t b, ea_t e) : base(b), end(e), cursor(b) {
+    PatchRegion(ea_t b, ea_t e) : base(b), end(e), cursor(b), old_cursor(b) {
         size_t size = end - base;
 
         std::vector<uint8_t> zeroes(size);
@@ -49,6 +50,14 @@ struct PatchRegion {
         if (cursor < end)
             create_byte(cursor, end - cursor, true);
     }
+
+    void commit_cursor() {
+        old_cursor = cursor;
+    }
+
+    void reset_cursor() {
+        cursor = old_cursor;
+    }
 };
 
 
@@ -67,7 +76,8 @@ class PatchRegionSet {
         bool overlaps_any(ea_t s, ea_t e) const;
         ea_t current_addr()       const;
         ea_t alloc(uint8_t alignment, uint64_t size);
-        void refresh_all_data_items();
+        void commit();
+        void rollback();
 
     private:
         void order_insert(ea_t start, ea_t end);

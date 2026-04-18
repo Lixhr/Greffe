@@ -39,7 +39,7 @@ struct PatchActionHandler : public action_handler_t {
             //     // op_plain_offset(plan.handler_ptr_addr, 0, 0);
             // }
 
-            g_ctx->pinfo.getRegionsSet().refresh_all_data_items();
+            g_ctx->pinfo.getRegionsSet().commit();
 
             greffe_msg("patched %zu target(s)\n",
                        g_ctx->layout.patch_plans().size());

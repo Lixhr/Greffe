@@ -72,9 +72,6 @@ void PatchRegionSet::add_region(ea_t start, ea_t end) {
     merge_regions();
 }
 
-
-
-
 PatchRegion& PatchRegionSet::current_region() {
     if (_order_idx >= _order.size())
         throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
@@ -165,7 +162,16 @@ bool PatchRegionSet::overlaps_any(ea_t s, ea_t e) const {
     return false;
 }
 
-void PatchRegionSet::refresh_all_data_items() {
-    for (auto& r : _regions)
+void PatchRegionSet::commit() {
+    for (auto& r : _regions) {
+        r.commit_cursor();
         r.refresh_data_items();
+    }
+}
+
+void PatchRegionSet::rollback() {
+    for (auto& r : _regions)
+        r.reset_cursor();
+    _align_pending       = false;
+    _cursor_before_align = 0;
 }
