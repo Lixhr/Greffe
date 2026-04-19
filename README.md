@@ -6,20 +6,23 @@ Right-click any instruction in IDA's disassembly view. Greffe replaces it with a
 
 Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: **Thumb (ARM32)**.
 
+> [!NOTE]
+> Supported from IDA 9.2
+
 ---
-
-## Requirements
-
-// todo
 
 ## Build
 
+Get the [IDA Sdk](https://github.com/HexRaysSA/ida-sdk/releases) corresponding to your version.
+
+
 ```sh
-git clone --recursive https://github.com/Lixhr/Greffe.git
+IDA_SDK=/path_to_ida_sdk \
+IDA_DIR=/path_to_ida \
 make
 ```
 
-Output: `build/greffe.so`. Load it as an IDA plugin.
+Output: `build/greffe.so`. Move it into your IDS's plugin directory.
 
 ---
 
@@ -71,7 +74,7 @@ Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes th
 
 **No libc, no OS** - handlers are compiled with `-nostdlib -fno-pic`. Any helper must be self-contained or call into existing firmware code (mind the calling convention).
 
-**Non-PIE only** - Greffe does not support position-independent binaries; Frida must have a known runtime address to generate relocations 
+**Non-PIE only** - Greffe does not support position-independent binaries; Frida must have a known runtime address to generate relocated instructions.
 
 > [!NOTE]
 > A potential improvement would be to embed Frida directly into the patched binary to generate relocations at runtime.

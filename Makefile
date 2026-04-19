@@ -8,7 +8,7 @@ BUILD   := build
 OBJ_DIR := $(BUILD)/obj
 
 # IDA Plugin
-IDASDK        ?= $(HOME)/.ida-pro-9.2/sdk/
+IDA_SDK        ?= $(HOME)/.ida-pro-9.2/sdk/
 PLUGIN_TARGET := $(BUILD)/greffe.so
 
 FRIDA_DIR  := third_party/frida-gum
@@ -41,8 +41,8 @@ FRIDA_INCS := -I$(FRIDA_DIR) \
               -I$(FRIDA_DEPS)/include/capstone \
               -I$(FRIDA_DEPS)/lib/glib-2.0/include
 
-IDA_INCS := -isystem $(IDASDK)/src/include
-IDA_LIBS := -L$(IDASDK)/src/lib/x64_linux_gcc_64 -lida
+IDA_INCS := -isystem $(IDA_SDK)/src/include
+IDA_LIBS := -L$(IDA_SDK)/src/lib/x64_linux_gcc_64 -lida
 IDA_DEFS := -D__LINUX__ -D__X86_64__
 
 IDA_DIR   ?= $(HOME)/.ida-pro-9.2
@@ -65,11 +65,11 @@ CXXFLAGS := $(STD) $(WARNS) -fPIC $(INCS) $(IDA_INCS) $(IDA_DEFS) $(QT_INCS) -g 
             -D__EA64__
 LDFLAGS  := -shared $(IDA_LIBS) $(FRIDA_LDFLAGS) $(QT_LIBS)
 
-all: check-idasdk $(PLUGIN_TARGET)
+all: check-IDA_SDK $(PLUGIN_TARGET)
 
-check-idasdk:
-	@test -f $(IDASDK)/src/include/pro.h || \
-		(echo "Error: IDA SDK not found at '$(IDASDK)'. Set IDASDK=/path/to/idasdk" && exit 1)
+check-IDA_SDK:
+	@test -f $(IDA_SDK)/src/include/pro.h || \
+		(echo "Error: IDA SDK not found at '$(IDA_SDK)'. Set IDA_SDK=/path/to/IDA_SDK" && exit 1)
 
 $(FRIDA_LIB):
 	@$(MAKE) -C $(FRIDA_DIR)
@@ -98,4 +98,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all check-idasdk clean fclean re dirs
+.PHONY: all check-IDA_SDK clean fclean re dirs
