@@ -4,7 +4,6 @@ build*
 *.o
 *.a
 .*
-!.demo
 third_party/frida-gum/build/
 tests/bin/*/build/__greffe_workdir/*.o
 tests/bin/*/build/__greffe_workdir/handlers/
