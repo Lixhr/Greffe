@@ -74,7 +74,7 @@ Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes th
 **Non-PIE only** - Greffe does not support position-independent binaries; Frida must have a known runtime address to generate relocations 
 
 > [!NOTE]
-> A future improvement would be to embed Frida in the patched binary, and generate relocations dynamically.
+> A potential improvement would be to embed Frida directly into the patched binary to generate relocations at runtime.
 
 ---
 
