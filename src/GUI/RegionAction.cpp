@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include "GreffeCTX.hpp"
 
+
 extern plugin_t PLUGIN;
 
 static const char REGION_ACTION_NAME[] = "greffe:set_patch_region";
@@ -27,10 +28,13 @@ struct RegionActionHandler : public action_handler_t {
         try {
             g_ctx->pinfo.getRegionsSet().add_region(start_ea, end_ea);
             greffe_msg("patch region added: 0x%llx - 0x%llx\n", start_ea, end_ea);
-
-        } catch (const std::exception& e) {
-            greffe_msg("%s\n", e.what());
+        } 
+        catch (const std::exception &e) {
+            warning("%s", e.what());
+            greffe_msg("error: %s\n", e.what());
+            return 0;
         }
+
         return 1;
     }
 

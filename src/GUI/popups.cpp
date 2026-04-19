@@ -1,6 +1,7 @@
 #include "utils.hpp"
 #include <filesystem>
 #include <spawn.h>
+#include "kernwin.hpp"
 
 void workdir_popup(const std::filesystem::path absolute, const std::string relative) {
     std::string label = "HIDECANCEL\nWorkdir created at " + relative;
@@ -21,6 +22,4 @@ void workdir_popup(const std::filesystem::path absolute, const std::string relat
             warning("Failed to launch VSCode: %s", strerror(err));
     }
 }
-
-
 

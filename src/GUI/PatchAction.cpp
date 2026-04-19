@@ -14,12 +14,12 @@ static const char PATCH_ACTION_NAME[] = "greffe:patch";
 
 struct PatchActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *) override {
-        if (!g_ctx || g_ctx->layout.patch_plans().empty()) {
-            greffe_msg("no targets to patch\n");
-            return 0;
-        }
-
         try {
+            if (!g_ctx || g_ctx->layout.patch_plans().empty()) {
+                throw std::runtime_error("no targets to patch");
+                return 0;
+            }
+
             g_ctx->layout.free_handler_bin();
 
             HandlerBin *bin = g_ctx->layout.place_handler_bin();
@@ -41,12 +41,16 @@ struct PatchActionHandler : public action_handler_t {
             commit_gui(g_ctx->layout);
             g_ctx->layout.commit();
 
-            greffe_msg("patched %zu target(s)\n", g_ctx->layout.patch_plans().size());
+            greffe_msg("patched %zu targets\n", g_ctx->layout.patch_plans().size());
             return 0;
-        } catch (const std::exception& e) {
-            greffe_msg("patch failed: %s\n", e.what());
-            g_ctx->layout.rollback();
         }
+        catch (const std::exception &e) {
+            warning("%s", e.what());
+            greffe_msg("error: %s\n", e.what());
+            g_ctx->layout.rollback();
+            return 0;
+        }
+
         return 1;
     }
 
