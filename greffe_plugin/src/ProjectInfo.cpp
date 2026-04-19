@@ -35,6 +35,7 @@ void ProjectInfo::setupProjectDir() {
         display = "~" + display.substr(strlen(home.c_str()));
 
     greffe_msg("Workdir: %s\n", display.c_str());
+    workdir_popup(project_dir, display);
 }
 
 void ProjectInfo::populateData() {

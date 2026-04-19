@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <string>
 #include "PatchLayout.hpp"
+#include <filesystem>
 
 #define greffe_msg(fmt, ...) msg("[greffe] " fmt, ##__VA_ARGS__)
 
@@ -27,3 +28,6 @@ void commit_gui(PatchLayout &layout);
 
 void init_color_hook();
 void term_color_hook();
+
+void workdir_popup(const std::filesystem::path absolute,
+                   const std::string relative);
