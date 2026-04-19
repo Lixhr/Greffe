@@ -64,7 +64,7 @@ static const action_desc_t s_action = ACTION_DESC_LITERAL(
     REGION_ACTION_NAME,
     "Set as greffe patch region",
     &s_handler,
-    nullptr,
+    "Shift+R",
     "Set a greffe patch region on the selected address range",
     -1
 );

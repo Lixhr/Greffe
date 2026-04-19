@@ -43,5 +43,5 @@ plugin_t PLUGIN = {
     "Greffe instrumentation plugin",
     nullptr,
     "greffe",
-    "Shift+R"
+    nullptr
 };
