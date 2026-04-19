@@ -52,14 +52,19 @@ struct InstrActionHandler : public action_handler_t {
 
         try {
             if (!g_ctx || !g_ctx->pinfo.getRegionsSet().has_regions()) {
-                greffe_msg("define a patch region first\n");
+                throw std::runtime_error("define a patch region first");
                 return 0;
             }
             GreffeCTX &ctx = *g_ctx;
             ctx.layout.free_handler_bin();
 
-            auto stubs = StubsFactory::create(ctx.pinfo.getBits(), ctx.pinfo.getModeAt(ea));
-            auto plan  = std::make_unique<PatchPlan>(create_target_name(ea), ea, get_item_end(ea), std::move(stubs));
+            auto stubs = StubsFactory::create(ctx.pinfo.getBits(), 
+                                              ctx.pinfo.getModeAt(ea));
+
+            auto plan  = std::make_unique<PatchPlan>(create_target_name(ea), 
+                                                     ea, 
+                                                     get_item_end(ea),
+                                                     std::move(stubs));
 
             ctx.layout.create_patch_entry(plan.get());
             auto inserted = static_cast<PatchPlan*>(ctx.layout.queue_entry(std::move(plan)));
@@ -70,6 +75,7 @@ struct InstrActionHandler : public action_handler_t {
             greffe_msg("add target at 0x%llx\n", (ulonglong)ea);
         }
         catch (const std::exception &e) {
+            warning("%s", e.what());
             greffe_msg("error: %s\n", e.what());
             g_ctx->layout.rollback();
             return 0;
