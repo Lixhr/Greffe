@@ -55,7 +55,12 @@ Edit the generated stub. Any helper code must be self-contained or reference exi
 
 ### 5. Apply patches
 
-Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes the patches directly into IDA. Patched instructions are highlighted by type.
+Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes the patches directly into IDA.
+
+
+> [!WARNING]
+> Ensure your project is saved before applying patches.
+
 
 ---
 
@@ -66,7 +71,10 @@ Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes th
 
 **No libc, no OS** - handlers are compiled with `-nostdlib -fno-pic`. Any helper must be self-contained or call into existing firmware code (mind the calling convention).
 
-**Non-PIE only** - Greffe does not support position-independent binaries; relocated instructions must have a known runtime address.
+**Non-PIE only** - Greffe does not support position-independent binaries; frida must have a known runtime address to generate relocations 
+
+> [!NOTE]
+> A future improvement would be to embed frida in the generated stubs and generate relocations dynamically.
 
 ---
 
@@ -83,3 +91,5 @@ __greffe_workdir/
     ├── handlers.elf
     └── handlers.bin
 ```
+
+
