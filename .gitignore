@@ -1,10 +1,10 @@
 __pycache__
 **/__pycache__*
-greffe_cli/build*
+greffe_plugin/build*
 *.o
 *.a
 .*
-greffe_cli/third_party/frida-gum/build/
+greffe_plugin/third_party/frida-gum/build/
 tests/bin/*/build/__greffe_workdir/*.o
 tests/bin/*/build/__greffe_workdir/handlers/
 *.id0

@@ -21,7 +21,7 @@ Copy `ida_greffe/` and `ida_entry.py` into your IDA plugins directory.
 **CLI**
 ```sh
 sudo apt-get install make g++ libreadline-dev libzmq3-dev nlohmann-json3-dev libelf-dev libglib2.0-dev
-cd greffe_cli && make
+cd greffe_plugin && make
 ```
 
 Depending on your target, a cross-compiler must be available in your `$PATH`.
@@ -37,7 +37,7 @@ Open your binary in IDA, then load the plugin: **Edit -> Plugins -> Greffe**.
 This starts the IDA-side socket server. Then, in a separate terminal, run the CLI:
 
 ```sh
-./greffe_cli/build/greffe
+./greffe_plugin/build/greffe
 ```
 
 The CLI connects to IDA and creates `__greffe_workdir/` next to the binary.
