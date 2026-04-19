@@ -1,103 +1,72 @@
 # Greffe
 
-IDA plugin for instrumenting bare-metal binaries without debugging capabilities.
+> IDA Pro plugin for non-intrusive binary patching. Especially useful on bare-metal targets without debugging capabilities.
 
-Select any instruction in IDA, Greffe replaces it with a branch to a user-written C handler. The original instruction is relocated and executed transparently after the handler returns.
+Right-click any instruction in IDA's disassembly view. Greffe replaces it with a branch to a user-written C handler, transparently relocating the original instruction so execution continues correctly after the handler returns.
 
-Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: Thumb.
+Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: **Thumb (ARM32)**.
 
 ---
 
-## Installation
+## Requirements
 
-```
-git clone --recursive https://github.com/Lixhr/Greffe.git
-```
+// todo
 
-**IDA plugin** 
+## Build
 
-Copy `ida_greffe/` and `ida_entry.py` into your IDA plugins directory.
-
-**CLI**
 ```sh
-sudo apt-get install make g++ libreadline-dev libzmq3-dev nlohmann-json3-dev libelf-dev libglib2.0-dev
-cd greffe_plugin && make
+git clone --recursive https://github.com/Lixhr/Greffe.git
+make
 ```
 
-Depending on your target, a cross-compiler must be available in your `$PATH`.
+Output: `build/greffe.so`. Load it as an IDA plugin.
 
 ---
 
 ## Usage
 
-### 1. Start
+### 1. Load the plugin
 
-Open your binary in IDA, then load the plugin: **Edit -> Plugins -> Greffe**.
+Open your binary in IDA, then: **Edit → Plugins → Greffe**.
 
-This starts the IDA-side socket server. Then, in a separate terminal, run the CLI:
+### 2. Define patch regions
 
-```sh
-./greffe_plugin/build/greffe
-```
+In the disassembly view, select a range of bytes where trampolines and handlers can be injected, then right-click → **Set as greffe patch region** (or `Shift+R`).
 
-The CLI connects to IDA and creates `__greffe_workdir/` next to the binary.
+The region must be mapped as executable at runtime. Typical candidates: padding between sections, unused functions, ...
 
-### 2. Add a greffe
+### 3. Add a greffe
 
-**From IDA** - right-click any instruction -> *Add a Greffe* (or `Shift+G`). The greffe then appears in the CLI.
+Right-click any instruction in the disassembly view → **Add a Greffe** (or `Shift+G`).
 
-**From the CLI** - by function name or address:
-```
-greffe> add my_func
-greffe> add 0x8004A2C
-```
+A C stub is automatically created at `__greffe_workdir/handlers/`:
 
-### 3. Write the handler
-
-A C stub is automatically created in `__greffe_workdir/handlers/`:
 ```c
-// handlers/my_func.c
 void handler_my_func(void)
 {
-    // bare-metal context - no libc
 }
 ```
 
-You can add extra `.c` files in `handlers/`, all of them are compiled and linked into the same blob.
+You can add extra `.c` files under `handlers/`; all are compiled and linked into the same blob.
 
-### 4. Patch
+### 4. Write the handler
 
-```
-greffe> patch
-```
+Edit the generated stub. Any helper code must be self-contained or reference existing firmware symbols directly.
 
-Compiles all handlers and writes the patched binary alongside the original: `firmware.bin.greffe`. Flash it to your target.
+### 5. Apply patches
 
-Use `save` to persist the greffes list. It is automatically reloaded on the next CLI launch.
+Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes the patches directly into IDA. Patched instructions are highlighted by type.
 
 ---
 
-## Commands
-
-| Command | Description |
-|---|---|
-| `add <name\|0xaddr>` | Register a greffe |
-| `del <name\|0xaddr>` | Remove a greffe |
-| `list` | List registered greffes |
-| `save` | Save state to `workdir/.greffe` |
-| `patch` | Compile handlers and apply all greffes |
-
----
 
 ## Constraints
 
-**Flashing** - Greffe produces a modified binary that must be flashed to the target. Any secure boot chain must be bypassed or disabled before.
+**Executable spare reguib** - trampolines are injected into patch regions that must be executable at runtime.
 
-**Executable spare region** - trampolines and compiled handlers are injected at `patch_base`. This region must be mapped as executable at runtime. Typical candidates: padding between sections, unused code, ...
+**No libc, no OS** - handlers are compiled with `-nostdlib -fno-pic`. Any helper must be self-contained or call into existing firmware code (mind the calling convention).
 
-**Output channel** - Greffe only patches the binary, it provides no data collection mechanism. Handlers need a way to exfiltrate results: UART, PWM, a very attentive oscilloscope, ... Whatever the target exposes.
-
-**No libc, no OS** - handlers are compiled with `-nostdlib`. Any helper must be self-contained or reference existing firmware code explicitly. (beware of the ABI)
+**Non-PIE only** - Greffe does not support position-independent binaries; relocated instructions must have a known runtime address.
 
 ---
 
@@ -105,10 +74,10 @@ Use `save` to persist the greffes list. It is automatically reloaded on the next
 
 ```
 __greffe_workdir/
-├── Makefile          auto-generated
-├── .greffe           saved configuratin
+├── Makefile              auto-generated
+├── greffe_active.mk      lists active handler sources
 ├── handlers/
-│   ├── my_func.c     <- edit this
+│   ├── my_func.c         ← edit this
 │   └── usr_utils.c
 └── build/
     ├── handlers.elf
