@@ -97,4 +97,4 @@ __greffe_workdir/
 
 ---
 
-![demo](.demo.gif)
+![demo](demo.gif)
