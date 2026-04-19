@@ -59,22 +59,22 @@ Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes th
 
 
 > [!WARNING]
-> Ensure your project is saved before applying patches.
-
+> Greffe modifies the binary and may break IDA xrefs or labels.  
+> Make sure to back up your project before using it.
 
 ---
 
 
 ## Constraints
 
-**Executable spare reguib** - trampolines are injected into patch regions that must be executable at runtime.
+**Executable spare regions** - trampolines are injected into patch regions that must be executable at runtime.
 
 **No libc, no OS** - handlers are compiled with `-nostdlib -fno-pic`. Any helper must be self-contained or call into existing firmware code (mind the calling convention).
 
-**Non-PIE only** - Greffe does not support position-independent binaries; frida must have a known runtime address to generate relocations 
+**Non-PIE only** - Greffe does not support position-independent binaries; Frida must have a known runtime address to generate relocations 
 
 > [!NOTE]
-> A future improvement would be to embed frida in the generated stubs and generate relocations dynamically.
+> A future improvement would be to embed Frida in the patched binary, and generate relocations dynamically.
 
 ---
 
