@@ -22,7 +22,7 @@ IDA_DIR=/path_to_ida \
 make
 ```
 
-Output: `build/greffe.so`. Move it into your IDS's plugin directory.
+Output: `build/greffe.so`. Move it into your IDA's plugin directory.
 
 ---
 
