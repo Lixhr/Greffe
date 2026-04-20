@@ -90,19 +90,40 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
         mk << '\n';
     }
 
+    int pipefd[2];
+    if (pipe(pipefd) < 0)
+        throw std::runtime_error("HandlerCompiler: pipe() failed");
+
     pid_t pid = fork();
     if (pid < 0)
         throw std::runtime_error("HandlerCompiler: fork() failed");
     if (pid == 0) {
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        dup2(pipefd[1], STDERR_FILENO);
+        close(pipefd[1]);
         execlp("make", "make", "re", "-C", workdir.c_str(), nullptr);
-        _exit(127);
+        _exit(1);
     }
+    close(pipefd[1]);
+
+    std::string build_output;
+    {
+        char buf[4096];
+        ssize_t n;
+        while ((n = read(pipefd[0], buf, sizeof(buf))) > 0)
+            build_output.append(buf, n);
+        close(pipefd[0]);
+    }
+
     int status;
     if (qwait(&status, pid, 0) != pid)
         throw std::runtime_error("HandlerCompiler: waitpid() failed");
     int ret = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-    if (ret != 0)
+    if (ret != 0) {
+        msg("%s\n", build_output.c_str());
         throw std::runtime_error("HandlerCompiler: make failed (exit " + std::to_string(ret) + ")");
+    }
 
     auto elf_path = workdir / "build" / "handlers.elf";
     auto bin_path = workdir / "build" / "handlers.bin";
