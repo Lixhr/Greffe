@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PatchRegionSet.hpp"
+#include "patch/arch/StubsFactory.hpp"
 #include <filesystem>
 #include <vector>
 #include "ida.hpp"
@@ -17,7 +18,7 @@ struct ProjectInfo {
         const std::filesystem::path&      getBinPath()       const { return bin_path; }
         const std::string&                getArch()          const { return arch; }
         const std::string&                getEndianness()    const { return endianness; }
-        std::string                       getModeAt(ea_t ea) const;
+        ArchKey                           getArchKeyAt(ea_t ea) const;
 
         const PatchRegionSet&             getRegionsSet() const { return _regions; }
         PatchRegionSet&                   getRegionsSet()       { return _regions; }

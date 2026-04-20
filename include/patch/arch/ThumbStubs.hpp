@@ -1,13 +1,15 @@
 #pragma once
-#include "../IArchStubs.hpp"
+#include "IArchStubs.hpp"
+#include <gum/arch-arm/gumthumbwriter.h>
 
 class ThumbStubs final : public IArchStubs {
     public:
-        void                 save_ctx(GumThumbWriter *w)             override;
-        void                 restore_ctx(GumThumbWriter *w)          override;
-        std::vector<uint8_t> branch(ea_t from, ea_t to)      override;
-        std::vector<uint8_t> call  (ea_t from, ea_t to)      override;
-        std::vector<uint8_t> build_shared_stub(ea_t at)          override;
+        ThumbStubs(int bits, std::string endianness)
+            : IArchStubs(bits, std::move(endianness)) {}
+
+        std::vector<uint8_t> branch(ea_t from, ea_t to)             override;
+        std::vector<uint8_t> call  (ea_t from, ea_t to)             override;
+        std::vector<uint8_t> build_shared_stub(ea_t at)             override;
 
         std::vector<uint8_t> trampoline_init(ea_t at,
                                              ea_t      shstub_addr,
@@ -19,7 +21,8 @@ class ThumbStubs final : public IArchStubs {
                                     ea_t                             branch_to) override;
         std::string          name()            const override;
         uint8_t              instr_alignment() const override { return 4; }
-        uint8_t              sizeof_ptr()      const override { return 4; }
-        void                 write_ptr(uint8_t* dst, ea_t addr) const override;
 
+    private:
+        void save_ctx(GumThumbWriter *w);
+        void restore_ctx(GumThumbWriter *w);
 };

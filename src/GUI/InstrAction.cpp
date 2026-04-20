@@ -32,9 +32,9 @@ static void create_handler_stub(const PatchPlan* plan, const ProjectInfo& pinfo)
     };
 
     std::string_view attr;
-    const std::string mode = pinfo.getModeAt(static_cast<ea_t>(plan->target_ea));
+    const ArchKey key = pinfo.getArchKeyAt(static_cast<ea_t>(plan->target_ea));
     for (const auto& [m, a] : attr_table)
-        if (mode == m) { attr = a; break; }
+        if (key.mode == m) { attr = a; break; }
 
     std::ofstream f(path);
     if (!f)
@@ -58,8 +58,7 @@ struct InstrActionHandler : public action_handler_t {
             GreffeCTX &ctx = *g_ctx;
             ctx.layout.free_handler_bin();
 
-            auto stubs = StubsFactory::create(ctx.pinfo.getBits(), 
-                                              ctx.pinfo.getModeAt(ea));
+            auto stubs = StubsFactory::create(ctx.pinfo.getArchKeyAt(ea));
 
             auto plan  = std::make_unique<PatchPlan>(create_target_name(ea), 
                                                      ea, 

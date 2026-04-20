@@ -55,17 +55,16 @@ ProjectInfo::ProjectInfo() {
     setupProjectDir();
 }
 
-std::string ProjectInfo::getModeAt(ea_t ea) const {
-    char buf[32];
-    get_idp_name(buf, sizeof(buf));
-    std::string idp = buf;
-    std::transform(idp.begin(), idp.end(), idp.begin(), ::tolower);
+ArchKey ProjectInfo::getArchKeyAt(ea_t ea) const {
+    std::string lower_arch = arch;
+    std::transform(lower_arch.begin(), lower_arch.end(), lower_arch.begin(), ::tolower);
 
-    if (idp == "arm") {
+    std::string mode;
+    if (lower_arch == "arm") {
         int t_reg = str2reg("T");
         if (t_reg >= 0 && get_sreg(ea, t_reg) == 1)
-            return "thumb";
-        return "";
+            mode = "thumb";
     }
-    return "";
+
+    return { bits, lower_arch, mode, endianness };
 }
