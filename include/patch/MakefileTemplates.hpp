@@ -1,49 +1,67 @@
 #pragma once
 
-#include <stdexcept>
+#include "patch/arch/StubsFactory.hpp"
 #include <string>
 #include <string_view>
 
 namespace MakefileTemplates {
 
-static const std::pair<std::string_view, std::string_view> table[] = {
-    { "ARM", R"makefile(CC      := arm-none-eabi-gcc
-OBJCOPY := arm-none-eabi-objcopy
-CFLAGS  := -fno-pic -nostdlib -Os -ffunction-sections -fdata-sections -Ttext=0x0
+// Renders a Makefile for the given arch descriptor.
+inline std::string render(const ArchDescriptor& d) {
+    std::string discard = "*(.note*) *(.comment*)";
+    if (!d.ld_discard.empty()) {
+        discard = std::string(d.ld_discard) + " " + discard;
+    }
 
-NON_GREFFE_SRCS := $(filter-out %_greffe.c,$(wildcard handlers/*.c))
--include greffe_active.mk
-SRCS := $(NON_GREFFE_SRCS) $(ACTIVE_GREFFE_SRCS)
-OBJS := $(patsubst handlers/%.c,build/%.o,$(SRCS))
+    std::string cflags = "-fno-pic -nostdlib -Os -ffunction-sections -fdata-sections";
+    if (!d.cflags_extra.empty()) {
+        cflags += " ";
+        cflags += d.cflags_extra;
+    }
 
-all: build/handlers.bin build/handlers.elf
+    return std::string("CC      := ") + std::string(d.cc) + "\n"
+         + "OBJCOPY := " + std::string(d.objcopy) + "\n"
+         + "CFLAGS  := " + cflags + "\n"
+         + "LDSCRIPT := build/handlers.ld\n"
+         + "\n"
+         + "NON_GREFFE_SRCS := $(filter-out %_greffe.c,$(wildcard handlers/*.c))\n"
+         + "-include greffe_active.mk\n"
+         + "SRCS := $(NON_GREFFE_SRCS) $(ACTIVE_GREFFE_SRCS)\n"
+         + "OBJS := $(patsubst handlers/%.c,build/%.o,$(SRCS))\n"
+         + "\n"
+         + "all: build/handlers.bin build/handlers.elf\n"
+         + "\n"
+         + "$(LDSCRIPT): | build\n"
+         + "\t@printf 'SECTIONS {\\n  . = 0x0;\\n  .text   : { *(.text*) }\\n"
+           "  .rodata : { *(.rodata*) }\\n  .data   : { *(.data*) }\\n"
+           "  .bss    : { *(.bss*) }\\n"
+           "  /DISCARD/ : { " + discard + " }\\n}\\n' > $@\n"
+         + "\n"
+         + "build/handlers.elf: $(OBJS) $(LDSCRIPT) | build\n"
+         + "\t$(CC) $(CFLAGS) -T $(LDSCRIPT) -Wl,-Map=build/handlers.map -o $@ $(OBJS)\n"
+         + "\n"
+         + "build/handlers.bin: build/handlers.elf | build\n"
+         + "\t$(OBJCOPY) -O binary $< $@\n"
+         + "\n"
+         + "build/%.o: handlers/%.c | build\n"
+         + "\t$(CC) $(CFLAGS) -c $< -o $@\n"
+         + "\n"
+         + "build:\n"
+         + "\tmkdir -p build\n"
+         + "\n"
+         + "clean:\n"
+         + "\trm -rf build\n"
+         + "\n"
+         + "re: clean all\n"
+         + "\n"
+         + ".PHONY: all clean re\n";
+}
 
-build/handlers.elf: $(OBJS) | build
-	$(CC) $(CFLAGS) -Wl,-Map=build/handlers.map -o $@ $^
-
-build/handlers.bin: build/handlers.elf | build
-	$(OBJCOPY) -O binary $< $@
-
-build/%.o: handlers/%.c | build
-	$(CC) $(CFLAGS) -c $< -o $@
-
-build:
-	mkdir -p build
-
-clean:
-	rm -rf build
-
-re: clean all
-
-.PHONY: all clean re
-)makefile" },
-};
-
-inline std::string_view get(const std::string& arch) {
-    for (const auto& [a, content] : table)
-        if (a == arch) return content;
-
-    throw std::runtime_error("MakefileTemplates: no template for arch: " + arch);
+inline std::string get(int bits, const std::string& arch, const std::string& endianness) {
+    const ArchDescriptor* d = StubsFactory::findDescriptor(bits, arch, endianness);
+    if (!d)
+        throw std::runtime_error("MakefileTemplates: no descriptor for arch: " + arch);
+    return render(*d);
 }
 
 } // namespace MakefileTemplates
