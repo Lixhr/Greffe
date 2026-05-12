@@ -2,9 +2,8 @@
 #include <idp.hpp>
 #include <kernwin.hpp>
 #include "GUI/Actions.hpp"
+#include "GreffeOps.hpp"
 #include "utils.hpp"
-#include "GreffeCTX.hpp"
-
 
 extern plugin_t PLUGIN;
 
@@ -19,17 +18,9 @@ struct RegionActionHandler : public action_handler_t {
             return 0;
         }
 
-        ea_t start_ea = p1.at->toea();
-        ea_t end_ea   = p2.at->toea();
-
-        if (!g_ctx)
-            g_ctx = std::make_unique<GreffeCTX>();
-
         try {
-            g_ctx->pinfo.getRegionsSet().add_region(start_ea, end_ea);
-            greffe_msg("patch region added: 0x%llx - 0x%llx\n", start_ea, end_ea);
-        } 
-        catch (const std::exception &e) {
+            greffe_set_region(p1.at->toea(), p2.at->toea());
+        } catch (const std::exception &e) {
             warning("%s", e.what());
             greffe_msg("error: %s\n", e.what());
             return 0;

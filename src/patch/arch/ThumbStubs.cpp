@@ -111,13 +111,11 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(ea_t at,
         throw std::runtime_error("ThumbStubs::trampoline_init: push R0 failed");
     }
 
-
-    // get the literal pool address
+    // get the literal pool address (pool is 8 bytes after this instruction)
     gum_thumb_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_PC, 4);
     write_branch(&w, w.pc, shstub_addr);
-    
 
-    // align 
+    // trailing NOP keeps the literal pool 8 bytes from the ADD in both alignment cases
     gum_thumb_writer_put_nop(&w);
 
     std::vector<uint8_t> bytes = thumb_collect(w, buf, "ThumbStubs::trampoline_init");
