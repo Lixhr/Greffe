@@ -31,7 +31,10 @@ def main():
         instr_addr.append(ea)
         ea = idc.next_head(ea, func.end_ea)
 
-    for ea in instr_addr:
+    for i, ea in enumerate(instr_addr):
+        print(f"============> {i}")
+        if i == 31: ##probleme a partir de 31;
+            break
         greffe.add_instr(ea)
 
     greffe.apply_patches()

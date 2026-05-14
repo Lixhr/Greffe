@@ -19,6 +19,10 @@ class ThumbStubs final : public IArchStubs {
                                     const std::vector<ContextEntry>& instrs,
                                     ea_t                             dest_addr,
                                     ea_t                             branch_to) override;
+
+        bool                 at_reloc_boundary(const std::vector<ContextEntry>& collected) const override;
+        std::vector<uint8_t> nop_bytes()       const override;
+
         std::string          name()            const override;
         uint8_t              instr_alignment() const override { return 4; }
 

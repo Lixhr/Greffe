@@ -1,12 +1,12 @@
 __pycache__
 **/__pycache__*
-build*
+./build*
 *.o
+*.so
 *.a
+*.d
 .*
 third_party/frida-gum/build/
-tests/bin/*/build/__greffe_workdir/*.o
-tests/bin/*/build/__greffe_workdir/handlers/
 *.id0
 *.id1
 *.i64
@@ -20,3 +20,5 @@ tests/bin/*/build/__greffe_workdir/handlers/
 *.greffe
 CLAUDE.md
 .gitignore
+tests/toolchains
+tests/*/build

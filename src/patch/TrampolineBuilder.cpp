@@ -43,7 +43,14 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         relocd.push_back(std::move(entry));
         cur += size;
 
-        if (len >= branch.size()) {
+        if (len >= branch.size() && stubs.at_reloc_boundary(relocd)) {
+            // NOP-pad the branch to cover any instructions collected beyond
+            // the branch size (e.g. IT-block tail past the hook branch).
+            if (len > branch.size()) {
+                const auto nop = stubs.nop_bytes();
+                while (branch.size() < len)
+                    branch.insert(branch.end(), nop.begin(), nop.end());
+            }
             plan.trampoline_ret_addr = static_cast<ea_t>(cur);
             plan.relocd_instr        = std::move(relocd);
             return PatchBranch(plan.target_ea, std::move(branch), plan.trampoline_ret_addr);

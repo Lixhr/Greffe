@@ -50,7 +50,7 @@ clean:
 re: clean all
 
 test:
-	~/.ida-pro-9.2/idat -L/tmp/greffe_test.log -A -S/home/cbeaufil/greffe/tests/test.py ~/greffe/tests/arm32-thumb/build/test
+	~/.ida-pro-9.2/idat -L/tmp/greffe_test.log  -P- -A -S/home/cbeaufil/greffe/tests/test.py ~/greffe/tests/arm32-thumb-be/build/test
 	cat /tmp/greffe_test.log
 
 	

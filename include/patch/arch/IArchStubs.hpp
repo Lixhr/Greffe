@@ -23,6 +23,10 @@ class IArchStubs {
                                             ea_t                             dest_addr,
                                             ea_t                             branch_to) = 0;
 
+        // Override both together when an arch has instructions that form semantic groups (IT blocks, ..).
+        virtual bool                 at_reloc_boundary(const std::vector<ContextEntry>&) const { return true; }
+        virtual std::vector<uint8_t> nop_bytes()       const { return {}; }
+
         virtual std::string      name()            const = 0;
         virtual uint8_t          instr_alignment() const = 0;
 
