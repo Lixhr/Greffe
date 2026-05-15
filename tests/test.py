@@ -33,8 +33,8 @@ def main():
 
     for i, ea in enumerate(instr_addr):
         print(f"============> {i}")
-        if i == 31: ##probleme a partir de 31;
-            break
+        # if i == 31: ##probleme a partir de 31;
+            # break
         greffe.add_instr(ea)
 
     greffe.apply_patches()

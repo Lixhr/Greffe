@@ -14,7 +14,11 @@ std::string ThumbStubs::name() const { return "Thumb"; }
 
 static std::vector<uint8_t> thumb_collect(GumThumbWriter& w,
                                           std::vector<uint8_t>& buf,
-                                          const char* ctx) {
+                                          const char* ctx,
+                                          bool big_endian = false) {
+    size_t      pre_flush = reinterpret_cast<uint8_t*>(w.code)
+                          - reinterpret_cast<uint8_t*>(w.base);
+    GumAddress  pre_pc    = w.pc;
     gum_thumb_writer_flush(&w);
     size_t written = reinterpret_cast<uint8_t*>(w.code)
                    - reinterpret_cast<uint8_t*>(w.base);
@@ -22,6 +26,17 @@ static std::vector<uint8_t> thumb_collect(GumThumbWriter& w,
     if (written == 0)
         throw std::runtime_error(std::string(ctx) + ": writer produced no bytes");
     buf.resize(written);
+
+    if (big_endian) {
+        // frida doesn't handles BE literal pool writes.
+        // done manually
+        size_t pool = pre_flush + ((pre_pc & 2) ? 2 : 0);
+        for (size_t i = pool; i + 4 <= written; i += 4) {
+            std::swap(buf[i],     buf[i + 3]);
+            std::swap(buf[i + 1], buf[i + 2]);
+        }
+    }
+
     return std::move(buf);
 }
 
@@ -82,7 +97,7 @@ std::vector<uint8_t> ThumbStubs::branch(ea_t from, ea_t to) {
     w.pc = static_cast<GumAddress>(from);
 
     write_branch(&w, from, to);
-    return thumb_collect(w, buf, "ThumbStubs::branch");
+    return thumb_collect(w, buf, "ThumbStubs::branch", is_big_endian());
 }
 
 std::vector<uint8_t> ThumbStubs::call(ea_t from, ea_t to) {
@@ -91,7 +106,7 @@ std::vector<uint8_t> ThumbStubs::call(ea_t from, ea_t to) {
     gum_thumb_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(from);
     gum_thumb_writer_put_bl_imm(&w, static_cast<GumAddress>(to));
-    return thumb_collect(w, buf, "ThumbStubs::call");
+    return thumb_collect(w, buf, "ThumbStubs::call", is_big_endian());
 }
 
 std::vector<uint8_t> ThumbStubs::trampoline_init(ea_t at, 
@@ -118,7 +133,7 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(ea_t at,
     // trailing NOP keeps the literal pool 8 bytes from the ADD in both alignment cases
     gum_thumb_writer_put_nop(&w);
 
-    std::vector<uint8_t> bytes = thumb_collect(w, buf, "ThumbStubs::trampoline_init");
+    std::vector<uint8_t> bytes = thumb_collect(w, buf, "ThumbStubs::trampoline_init", is_big_endian());
     *ptr_array = reinterpret_cast<uint8_t *>(bytes.data() + bytes.size());
 
     // reserve fake literal pool for handler address
@@ -156,7 +171,7 @@ std::vector<uint8_t> ThumbStubs::relocate_and_branch_back(
                                   - reinterpret_cast<uint8_t*>(w.base));
     write_branch(&w, br_from, branch_to);
 
-    return thumb_collect(w, buf, "ThumbStubs::relocate_and_branch_back");
+    return thumb_collect(w, buf, "ThumbStubs::relocate_and_branch_back", is_big_endian());
 }
 
 bool ThumbStubs::at_reloc_boundary(const std::vector<ContextEntry>& collected) const {
@@ -213,5 +228,5 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(ea_t at) {
     // branch to the 'ret'
     gum_thumb_writer_put_pop_regs(&w, 1, ARM_REG_PC);
 
-    return thumb_collect(w, buf, "ThumbStubs::build_shared_stub");
+    return thumb_collect(w, buf, "ThumbStubs::build_shared_stub", is_big_endian());
 }

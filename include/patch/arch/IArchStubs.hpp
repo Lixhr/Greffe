@@ -49,6 +49,8 @@ class IArchStubs {
         }
 
     protected:
+        bool is_big_endian() const { return _endianness != "le"; }
+
         IArchStubs(int bits, std::string endianness)
             : _bits(bits), _endianness(std::move(endianness)) {}
 
