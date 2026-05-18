@@ -1,6 +1,6 @@
 import idaapi
 import greffe
-import ida_segment
+import ida_segment, ida_segregs, ida_auto, ida_idp
 import idc, ida_name, ida_funcs, ida_bytes
 import shutil
 
@@ -18,12 +18,28 @@ def export_patched(out_path):
             return 0
         ida_bytes.visit_patched_bytes(0, idc.BADADDR, patch)
 
+def ensure_arm_mode(func):
+    t_reg = ida_idp.str2reg("T")
+    if t_reg < 0 or ida_segregs.get_sreg(func.start_ea, t_reg) == 0:
+        return
+    ida_segregs.split_sreg_range(func.start_ea, t_reg, 0, ida_segregs.SR_user)
+    ida_auto.plan_and_wait(func.start_ea, func.end_ea)
+
 def main():
+    # argv[1]: output path for patched binary (default /tmp/patched_out)
+    # argv[2]: "--force-arm" to force ARM analysis (use for ARM-mode binaries)
+    out_path  = idc.ARGV[1] if len(idc.ARGV) > 1 else "/tmp/patched_out"
+    force_arm = len(idc.ARGV) > 2 and idc.ARGV[2] == "--force-arm"
+
     idaapi.auto_wait()
 
     set_patch_region()
     ea = ida_name.get_name_ea(idc.BADADDR, "checksum")
     func = ida_funcs.get_func(ea)
+
+    if force_arm:
+        ensure_arm_mode(func)
+        func = ida_funcs.get_func(ea)
 
     instr_addr = []
     while ea < func.end_ea:
@@ -33,11 +49,9 @@ def main():
 
     for i, ea in enumerate(instr_addr):
         print(f"============> {i}")
-        # if i == 31: ##probleme a partir de 31;
-            # break
         greffe.add_instr(ea)
 
     greffe.apply_patches()
-    export_patched("/tmp/patched_out")
+    export_patched(out_path)
 
 main()
