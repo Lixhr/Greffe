@@ -44,8 +44,6 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
         cur += size;
 
         if (len >= branch.size() && stubs.at_reloc_boundary(relocd)) {
-            // NOP-pad the branch to cover any instructions collected beyond
-            // the branch size (e.g. IT-block tail past the hook branch).
             if (len > branch.size()) {
                 const auto nop = stubs.nop_bytes();
                 while (branch.size() < len)

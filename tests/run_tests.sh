@@ -8,7 +8,7 @@ echo "==> Building test binaries..."
 make -C "$TESTS_DIR" re
 
 VARIANTS=(
-    "aarch64        qemu-aarch64     no"
+    "aarch64-le     qemu-aarch64     no"
     "aarch64-be     qemu-aarch64_be  no"
     "arm32          qemu-arm         yes"
     "arm32-be       qemu-armeb       yes"

@@ -1,6 +1,7 @@
 #include "arch/StubsFactory.hpp"
 #include "arch/ThumbStubs.hpp"
 #include "arch/Arm32Stubs.hpp"
+#include "arch/Aarch64Stubs.hpp"
 #include <idp.hpp>
 #include <map>
 #include <segregs.hpp>
@@ -29,8 +30,26 @@ static const ArchDescriptor descriptors[] = {
             if (k.mode == "thumb") return std::make_shared<ThumbStubs>(k.bits, k.endianness);
             return std::make_shared<Arm32Stubs>(k.bits, k.endianness);
         },
-        "arm-none-eabi-gcc", "arm-none-eabi-objcopy", "",
+        "armeb-linux-gnueabihf-gcc", "armeb-linux-gnueabihf-objcopy", "",
         "*(.ARM.exidx*) *(.ARM.extab*)",
+    },
+    {
+        64, "arm", "le",
+        [](ea_t) { return std::string("aarch64"); },
+        [](const ArchKey& k) -> std::shared_ptr<IArchStubs> {
+            return std::make_shared<Arm64Stubs>(k.bits, k.endianness);
+        },
+        "aarch64-none-linux-gnu-gcc", "aarch64-none-linux-gnu-objcopy", "",
+        "",
+    },
+    {
+        64, "armb", "be",
+        [](ea_t) { return std::string("aarch64"); },
+        [](const ArchKey& k) -> std::shared_ptr<IArchStubs> {
+            return std::make_shared<Arm64Stubs>(k.bits, k.endianness);
+        },
+        "aarch64_be-none-linux-gnu-gcc", "aarch64_be-none-linux-gnu-objcopy", "",
+        "",
     },
 };
 
