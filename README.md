@@ -10,7 +10,8 @@ Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-
 - ARM32-BE
 - ARM32-Thumb-LE
 - ARM32-Thumb-BE
-
+- Aarch64-LE
+- Aarch64-BE
 
 > [!NOTE]
 > Supported from IDA 9.2
