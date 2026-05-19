@@ -41,7 +41,7 @@ inline std::string render(const ArchDescriptor& d) {
          + "\t$(CC) $(CFLAGS) -T $(LDSCRIPT) -Wl,-Map=build/handlers.map -o $@ $(OBJS)\n"
          + "\n"
          + "build/handlers.bin: build/handlers.elf | build\n"
-         + "\t$(OBJCOPY) -O binary $< $@\n"
+         + "\t$(OBJCOPY) -j .text -j .rodata -j .data -O binary $< $@\n"
          + "\n"
          + "build/%.o: handlers/%.c | build\n"
          + "\t$(CC) $(CFLAGS) -c $< -o $@\n"
