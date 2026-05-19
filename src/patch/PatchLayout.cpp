@@ -11,6 +11,7 @@
 #include "name.hpp"
 #include "HandlerCompiler.hpp"
 #include "GreffeCTX.hpp"
+#include "db.hpp"
 
 static std::string hex(ea_t v) {
     std::ostringstream ss;
@@ -219,4 +220,23 @@ void PatchLayout::load_from_db(netnode &node) {
 
 void PatchLayout::save_db(netnode &node) {
     _regions.save_db(node);
+
+    size_t n            = _entries.size();
+    if (!n)
+        return;
+
+    size_t alloc_sz     = sizeof(DB_PatchLayout) + n * sizeof(DB_PatchLayout::DB_PatchLayout_entry);
+    auto  *db_entry     = static_cast<DB_PatchLayout *>(malloc(alloc_sz));
+    if (!db_entry)
+        return;
+
+    db_entry->n_entries = n;
+    for (size_t i = 0; i < n; i++) {
+        db_entry->entries[i].base = _entries[i]->ea();
+        db_entry->entries[i].end  = _entries[i]->end_ea();
+        db_entry->entries[i].type = _entries[i]->type();
+    }
+
+    node.setblob(db_entry, alloc_sz, 0, DB_IDs::PatchLayout_entry);
+    free(db_entry);
 }

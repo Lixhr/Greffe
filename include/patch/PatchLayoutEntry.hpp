@@ -6,7 +6,7 @@
 #include "patch/arch/IArchStubs.hpp"
 
 
-// The order is important here, because the gui are applied by type's order
+// The order is important here, because the gui is applied by type order
 enum PLEType {
     entry_shstub,
     entry_branch,
@@ -19,10 +19,8 @@ class PatchLayoutEntry {
     public:
         virtual     ~PatchLayoutEntry() = default;
 
-        void                        set_offset(uint64_t offset);
         void                        set_addr(ea_t addr);
         std::vector<uint8_t>&       bytes();
-        uint64_t                    offset() const;
         ea_t                        ea()   const;
         ea_t                        end_ea()   const;
         const std::vector<uint8_t>& bytes()  const;

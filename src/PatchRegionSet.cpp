@@ -189,9 +189,14 @@ void PatchRegionSet::load_from_db(netnode &node) {
 
 void PatchRegionSet::save_db(netnode &node) {
     size_t n        = _regions.size();
+    if (!n)
+        return;
+
     size_t alloc_sz = sizeof(DB_PatchRegions) + n * sizeof(DB_PatchRegions::DB_PatchRegions_entry);
     auto  *db_entry = static_cast<DB_PatchRegions *>(malloc(alloc_sz));
-    
+    if (!db_entry)
+        return;
+
     db_entry->n_regions = n;
     for (size_t i = 0; i < n; i++) {
         db_entry->regions[i].base = _regions[i].base;
