@@ -11,7 +11,8 @@ void save_db(std::unique_ptr<GreffeCTX> &g_ctx);
 
 enum DB_IDs {
     PatchRegions_entry,
-    PatchLayout_entry
+    PatchLayout_entry,
+    PatchPlans_entry,
 };
 
 struct DB_PatchRegions {
@@ -27,6 +28,14 @@ struct DB_PatchLayout {
     struct  DB_PatchLayout_entry {
         ea_t    base;
         ea_t    end;
-        PLEType type;      
+        PLEType type;
     }   entries[];
+};
+
+struct DB_PatchPlan_meta {
+    ea_t     target_ea;
+    ea_t     target_end_ea;
+    ea_t     handler_ptr_addr;
+    uint32_t name_len;
+    char     name[];
 };
