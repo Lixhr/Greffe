@@ -4,7 +4,13 @@
 
 Right-click any instruction in IDA's disassembly view. Greffe replaces it with a branch to a user-written C handler, transparently relocating the original instruction so execution continues correctly after the handler returns.
 
-Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: **Thumb (ARM32)**.
+Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: 
+
+- ARM32-LE
+- ARM32-BE
+- ARM32-Thumb-LE
+- ARM32-Thumb-BE
+
 
 > [!NOTE]
 > Supported from IDA 9.2
