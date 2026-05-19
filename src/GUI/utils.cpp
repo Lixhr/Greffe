@@ -6,6 +6,7 @@
 #include "PatchLayout.hpp"
 #include "name.hpp"
 #include "funcs.hpp"
+#include "GreffeCTX.hpp"
 
 void set_code_region(ea_t start, ea_t end) {
     if (start == end)
@@ -65,4 +66,15 @@ void commit_gui(PatchLayout &layout) {
     }
 
     request_refresh(IWID_DISASM);
+}
+
+bool    is_greffed(ea_t ea) {
+    if (g_ctx) {
+        auto *e = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry &entry) {
+            return entry.type() != PLEType::entry_shstub 
+                && (ea >= entry.ea() && ea < entry.end_ea());
+        });
+        return e != nullptr;            
+    }
+    return false;
 }

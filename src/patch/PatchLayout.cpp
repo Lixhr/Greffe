@@ -175,8 +175,8 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
             throw std::runtime_error(ss.str());
         }
 
-        _regions.commit_alloc(candidate, size);
         queue_entry(std::make_unique<PatchBranch>(std::move(branch)));
+        _regions.commit_alloc(candidate, size);
         return;
     }
 
