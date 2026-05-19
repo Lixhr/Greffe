@@ -27,7 +27,7 @@ for entry in "${VARIANTS[@]}"; do
     logfile="/tmp/greffe_test_${dir}.log"
 
     echo ""
-    echo "=== [$dir] instrumenting with IDA ==="
+    echo "=== [$dir] instrumentation with IDA ==="
 
     ida_sarg="$SCRIPT $patched"
     [ "$force_arm" = "yes" ] && ida_sarg="$ida_sarg --force-arm"

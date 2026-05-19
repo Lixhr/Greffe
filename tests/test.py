@@ -26,8 +26,8 @@ def ensure_arm_mode(func):
     ida_auto.plan_and_wait(func.start_ea, func.end_ea)
 
 def main():
-    # argv[1]: output path for patched binary (default /tmp/patched_out)
-    # argv[2]: "--force-arm" to force ARM analysis (use for ARM-mode binaries)
+    # argv[1]: output path
+    # argv[2]: "--force-arm" to force ARM (non-thyumb) analysis 
     out_path  = idc.ARGV[1] if len(idc.ARGV) > 1 else "/tmp/patched_out"
     force_arm = len(idc.ARGV) > 2 and idc.ARGV[2] == "--force-arm"
 
