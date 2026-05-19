@@ -34,10 +34,12 @@ static std::vector<T*> filter_entries(const std::vector<unique_ple_t>& entries) 
     return result;
 }
 
-const std::vector<PatchPlan*>   PatchLayout::patch_plans() const { return filter_entries<PatchPlan,  entry_plan>      (_entries); }
 const std::vector<SharedStub*>  PatchLayout::shstubs()     const { return filter_entries<SharedStub, entry_shstub>    (_entries); }
-const std::vector<PatchBranch*> PatchLayout::branches()    const { return filter_entries<PatchBranch,entry_branch>    (_entries); }
 const std::vector<HandlerBin*>  PatchLayout::handlers()    const { return filter_entries<HandlerBin, entry_handlerbin>(_entries); }
+
+const std::vector<PatchBranch*> PatchLayout::branches()    const { return filter_entries<PatchBranch,entry_branch>    (_entries); }
+const std::vector<PatchPlan*>   PatchLayout::patch_plans() const { return filter_entries<PatchPlan,  entry_plan>      (_entries); }
+
 
 bool PatchLayout::overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_t e) const {
     for (const auto& entry : vec) {
@@ -185,6 +187,11 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
 
 void PatchLayout::free_entry(ea_t start, ea_t end) {
     _regions.reclaim(start, end);
+}
+
+void PatchLayout::revert_entries(const std::vector<std::pair<ea_t, ea_t>>& ranges) {
+    for (auto& [start, end] : ranges)
+        patch_revert_range(start, end);
 }
 
 void PatchLayout::free_handler_bin() {

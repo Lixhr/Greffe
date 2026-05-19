@@ -32,6 +32,11 @@ void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size) {
     patch_bytes(addr, bytes, size);
 }
 
+void patch_revert_range(ea_t start, ea_t end) {
+      for (ea_t ea = start; ea < end; ++ea)
+          revert_byte(ea);
+}
+
 void commit_gui(PatchLayout &layout) {
     layout.sort_queue_by_type();
 
@@ -71,7 +76,8 @@ void commit_gui(PatchLayout &layout) {
 bool    is_greffed(ea_t ea) {
     if (g_ctx) {
         auto *e = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry &entry) {
-            return entry.type() != PLEType::entry_shstub 
+            return (entry.type() != PLEType::entry_shstub)
+                && (entry.type() != PLEType::entry_handlerbin)
                 && (ea >= entry.ea() && ea < entry.end_ea());
         });
         return e != nullptr;            
