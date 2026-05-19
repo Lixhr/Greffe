@@ -73,7 +73,8 @@ class PatchLayout {
         void                             rollback();
         void                             sort_queue_by_type();
         bool                             overlaps_any(ea_t s, ea_t e) const;
-
+        void                             load_from_db(netnode &node);
+        void                             save_db(netnode &node);
     private:
         const SharedStub*  get_shstub(PatchPlan *plan);
         const SharedStub*  create_shstub(PatchPlan *plan);

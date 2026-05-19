@@ -213,4 +213,10 @@ HandlerBin *PatchLayout::place_handler_bin() {
            queue_entry(std::make_unique<HandlerBin>(std::move(bin))));
 }
 
+void PatchLayout::load_from_db(netnode &node) {
+    _regions.load_from_db(node);
+}
 
+void PatchLayout::save_db(netnode &node) {
+    _regions.save_db(node);
+}

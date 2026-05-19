@@ -5,10 +5,11 @@
 #include <stdexcept>
 #include <sstream>
 #include "GreffeCTX.hpp"
+#include "db.hpp"
 
 PatchRegion::PatchRegion(ea_t b, ea_t e) : base(b), end(e) {
     clear_region();
-
+    greffe_msg("%llx-%llx\n", b, e);
     for (ea_t i = b; i < e; i++) {
         xrefblk_t xb;
         for (bool ok = xb.first_to(i, XREF_ALL); ok; ok = xb.next_to())
@@ -173,4 +174,30 @@ ea_t PatchRegionSet::alloc_largest(uint8_t alignment, uint64_t size) {
         throw std::runtime_error("PatchRegionSet: all patch regions exhausted");
 
     return split_alloc(best, best_aligned, size);
+}
+
+void PatchRegionSet::load_from_db(netnode &node) {
+    size_t sz = 0;
+    void *raw = node.getblob(nullptr, &sz, 0, PatchRegions_entry);
+    if (!raw || sz < sizeof(DB_PatchRegions))
+        return;
+    auto *db = static_cast<DB_PatchRegions *>(raw);
+    for (size_t i = 0; i < db->n_regions; i++)
+        raw_insert(db->regions[i].base, db->regions[i].end);
+    qfree(raw);
+}
+
+void PatchRegionSet::save_db(netnode &node) {
+    size_t n        = _regions.size();
+    size_t alloc_sz = sizeof(DB_PatchRegions) + n * sizeof(DB_PatchRegions::DB_PatchRegions_entry);
+    auto  *db_entry = static_cast<DB_PatchRegions *>(malloc(alloc_sz));
+    
+    db_entry->n_regions = n;
+    for (size_t i = 0; i < n; i++) {
+        db_entry->regions[i].base = _regions[i].base;
+        db_entry->regions[i].end   = _regions[i].end;
+    }
+
+    node.setblob(db_entry, alloc_sz, 0, DB_IDs::PatchRegions_entry);
+    free(db_entry);
 }
