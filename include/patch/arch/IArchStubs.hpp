@@ -6,6 +6,15 @@
 #include <vector>
 #include "ida.hpp"
 
+// Frida writers always emit literal pool words in LE regardless of target endianness.
+// Call after resize(written) to byte-swap every 4-byte pool word in-place.
+inline void fix_be_pool(std::vector<uint8_t>& buf, size_t pool_start) {
+    for (size_t i = pool_start; i + 4 <= buf.size(); i += 4) {
+        std::swap(buf[i],     buf[i + 3]);
+        std::swap(buf[i + 1], buf[i + 2]);
+    }
+}
+
 struct ContextEntry;
 
 class IArchStubs {

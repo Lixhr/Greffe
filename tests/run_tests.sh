@@ -8,8 +8,8 @@ echo "==> Building test binaries..."
 make -C "$TESTS_DIR" re
 
 VARIANTS=(
-    "arm32-be       qemu-armeb  yes"
     "arm32          qemu-arm    yes"
+    "arm32-be       qemu-armeb  yes"
     "arm32-thumb    qemu-arm    no"
     "arm32-thumb-be qemu-armeb  no"
 )

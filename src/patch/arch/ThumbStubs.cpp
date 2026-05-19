@@ -27,15 +27,8 @@ static std::vector<uint8_t> thumb_collect(GumThumbWriter& w,
         throw std::runtime_error(std::string(ctx) + ": writer produced no bytes");
     buf.resize(written);
 
-    if (big_endian) {
-        // frida doesn't handles BE literal pool writes.
-        // done manually
-        size_t pool = pre_flush + ((pre_pc & 2) ? 2 : 0);
-        for (size_t i = pool; i + 4 <= written; i += 4) {
-            std::swap(buf[i],     buf[i + 3]);
-            std::swap(buf[i + 1], buf[i + 2]);
-        }
-    }
+    if (big_endian)
+        fix_be_pool(buf, pre_flush + ((pre_pc & 2) ? 2 : 0));
 
     return std::move(buf);
 }

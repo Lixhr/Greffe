@@ -14,7 +14,10 @@ std::string Arm32Stubs::name() const { return "Arm32"; }
 
 static std::vector<uint8_t> arm_collect(GumArmWriter& w,
                                         std::vector<uint8_t>& buf,
-                                        const char* ctx) {
+                                        const char* ctx,
+                                        bool big_endian = false) {
+    size_t pre_flush = reinterpret_cast<uint8_t*>(w.code)
+                     - reinterpret_cast<uint8_t*>(w.base);
     gum_arm_writer_flush(&w);
     size_t written = reinterpret_cast<uint8_t*>(w.code)
                    - reinterpret_cast<uint8_t*>(w.base);
@@ -22,6 +25,9 @@ static std::vector<uint8_t> arm_collect(GumArmWriter& w,
     if (written == 0)
         throw std::runtime_error(std::string(ctx) + ": writer produced no bytes");
     buf.resize(written);
+
+    if (big_endian)
+        fix_be_pool(buf, pre_flush);
     return std::move(buf);
 }
 
@@ -62,7 +68,7 @@ std::vector<uint8_t> Arm32Stubs::branch(ea_t from, ea_t to) {
     w.pc = static_cast<GumAddress>(from);
 
     write_branch(&w, from, to);
-    return arm_collect(w, buf, "Arm32Stubs::branch");
+    return arm_collect(w, buf, "Arm32Stubs::branch", is_big_endian());
 }
 
 std::vector<uint8_t> Arm32Stubs::call(ea_t from, ea_t to) {
@@ -71,7 +77,7 @@ std::vector<uint8_t> Arm32Stubs::call(ea_t from, ea_t to) {
     gum_arm_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(from);
     gum_arm_writer_put_bl_imm(&w, static_cast<GumAddress>(to));
-    return arm_collect(w, buf, "Arm32Stubs::call");
+    return arm_collect(w, buf, "Arm32Stubs::call", is_big_endian());
 }
 
 std::vector<uint8_t> Arm32Stubs::trampoline_init(ea_t at,
@@ -94,7 +100,7 @@ std::vector<uint8_t> Arm32Stubs::trampoline_init(ea_t at,
     gum_arm_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_PC, 0);
     write_branch(&w, w.pc, shstub_addr);
 
-    std::vector<uint8_t> bytes = arm_collect(w, buf, "Arm32Stubs::trampoline_init");
+    std::vector<uint8_t> bytes = arm_collect(w, buf, "Arm32Stubs::trampoline_init", is_big_endian());
     *ptr_array = reinterpret_cast<uint8_t*>(bytes.data() + bytes.size());
 
     // reserve literal pool slot for handler address
@@ -124,7 +130,7 @@ std::vector<uint8_t> Arm32Stubs::relocate_and_branch_back(
                                   - reinterpret_cast<uint8_t*>(w.base));
     write_branch(&w, br_from, branch_to);
 
-    return arm_collect(w, buf, "Arm32Stubs::relocate_and_branch_back");
+    return arm_collect(w, buf, "Arm32Stubs::relocate_and_branch_back", is_big_endian());
 }
 
 std::vector<uint8_t> Arm32Stubs::build_shared_stub(ea_t at) {
@@ -150,5 +156,5 @@ std::vector<uint8_t> Arm32Stubs::build_shared_stub(ea_t at) {
     // branch to the return addr (was stored at SP, which POP {PC} now loads)
     gum_arm_writer_put_pop_regs(&w, 1, ARM_REG_PC);
 
-    return arm_collect(w, buf, "Arm32Stubs::build_shared_stub");
+    return arm_collect(w, buf, "Arm32Stubs::build_shared_stub", is_big_endian());
 }
