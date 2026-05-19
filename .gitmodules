@@ -1,3 +1,4 @@
 [submodule "third_party/frida-gum"]
 	path = third_party/frida-gum
-	url = https://github.com/frida/frida-gum.git
+	url = https://github.com/Lixhr/frida-gum.git
+	branch = fix/arm-relocator-cond-branch

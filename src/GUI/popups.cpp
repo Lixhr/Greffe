@@ -4,6 +4,9 @@
 #include "kernwin.hpp"
 
 void workdir_popup(const std::filesystem::path absolute, const std::string relative) {
+    if (!is_idaq()) // avoids vscode popup during tests
+        return;
+
     std::string label = "HIDECANCEL\nWorkdir created at " + relative;
 
     int resp = ask_buttons(

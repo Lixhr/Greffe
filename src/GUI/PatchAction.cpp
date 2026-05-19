@@ -2,11 +2,9 @@
 #include <idp.hpp>
 #include <kernwin.hpp>
 #include "GUI/Actions.hpp"
+#include "GreffeOps.hpp"
 #include "GreffeCTX.hpp"
-#include "patch/HandlerCompiler.hpp"
 #include "utils.hpp"
-#include "name.hpp"
-#include "offset.hpp"
 
 extern plugin_t PLUGIN;
 
@@ -15,42 +13,12 @@ static const char PATCH_ACTION_NAME[] = "greffe:patch";
 struct PatchActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *) override {
         try {
-            if (!g_ctx || g_ctx->layout.patch_plans().empty()) {
-                throw std::runtime_error("no targets to patch");
-                return 0;
-            }
-
-            g_ctx->layout.free_handler_bin();
-
-            HandlerBin *bin = g_ctx->layout.place_handler_bin();
-
-            for (auto& plan : g_ctx->layout.patch_plans()) {
-                std::string sym = "handler_" + plan->name;
-
-                plan->handler_addr = bin->handler_addr(sym);
-
-                uint8_t *handler_slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
-                plan->stubs->write_ptr(handler_slot, plan->handler_addr);
-
-                write_data_patch(plan->handler_ptr_addr,
-                                 handler_slot,
-                                 plan->stubs->sizeof_ptr());
-                op_plain_offset(plan->handler_ptr_addr, 0, 0);
-            }
-
-            commit_gui(g_ctx->layout);
-            g_ctx->layout.commit();
-
-            greffe_msg("patched %zu targets\n", g_ctx->layout.patch_plans().size());
-            return 0;
-        }
-        catch (const std::exception &e) {
+            greffe_apply_patches();
+        } catch (const std::exception &e) {
             warning("%s", e.what());
             greffe_msg("error: %s\n", e.what());
-            g_ctx->layout.rollback();
             return 0;
         }
-
         return 1;
     }
 

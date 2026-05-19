@@ -1,15 +1,13 @@
 #include "ProjectInfo.hpp"
 #include "MakefileTemplates.hpp"
-#include <cstring>
 #include <algorithm>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <stdexcept>
 #include "kernwin.hpp"
 #include "utils.hpp"
 #include <idp.hpp>
-#include <segregs.hpp>
 
 void ProjectInfo::setupProjectDir() {
     project_dir = bin_path.parent_path() / "__greffe_workdir";
@@ -21,7 +19,7 @@ void ProjectInfo::setupProjectDir() {
     bool needs_write = !std::filesystem::exists(dest_mk)
                     || std::filesystem::file_size(dest_mk) == 0;
     if (needs_write) {
-        std::string_view content = MakefileTemplates::get(arch);
+        std::string content = MakefileTemplates::get(bits, arch, endianness);
         std::ofstream f(dest_mk);
         if (!f)
             throw std::runtime_error("cannot create " + dest_mk.string());
@@ -45,6 +43,7 @@ void ProjectInfo::populateData() {
 
     bin_path   = buf;
     arch       = inf_get_procname().c_str();
+    std::transform(arch.begin(), arch.end(), arch.begin(), ::tolower);
     endianness = inf_is_be()    ? "be" : "le";
     bits       = inf_is_64bit() ?  64  :  32;
     bin_base   = inf_get_baseaddr();
@@ -55,17 +54,6 @@ ProjectInfo::ProjectInfo() {
     setupProjectDir();
 }
 
-std::string ProjectInfo::getModeAt(ea_t ea) const {
-    char buf[32];
-    get_idp_name(buf, sizeof(buf));
-    std::string idp = buf;
-    std::transform(idp.begin(), idp.end(), idp.begin(), ::tolower);
-
-    if (idp == "arm") {
-        int t_reg = str2reg("T");
-        if (t_reg >= 0 && get_sreg(ea, t_reg) == 1)
-            return "thumb";
-        return "";
-    }
-    return "";
+ArchKey ProjectInfo::getArchKeyAt(ea_t ea) const {
+    return StubsFactory::buildKey(bits, arch, endianness, ea);
 }
