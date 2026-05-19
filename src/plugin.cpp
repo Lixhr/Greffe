@@ -5,10 +5,22 @@
 #include "utils.hpp"
 #include "GreffeCTX.hpp"
 #include "GUI/Actions.hpp"
+#include "db.hpp"
 
 extern "C" {
 #include <gum/gum.h>
 }
+
+extern plugin_t PLUGIN;
+
+struct IDBHooks : public event_listener_t {
+    ssize_t idaapi on_event(ssize_t code, va_list) override {
+        if (code == idb_event::savebase && g_ctx)
+            save_db(g_ctx);
+        return 0;
+    }
+};
+static IDBHooks s_idb_hooks;
 
 static plugmod_t *idaapi init() {
     gum_init_embedded();
@@ -17,11 +29,13 @@ static plugmod_t *idaapi init() {
     register_patch_action();
     register_greffe_api();
     init_color_hook();
+    hook_event_listener(HT_IDB, &s_idb_hooks, &PLUGIN);
     greffe_msg("plugin loaded\n");
     return PLUGIN_OK;
 }
 
 static void idaapi term() {
+    unhook_event_listener(HT_IDB, &s_idb_hooks);
     term_color_hook();
     unregister_greffe_api();
     unregister_patch_action();
@@ -33,6 +47,9 @@ static void idaapi term() {
 static bool idaapi run(size_t) {
     if (!g_ctx)
         g_ctx = std::make_unique<GreffeCTX>();
+    load_db(g_ctx);
+    refresh_colors();
+    greffe_msg("running\n");
     return true;
 }
 

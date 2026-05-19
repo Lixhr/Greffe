@@ -23,6 +23,11 @@ static bgcolor_t color_for_entry(PatchLayoutEntry& e, ea_t ea) {
     }
 }
 
+int refresh_colors() {
+    refresh_idaview_anyway();
+    return 1;
+}
+
 struct RangeColorHooks : public event_listener_t {
     ssize_t idaapi on_event(ssize_t code, va_list va) override {
         if (code != processor_t::ev_get_bg_color || !g_ctx) return 0;

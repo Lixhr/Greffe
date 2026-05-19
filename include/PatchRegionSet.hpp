@@ -39,7 +39,9 @@ class PatchRegionSet {
         ea_t alloc_best_fit(uint8_t alignment, uint64_t size);
         ea_t alloc_largest(uint8_t alignment, uint64_t size);
         void commit_alloc(ea_t addr, uint64_t size);
-
+        void load_from_db(netnode &node);
+        void save_db(netnode &node);
+        
     private:
         void order_insert(ea_t start, ea_t end);
         void raw_insert(ea_t start, ea_t end);

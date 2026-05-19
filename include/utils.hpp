@@ -28,6 +28,7 @@ void commit_gui(PatchLayout &layout);
 
 void init_color_hook();
 void term_color_hook();
+int  refresh_colors();
 
 void workdir_popup(const std::filesystem::path absolute,
                    const std::string relative);

@@ -5,6 +5,7 @@
 #include "GreffeOps.hpp"
 #include "GreffeCTX.hpp"
 #include "utils.hpp"
+#include "db.hpp"
 
 extern plugin_t PLUGIN;
 
@@ -14,6 +15,7 @@ struct PatchActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *) override {
         try {
             greffe_apply_patches();
+            save_db(g_ctx);
         } catch (const std::exception &e) {
             warning("%s", e.what());
             greffe_msg("error: %s\n", e.what());
