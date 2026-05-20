@@ -6,6 +6,10 @@
 
 std::string Arm64Stubs::name() const { return "Aarch64"; }
 
+std::vector<uint8_t> Arm64Stubs::nop_bytes() const {
+    return {0x1F, 0x20, 0x03, 0xD5};
+}
+
 static std::vector<uint8_t> arm64_collect(GumArm64Writer& w,
                                            std::vector<uint8_t>& buf,
                                            const char* ctx) {
@@ -143,8 +147,11 @@ std::vector<uint8_t> Arm64Stubs::relocate_and_branch_back(
         GumArm64Relocator r;
         gum_arm64_relocator_init(&r, e.raw.data(), &w);
         r.input_pc = static_cast<GumAddress>(e.ea);
-        gum_arm64_relocator_read_one(&r, nullptr);
-        gum_arm64_relocator_write_one(&r);
+        guint consumed = 0;
+        do {
+            consumed = gum_arm64_relocator_read_one(&r, nullptr);
+        } while (consumed != 0 && consumed < e.raw.size());
+        gum_arm64_relocator_write_all(&r);
         gum_arm64_relocator_clear(&r);
     }
 

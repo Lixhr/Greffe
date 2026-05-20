@@ -11,6 +11,10 @@ extern "C" {
 
 std::string Arm32Stubs::name() const { return "Arm32"; }
 
+std::vector<uint8_t> Arm32Stubs::nop_bytes() const {
+    return {0x00, 0xF0, 0x20, 0xE3};
+}
+
 
 static std::vector<uint8_t> arm_collect(GumArmWriter& w,
                                         std::vector<uint8_t>& buf,
@@ -121,8 +125,11 @@ std::vector<uint8_t> Arm32Stubs::relocate_and_branch_back(
         GumArmRelocator r;
         gum_arm_relocator_init(&r, e.raw.data(), &w);
         r.input_pc = static_cast<GumAddress>(e.ea);
-        gum_arm_relocator_read_one(&r, nullptr);
-        gum_arm_relocator_write_one(&r);
+        guint consumed = 0;
+        do {
+            consumed = gum_arm_relocator_read_one(&r, nullptr);
+        } while (consumed != 0 && consumed < e.raw.size());
+        gum_arm_relocator_write_all(&r);
         gum_arm_relocator_clear(&r);
     }
 
