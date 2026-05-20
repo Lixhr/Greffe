@@ -6,6 +6,7 @@
 #include "PatchLayout.hpp"
 #include "name.hpp"
 #include "funcs.hpp"
+#include "GreffeCTX.hpp"
 
 void set_code_region(ea_t start, ea_t end) {
     if (start == end)
@@ -29,6 +30,11 @@ void write_code_patch(ea_t ea, const uint8_t *bytes, ea_t end_ea) {
 void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size) {
     del_items(addr, DELIT_SIMPLE, size);
     patch_bytes(addr, bytes, size);
+}
+
+void patch_revert_range(ea_t start, ea_t end) {
+      for (ea_t ea = start; ea < end; ++ea)
+          revert_byte(ea);
 }
 
 void commit_gui(PatchLayout &layout) {
@@ -65,4 +71,16 @@ void commit_gui(PatchLayout &layout) {
     }
 
     request_refresh(IWID_DISASM);
+}
+
+bool    is_greffed(ea_t ea) {
+    if (g_ctx) {
+        auto *e = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry &entry) {
+            return (entry.type() != PLEType::entry_shstub)
+                && (entry.type() != PLEType::entry_handlerbin)
+                && (ea >= entry.ea() && ea < entry.end_ea());
+        });
+        return e != nullptr;            
+    }
+    return false;
 }

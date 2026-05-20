@@ -21,9 +21,12 @@ namespace Color {
 
 void region_bzero(ea_t ea, size_t size);
 void set_code_region(ea_t start, ea_t end);
+bool is_greffed(ea_t ea);
+
 
 void write_code_patch(ea_t ea, const uint8_t *bytes, ea_t end_ea);
 void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size);
+void patch_revert_range(ea_t start, ea_t end);
 void commit_gui(PatchLayout &layout);
 
 void init_color_hook();

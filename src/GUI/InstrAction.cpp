@@ -36,7 +36,9 @@ struct InstrUIListener : public event_listener_t {
             TWidget *w = va_arg(va, TWidget *);
             if (get_widget_type(w) == BWN_DISASM) {
                 TPopupMenu *popup = va_arg(va, TPopupMenu *);
-                attach_action_to_popup(w, popup, ACTION_NAME);
+
+                if (!is_greffed(get_screen_ea()))
+                    attach_action_to_popup(w, popup, ACTION_NAME);
             }
         }
         return 0;
