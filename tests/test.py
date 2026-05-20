@@ -25,16 +25,8 @@ def ensure_arm_mode(func):
     ida_segregs.split_sreg_range(func.start_ea, t_reg, 0, ida_segregs.SR_user)
     ida_auto.plan_and_wait(func.start_ea, func.end_ea)
 
-def main():
-    # argv[1]: output path
-    # argv[2]: "--force-arm" to force ARM (non-thyumb) analysis 
-    out_path  = idc.ARGV[1] if len(idc.ARGV) > 1 else "/tmp/patched_out"
-    force_arm = len(idc.ARGV) > 2 and idc.ARGV[2] == "--force-arm"
-
-    idaapi.auto_wait()
-
-    set_patch_region()
-    ea = ida_name.get_name_ea(idc.BADADDR, "checksum")
+def instrument_function(func_name, force_arm=False):
+    ea = ida_name.get_name_ea(idc.BADADDR, func_name)
     func = ida_funcs.get_func(ea)
 
     if force_arm:
@@ -50,6 +42,19 @@ def main():
     for i, ea in enumerate(instr_addr):
         print(f"============> {i}")
         greffe.add_instr(ea)
+
+def main():
+    # argv[1]: output path
+    # argv[2]: "--force-arm" to force ARM (non-thyumb) analysis 
+    out_path  = idc.ARGV[1] if len(idc.ARGV) > 1 else "/tmp/patched_out"
+    force_arm = len(idc.ARGV) > 2 and idc.ARGV[2] == "--force-arm"
+
+    idaapi.auto_wait()
+    set_patch_region()
+
+    instrument_function("checksum", force_arm)
+    instrument_function("xtea_block", force_arm)
+    instrument_function("xtea_round", force_arm)
 
     greffe.apply_patches()
     export_patched(out_path)

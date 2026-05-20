@@ -7,7 +7,7 @@ SCRIPT="$TESTS_DIR/test.py"
 echo "==> Building test binaries..."
 make -C "$TESTS_DIR" re
 
-VARIANTS=(
+VARIANTS=(    
     "aarch64-le     qemu-aarch64     no"
     "aarch64-be     qemu-aarch64_be  no"
     "arm32          qemu-arm         yes"
