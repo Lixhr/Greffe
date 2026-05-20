@@ -5,11 +5,11 @@ __asm__(
     ".section .rwx, \"awx\", %progbits\n"
     ".global rwx_page\n"
     "rwx_page:\n"
-    ".space 0x3000\n"
+    ".space 0x10000\n"
     ".previous\n"
 );
 
-extern char rwx_page[0x3000];
+extern char rwx_page[0x10000];
 
 unsigned int checksum_check(const unsigned char *data, int len, unsigned int expected);
 

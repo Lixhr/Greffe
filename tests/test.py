@@ -26,12 +26,26 @@ def ensure_arm_mode(func):
     ida_auto.plan_and_wait(func.start_ea, func.end_ea)
 
 def instrument_function(func_name, force_arm=False):
+    print(f"---> {func_name}")
     ea = ida_name.get_name_ea(idc.BADADDR, func_name)
+    if ea == idc.BADADDR:
+        print(f"[!] symbol not found: {func_name}, skipping")
+        return
     func = ida_funcs.get_func(ea)
+
+    if func is None:
+        print(f"[~] no function at {hex(ea)}, forcing analysis...")
+        idc.create_insn(ea)
+        ida_funcs.add_func(ea)
+        ida_auto.plan_and_wait(ea, ea + 1)
+        ida_auto.auto_wait()
+        func = ida_funcs.get_func(ea)
+    if func is None:
+        print(f"[!] could not create function at {hex(ea)} ({func_name}), skipping")
+        return
 
     if force_arm:
         ensure_arm_mode(func)
-        func = ida_funcs.get_func(ea)
 
     instr_addr = []
     while ea < func.end_ea:
