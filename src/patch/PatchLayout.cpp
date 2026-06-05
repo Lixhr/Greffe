@@ -217,6 +217,7 @@ HandlerBin *PatchLayout::place_handler_bin() {
 
     ea_t addr = _regions.alloc_largest(0x10, static_cast<ea_t>(bin.size()));
     bin.set_addr(addr);
+    bin.rebase(addr);
 
     return static_cast<HandlerBin*>(
            queue_entry(std::make_unique<HandlerBin>(std::move(bin))));

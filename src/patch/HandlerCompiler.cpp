@@ -61,6 +61,42 @@ static std::vector<uint8_t> load_elf_image(const std::filesystem::path& elf_path
     return image;
 }
 
+#ifndef R_ARM_ABS32
+#define R_ARM_ABS32 2
+#endif
+
+static std::vector<uint32_t>
+collect_abs32_relocs(const std::filesystem::path& elf_path) {
+    int fd = open(elf_path.c_str(), O_RDONLY);
+    if (fd < 0) return {};
+
+    Elf *e = elf_begin(fd, ELF_C_READ, nullptr);
+    if (!e) { close(fd); return {}; }
+
+    std::vector<uint32_t> offsets;
+    Elf_Scn *scn = nullptr;
+    while ((scn = elf_nextscn(e, scn)) != nullptr) {
+        GElf_Shdr shdr;
+        if (!gelf_getshdr(scn, &shdr)) continue;
+        if (shdr.sh_type != SHT_REL || shdr.sh_entsize == 0) continue;
+
+        Elf_Data *data = elf_getdata(scn, nullptr);
+        if (!data) continue;
+
+        size_t n = shdr.sh_size / shdr.sh_entsize;
+        for (size_t i = 0; i < n; ++i) {
+            GElf_Rel rel;
+            if (!gelf_getrel(data, static_cast<int>(i), &rel)) continue;
+            if (GELF_R_TYPE(rel.r_info) == R_ARM_ABS32)
+                offsets.push_back(static_cast<uint32_t>(rel.r_offset));
+        }
+    }
+
+    elf_end(e);
+    close(fd);
+    return offsets;
+}
+
 static std::unordered_map<std::string, uint64_t>
 parse_symbols(const std::filesystem::path& elf_path) {
     if (elf_version(EV_CURRENT) == EV_NONE)
@@ -165,8 +201,9 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
 
     auto elf_path = workdir / "build" / "handlers.elf";
 
-    auto symbols = parse_symbols(elf_path);
-    auto bytes   = load_elf_image(elf_path);
+    auto symbols  = parse_symbols(elf_path);
+    auto bytes    = load_elf_image(elf_path);
+    auto rel_offs = collect_abs32_relocs(elf_path);
 
     std::unordered_map<std::string, uint64_t> offsets;
     for (const auto& p : plans) {
@@ -177,5 +214,5 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
         offsets[sym] = it->second;
     }
 
-    return HandlerBin(std::move(bytes), std::move(offsets));
+    return HandlerBin(std::move(bytes), std::move(offsets), std::move(rel_offs));
 }

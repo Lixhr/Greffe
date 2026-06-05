@@ -36,7 +36,7 @@ inline std::string render(const ArchDescriptor& d) {
            "  /DISCARD/ : { " + discard + " }\\n}\\n' > $@\n"
          + "\n"
          + "build/handlers.elf: $(OBJS) $(LDSCRIPT) | build\n"
-         + "\t$(CC) $(CFLAGS) -T $(LDSCRIPT) -Wl,-Map=build/handlers.map -o $@ $(OBJS)\n"
+         + "\t$(CC) $(CFLAGS) -T $(LDSCRIPT) -Wl,-Map=build/handlers.map -Wl,--emit-relocs -o $@ $(OBJS)\n"
          + "\n"
          + "build/%.o: handlers/%.c | build\n"
          + "\t$(CC) $(CFLAGS) -c $< -o $@\n"

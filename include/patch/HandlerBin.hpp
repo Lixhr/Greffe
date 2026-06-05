@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -20,11 +21,24 @@ class HandlerBin : public PatchLayoutEntry {
             }
         }
 
-        HandlerBin(std::vector<uint8_t>                         bytes,
-                std::unordered_map<std::string, uint64_t>       offsets) :
-                PatchLayoutEntry(PLEType::entry_handlerbin), _offsets(std::move(offsets)) { _bytes = std::move(bytes); }
+        HandlerBin(std::vector<uint8_t>                   bytes,
+                std::unordered_map<std::string, uint64_t> offsets,
+                std::vector<uint32_t>                     rel_offsets = {}) :
+                PatchLayoutEntry(PLEType::entry_handlerbin),
+                _offsets(std::move(offsets)),
+                _rel_offsets(std::move(rel_offsets)) { _bytes = std::move(bytes); }
 
         size_t size() const { return _bytes.size(); }
+
+        void rebase(ea_t base) {
+            for (uint32_t off : _rel_offsets) {
+                if (off + 4 > _bytes.size()) continue;
+                uint32_t word;
+                memcpy(&word, _bytes.data() + off, 4);
+                word += static_cast<uint32_t>(base);
+                memcpy(_bytes.data() + off, &word, 4);
+            }
+        }
 
         ea_t handler_addr(const std::string& sym) const {
             auto it = _offsets.find(sym);
@@ -36,4 +50,5 @@ class HandlerBin : public PatchLayoutEntry {
 
     private:
         std::unordered_map<std::string, uint64_t> _offsets;
+        std::vector<uint32_t>                     _rel_offsets;
 };
