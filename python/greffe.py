@@ -28,8 +28,10 @@ def set_region(start: int, end: int) -> bool:
     return bool(_idc(f"GreffSetRegion({start}, {end})"))
 
 
-def add_instr(ea: int) -> bool:
-    """Hook the instruction at ea (equivalent of Shift+G in the disassembly view)."""
+def add_instr(ea: int, handler: str = "") -> bool:
+    """Hook the instruction at ea, optionally reusing an existing handler by name."""
+    if handler:
+        return bool(_idc(f'GreffAddInstrEx({ea}, "{handler}")'))
     return bool(_idc(f"GreffAddInstr({ea})"))
 
 

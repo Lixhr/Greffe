@@ -13,6 +13,7 @@ enum DB_IDs {
     PatchRegions_entry,
     PatchLayout_entry,
     PatchPlans_entry,
+    PatchPlans_v2_entry,
 };
 
 struct DB_PatchRegions {
@@ -38,4 +39,13 @@ struct DB_PatchPlan_meta {
     ea_t     handler_ptr_addr;
     uint32_t name_len;
     char     name[];
+};
+
+struct DB_PatchPlan_v2_meta {
+    ea_t     target_ea;
+    ea_t     target_end_ea;
+    ea_t     handler_ptr_addr;
+    uint32_t name_len;
+    uint32_t handler_name_len;
+    char     data[];   // name bytes followed by handler_name bytes
 };

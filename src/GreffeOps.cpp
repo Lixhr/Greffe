@@ -22,7 +22,7 @@ static void create_handler_stub(const PatchPlan *plan, const ProjectInfo &pinfo)
     auto dir = pinfo.getProjectDir() / "handlers";
     fs::create_directories(dir);
 
-    fs::path path = dir / (plan->name + ".c");
+    fs::path path = dir / (plan->handler_name + ".c");
     if (fs::exists(path))
         return;
 
@@ -41,7 +41,7 @@ static void create_handler_stub(const PatchPlan *plan, const ProjectInfo &pinfo)
 
     if (!attr.empty())
         f << attr << '\n';
-    f << "void handler_" << plan->name << "(void)\n{\n}\n";
+    f << "void handler_" << plan->handler_name << "(void)\n{\n}\n";
 }
 
 void greffe_set_region(ea_t start, ea_t end) {
@@ -51,7 +51,7 @@ void greffe_set_region(ea_t start, ea_t end) {
     greffe_msg("patch region added: 0x%llx - 0x%llx\n", (ulonglong)start, (ulonglong)end);
 }
 
-void greffe_add_instr(ea_t ea) {
+void greffe_add_instr(ea_t ea, const std::string &handler_name) {
     if (!g_ctx || !g_ctx->pinfo.getRegionsSet().has_regions())
         throw std::runtime_error("define a patch region first");
 
@@ -60,7 +60,10 @@ void greffe_add_instr(ea_t ea) {
 
     try {
         auto stubs = StubsFactory::create(ctx.pinfo.getArchKeyAt(ea));
-        auto plan  = std::make_unique<PatchPlan>(make_target_name(ea),
+        std::string target_name = make_target_name(ea);
+        std::string hname = handler_name.empty() ? target_name : handler_name;
+        auto plan  = std::make_unique<PatchPlan>(std::move(target_name),
+                                                 std::move(hname),
                                                  ea,
                                                  get_item_end(ea),
                                                  std::move(stubs));
@@ -89,7 +92,7 @@ void greffe_apply_patches() {
         HandlerBin *bin = ctx.layout.place_handler_bin();
 
         for (auto &plan : ctx.layout.patch_plans()) {
-            std::string sym = "handler_" + plan->name;
+            std::string sym = "handler_" + plan->handler_name;
             plan->handler_addr = bin->handler_addr(sym);
             uint8_t *handler_slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
             plan->stubs->write_ptr(handler_slot, plan->handler_addr);

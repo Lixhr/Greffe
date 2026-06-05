@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <fcntl.h>
+#include <set>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -195,8 +196,11 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
     auto rel_offs = collect_abs32_relocs(elf_path);
 
     std::unordered_map<std::string, uint64_t> offsets;
+    std::set<std::string> seen;
     for (const auto& p : plans) {
-        std::string sym = "handler_" + p->name;
+        if (!seen.insert(p->handler_name).second)
+            continue;
+        std::string sym = "handler_" + p->handler_name;
         auto it = symbols.find(sym);
         if (it == symbols.end())
             throw std::runtime_error("HandlerCompiler: symbol not found in ELF: " + sym);

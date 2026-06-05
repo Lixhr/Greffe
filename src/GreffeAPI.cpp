@@ -25,6 +25,17 @@ static error_t idaapi idc_add_instr(idc_value_t *argv, idc_value_t *res) {
     return eOk;
 }
 
+static error_t idaapi idc_add_instr_ex(idc_value_t *argv, idc_value_t *res) {
+    try {
+        greffe_add_instr((ea_t)argv[0].num, argv[1].c_str());
+        res->set_long(1);
+    } catch (const std::exception &e) {
+        greffe_msg("GreffAddInstrEx error: %s\n", e.what());
+        res->set_long(0);
+    }
+    return eOk;
+}
+
 static error_t idaapi idc_apply_patches(idc_value_t *, idc_value_t *res) {
     try {
         greffe_apply_patches();
@@ -36,14 +47,16 @@ static error_t idaapi idc_apply_patches(idc_value_t *, idc_value_t *res) {
     return eOk;
 }
 
-static const char args_2long[] = { VT_LONG, VT_LONG, 0 };
-static const char args_1long[] = { VT_LONG, 0 };
-static const char args_none[]  = { 0 };
+static const char args_2long[]    = { VT_LONG, VT_LONG, 0 };
+static const char args_1long[]    = { VT_LONG, 0 };
+static const char args_long_str[] = { VT_LONG, VT_STR, 0 };
+static const char args_none[]     = { 0 };
 
 static const ext_idcfunc_t funcs[] = {
-    { "GreffSetRegion",    idc_set_region,    args_2long, nullptr, 0, 0 },
-    { "GreffAddInstr",     idc_add_instr,     args_1long, nullptr, 0, 0 },
-    { "GreffApplyPatches", idc_apply_patches, args_none,  nullptr, 0, 0 },
+    { "GreffSetRegion",    idc_set_region,    args_2long,    nullptr, 0, 0 },
+    { "GreffAddInstr",     idc_add_instr,     args_1long,    nullptr, 0, 0 },
+    { "GreffAddInstrEx",   idc_add_instr_ex,  args_long_str, nullptr, 0, 0 },
+    { "GreffApplyPatches", idc_apply_patches, args_none,     nullptr, 0, 0 },
 };
 
 void register_greffe_api() {
