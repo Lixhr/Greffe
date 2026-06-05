@@ -1,7 +1,6 @@
 #include "HandlerCompiler.hpp"
 
 #include <filesystem>
-#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -153,16 +152,6 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
     namespace fs = std::filesystem;
 
     const fs::path& workdir = pinfo.getProjectDir();
-
-    {
-        std::ofstream mk(workdir / "greffe_active.mk");
-        if (!mk)
-            throw std::runtime_error("HandlerCompiler: cannot write greffe_active.mk");
-        mk << "ACTIVE_GREFFE_SRCS :=";
-        for (const auto& p : plans)
-            mk << " handlers/" << p->name << ".c";
-        mk << '\n';
-    }
 
     int pipefd[2];
     if (pipe(pipefd) < 0)
