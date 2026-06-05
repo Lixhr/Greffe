@@ -11,7 +11,6 @@
 #define greffe_msg(fmt, ...) msg("[greffe] " fmt, ##__VA_ARGS__)
 
 namespace Color {
-    // ok
     constexpr bgcolor_t RELOCATED    = 0xff0595ff;
     constexpr bgcolor_t PATCHED      = 0xff27b6ff;
     constexpr bgcolor_t PATCH_REGION = 0xff71c9ff;

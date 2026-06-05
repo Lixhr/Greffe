@@ -92,15 +92,10 @@ std::vector<uint8_t> Arm32Stubs::trampoline_init(ea_t at,
     gum_arm_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
 
-    // reserve slot for the return address
     gum_arm_writer_put_sub_reg_u32(&w, ARM_REG_SP, 0x4);
 
-    // save original R0
     gum_arm_writer_put_push_regs(&w, 1, ARM_REG_R0);
 
-    // In ARM mode PC = current_instr + 8, so at this instruction PC points
-    // 8 bytes ahead — which is exactly where the literal pool lands after
-    // the following 4-byte branch.
     gum_arm_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_PC, 0);
     write_branch(&w, w.pc, shstub_addr);
 
@@ -148,19 +143,15 @@ std::vector<uint8_t> Arm32Stubs::build_shared_stub(ea_t at) {
 
     save_ctx(&w);
 
-    // R0 = literal pool entry passed from trampoline: [0] handler ptr, [4] return addr
     gum_arm_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);
     gum_arm_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_R0, 0x4);
 
-    // store return addr into the slot reserved at the bottom of the saved context
     gum_arm_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, 0x3c);
 
-    // call the handler
     gum_arm_writer_put_blx_reg(&w, ARM_REG_R1);
 
     restore_ctx(&w);
 
-    // branch to the return addr (was stored at SP, which POP {PC} now loads)
     gum_arm_writer_put_pop_regs(&w, 1, ARM_REG_PC);
 
     return arm_collect(w, buf, "Arm32Stubs::build_shared_stub", is_big_endian());

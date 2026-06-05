@@ -6,8 +6,6 @@
 #include <vector>
 #include "ida.hpp"
 
-// Frida writers always emit literal pool words in LE regardless of target endianness.
-// Call after resize(written) to byte-swap every 4-byte pool word in-place.
 inline void fix_be_pool(std::vector<uint8_t>& buf, size_t pool_start) {
     for (size_t i = pool_start; i + 4 <= buf.size(); i += 4) {
         std::swap(buf[i],     buf[i + 3]);
@@ -32,7 +30,6 @@ class IArchStubs {
                                             ea_t                             dest_addr,
                                             ea_t                             branch_to) = 0;
 
-        // Override both together when an arch has instructions that form semantic groups (IT blocks, ..).
         virtual bool                 at_reloc_boundary(const std::vector<ContextEntry>&) const { return true; }
         virtual std::vector<uint8_t> nop_bytes()       const { return {}; }
 

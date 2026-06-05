@@ -16,11 +16,49 @@ extern "C" {
 #include <gelf.h>
 }
 
-static std::vector<uint8_t> read_file(const std::filesystem::path& path) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f)
-        throw std::runtime_error("HandlerCompiler: cannot open " + path.string());
-    return { std::istreambuf_iterator<char>(f), {} };
+static std::vector<uint8_t> load_elf_image(const std::filesystem::path& elf_path) {
+    if (elf_version(EV_CURRENT) == EV_NONE)
+        throw std::runtime_error("HandlerCompiler: libelf init failed");
+
+    int fd = open(elf_path.c_str(), O_RDONLY);
+    if (fd < 0)
+        throw std::runtime_error("HandlerCompiler: cannot open " + elf_path.string());
+
+    Elf *e = elf_begin(fd, ELF_C_READ, nullptr);
+    if (!e) {
+        close(fd);
+        throw std::runtime_error("HandlerCompiler: elf_begin failed: "
+                                 + std::string(elf_errmsg(-1)));
+    }
+
+    size_t phnum = 0;
+    if (elf_getphdrnum(e, &phnum) != 0) {
+        elf_end(e);
+        close(fd);
+        throw std::runtime_error("HandlerCompiler: elf_getphdrnum failed");
+    }
+
+    std::vector<uint8_t> image;
+    for (size_t i = 0; i < phnum; ++i) {
+        GElf_Phdr phdr;
+        if (!gelf_getphdr(e, static_cast<int>(i), &phdr) || phdr.p_type != PT_LOAD)
+            continue;
+
+        image.resize(static_cast<size_t>(phdr.p_memsz), 0);
+        ssize_t n = pread(fd, image.data(),
+                          static_cast<size_t>(phdr.p_filesz),
+                          static_cast<off_t>(phdr.p_offset));
+        if (n != static_cast<ssize_t>(phdr.p_filesz)) {
+            elf_end(e);
+            close(fd);
+            throw std::runtime_error("HandlerCompiler: pread failed on PT_LOAD segment");
+        }
+        break;
+    }
+
+    elf_end(e);
+    close(fd);
+    return image;
 }
 
 static std::unordered_map<std::string, uint64_t>
@@ -126,10 +164,9 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
     }
 
     auto elf_path = workdir / "build" / "handlers.elf";
-    auto bin_path = workdir / "build" / "handlers.bin";
 
     auto symbols = parse_symbols(elf_path);
-    auto bytes   = read_file(bin_path);
+    auto bytes   = load_elf_image(elf_path);
 
     std::unordered_map<std::string, uint64_t> offsets;
     for (const auto& p : plans) {

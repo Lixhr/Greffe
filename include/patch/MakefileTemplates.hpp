@@ -6,7 +6,6 @@
 
 namespace MakefileTemplates {
 
-// Renders a Makefile for the given arch descriptor.
 inline std::string render(const ArchDescriptor& d) {
     std::string discard = "*(.note*) *(.comment*)";
     if (!d.ld_discard.empty()) {
@@ -20,7 +19,6 @@ inline std::string render(const ArchDescriptor& d) {
     }
 
     return std::string("CC      := ") + std::string(d.cc) + "\n"
-         + "OBJCOPY := " + std::string(d.objcopy) + "\n"
          + "CFLAGS  := " + cflags + "\n"
          + "LDSCRIPT := build/handlers.ld\n"
          + "\n"
@@ -29,7 +27,7 @@ inline std::string render(const ArchDescriptor& d) {
          + "SRCS := $(NON_GREFFE_SRCS) $(ACTIVE_GREFFE_SRCS)\n"
          + "OBJS := $(patsubst handlers/%.c,build/%.o,$(SRCS))\n"
          + "\n"
-         + "all: build/handlers.bin build/handlers.elf\n"
+         + "all: build/handlers.elf\n"
          + "\n"
          + "$(LDSCRIPT): | build\n"
          + "\t@printf 'SECTIONS {\\n  . = 0x0;\\n  .text   : { *(.text*) }\\n"
@@ -39,9 +37,6 @@ inline std::string render(const ArchDescriptor& d) {
          + "\n"
          + "build/handlers.elf: $(OBJS) $(LDSCRIPT) | build\n"
          + "\t$(CC) $(CFLAGS) -T $(LDSCRIPT) -Wl,-Map=build/handlers.map -o $@ $(OBJS)\n"
-         + "\n"
-         + "build/handlers.bin: build/handlers.elf | build\n"
-         + "\t$(OBJCOPY) -j .text -j .rodata -j .data -O binary $< $@\n"
          + "\n"
          + "build/%.o: handlers/%.c | build\n"
          + "\t$(CC) $(CFLAGS) -c $< -o $@\n"
