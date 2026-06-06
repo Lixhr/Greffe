@@ -2,6 +2,7 @@
 #include <idp.hpp>
 #include <kernwin.hpp>
 #include "GUI/Actions.hpp"
+#include "GUI/GreffePanel.hpp"
 #include "GreffeOps.hpp"
 #include "GreffeCTX.hpp"
 #include "patch/PatchLayoutEntry.hpp"
@@ -26,18 +27,13 @@ struct DeleteActionHandler : public action_handler_t {
                     target_ea = e->ea();
                     break;
                 case PLEType::entry_plan:
-                    target_ea = static_cast<PatchPlan*>(e)->target_ea;
+                    target_ea = static_cast<PatchPlan *>(e)->target_ea;
                     break;
                 default:
                     return 1;
             }
-            g_ctx->layout.entries_delete_if([target_ea](PatchLayoutEntry &entry) {
-                if (entry.type() == PLEType::entry_branch)
-                    return entry.ea() == target_ea;
-                if (entry.type() == PLEType::entry_plan)
-                    return static_cast<PatchPlan&>(entry).target_ea == target_ea;
-                return false;
-            });
+            greffe_delete_instr(target_ea);
+            GreffePanel::instance().refresh();
 
         } catch (const std::exception &e) {
             greffe_msg("error: %s\n", e.what());
@@ -54,7 +50,6 @@ struct DeleteActionHandler : public action_handler_t {
         ea_t ea = ctx->cur_ea;
         if (ea == BADADDR)
             return AST_DISABLE;
-
         return is_greffed(ea) ? AST_ENABLE : AST_DISABLE;
     }
 };
@@ -65,7 +60,6 @@ struct DeleteUIListener : public event_listener_t {
             TWidget *w = va_arg(va, TWidget *);
             if (get_widget_type(w) == BWN_DISASM) {
                 TPopupMenu *popup = va_arg(va, TPopupMenu *);
-
                 if (is_greffed(get_screen_ea()))
                     attach_action_to_popup(w, popup, ACTION_NAME);
             }

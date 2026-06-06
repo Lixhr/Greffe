@@ -14,3 +14,6 @@ void unregister_delete_action();
 
 void register_greffe_api();
 void unregister_greffe_api();
+
+void register_panel_action();
+void unregister_panel_action();

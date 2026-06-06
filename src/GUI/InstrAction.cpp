@@ -2,62 +2,21 @@
 #include <idp.hpp>
 #include <kernwin.hpp>
 #include "GUI/Actions.hpp"
+#include "GUI/GreffePanel.hpp"
 #include "GreffeOps.hpp"
 #include "GreffeCTX.hpp"
-#include "PatchPlan.hpp"
 #include "utils.hpp"
-#include <set>
-#include <string>
 
 extern plugin_t PLUGIN;
 
 static const char ACTION_NAME[] = "greffe:add_instr";
 
-static std::string ask_handler_name(ea_t ea)
-{
-    if (!g_ctx)
-        return {};
-
-    qstrvec_t existing;
-    std::set<std::string> seen;
-    for (const PatchPlan *p : g_ctx->layout.patch_plans())
-        if (seen.insert(p->handler_name).second)
-            existing.push_back(p->handler_name.c_str());
-
-    if (existing.empty())
-        return {};
-
-    int choice = ask_buttons("New handler", "Use existing", "Cancel",
-                             1, "Handler for greffe at 0x%llx:", (ulonglong)ea);
-    if (choice == -1)
-        return "\x01";  // user cancelled
-
-    if (choice == 1)
-        return {};  // new handler
-
-    std::string prompt = "Handler name\nAvailable:";
-    for (const qstring &h : existing) {
-        prompt += "\n  ";
-        prompt += h.c_str();
-    }
-
-    qstring chosen = existing[0];
-    if (!ask_str(&chosen, 0, "%s", prompt.c_str()))
-        return "\x01";  // sentinel: user cancelled
-
-    return std::string(chosen.c_str());
-}
-
 struct InstrActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *) override {
         ea_t ea = get_screen_ea();
-
-        std::string handler = ask_handler_name(ea);
-        if (!handler.empty() && handler[0] == '\x01')
-            return 0;  // cancelled
-
         try {
-            greffe_add_instr(ea, handler);
+            greffe_add_instr(ea);
+            GreffePanel::instance().refresh();
         } catch (const std::exception &e) {
             warning("%s", e.what());
             greffe_msg("error: %s\n", e.what());

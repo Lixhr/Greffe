@@ -3,9 +3,12 @@
 #include "utils.hpp"
 #include "StubsFactory.hpp"
 #include "PatchPlan.hpp"
+#include "patch/PatchLayoutEntry.hpp"
+#include "db.hpp"
 #include <ida.hpp>
 #include <ua.hpp>
 #include <offset.hpp>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
@@ -69,8 +72,7 @@ void greffe_add_instr(ea_t ea, const std::string &handler_name) {
                                                  std::move(stubs));
 
         ctx.layout.create_patch_entry(plan.get());
-        auto inserted = static_cast<PatchPlan *>(ctx.layout.queue_entry(std::move(plan)));
-        create_handler_stub(inserted, ctx.pinfo);
+        ctx.layout.queue_entry(std::move(plan));
 
         commit_gui(ctx.layout);
         ctx.layout.commit();
@@ -81,11 +83,100 @@ void greffe_add_instr(ea_t ea, const std::string &handler_name) {
     }
 }
 
+void greffe_delete_instr(ea_t ea) {
+    if (!g_ctx) return;
+    g_ctx->layout.entries_delete_if([ea](PatchLayoutEntry &entry) {
+        if (entry.type() == PLEType::entry_branch)
+            return entry.ea() == ea;
+        if (entry.type() == PLEType::entry_plan)
+            return static_cast<PatchPlan &>(entry).target_ea == ea;
+        return false;
+    });
+    save_db(g_ctx);
+}
+
+void greffe_create_named_stub(const std::string &name) {
+    namespace fs = std::filesystem;
+    if (!g_ctx) throw std::runtime_error("no context");
+
+    auto dir = g_ctx->pinfo.getProjectDir() / "handlers";
+    fs::create_directories(dir);
+    fs::path path = dir / (name + ".c");
+    if (fs::exists(path)) return;
+
+    static const std::pair<std::string_view, std::string_view> attr_table[] = {
+        { "thumb", "__attribute__((target(\"thumb\")))" },
+    };
+    std::string_view attr;
+    auto plans = g_ctx->layout.patch_plans();
+    if (!plans.empty()) {
+        const ArchKey key = g_ctx->pinfo.getArchKeyAt(static_cast<ea_t>(plans[0]->target_ea));
+        for (const auto &[m, a] : attr_table)
+            if (key.mode == m) { attr = a; break; }
+    }
+
+    std::ofstream f(path);
+    if (!f) throw std::runtime_error("cannot create " + path.string());
+    if (!attr.empty()) f << attr << '\n';
+    f << "void handler_" << name << "(void)\n{\n}\n";
+    greffe_msg("created handler stub: %s.c\n", name.c_str());
+}
+
+void greffe_delete_handler(const std::string &name) {
+    namespace fs = std::filesystem;
+    if (!g_ctx) throw std::runtime_error("no context");
+    for (PatchPlan *plan : g_ctx->layout.patch_plans())
+        if (plan->handler_name == name)
+            plan->handler_name = {};
+    fs::remove(g_ctx->pinfo.getProjectDir() / "handlers" / (name + ".c"));
+    save_db(g_ctx);
+    greffe_msg("deleted handler: %s\n", name.c_str());
+}
+
+std::vector<std::string> greffe_list_handlers() {
+    namespace fs = std::filesystem;
+    if (!g_ctx) return {};
+    std::vector<std::string> result;
+    auto dir = g_ctx->pinfo.getProjectDir() / "handlers";
+    if (!fs::is_directory(dir)) return result;
+    for (const auto &e : fs::directory_iterator(dir))
+        if (e.path().extension() == ".c")
+            result.push_back(e.path().stem().string());
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+void greffe_create_stubs() {
+    if (!g_ctx || g_ctx->layout.patch_plans().empty())
+        throw std::runtime_error("no targets to create stubs for");
+
+    GreffeCTX &ctx = *g_ctx;
+    size_t created = 0;
+    for (const PatchPlan *plan : ctx.layout.patch_plans()) {
+        if (plan->handler_name.empty())
+            throw std::runtime_error("assign a handler name to every patch before creating stubs");
+        namespace fs = std::filesystem;
+        fs::path path = ctx.pinfo.getProjectDir() / "handlers" / (plan->handler_name + ".c");
+        bool existed = fs::exists(path);
+        create_handler_stub(plan, ctx.pinfo);
+        if (!existed)
+            ++created;
+    }
+    greffe_msg("created %zu handler stub(s)\n", created);
+}
+
 void greffe_apply_patches() {
     if (!g_ctx || g_ctx->layout.patch_plans().empty())
         throw std::runtime_error("no targets to patch");
 
     GreffeCTX &ctx = *g_ctx;
+
+    for (const PatchPlan *plan : ctx.layout.patch_plans()) {
+        if (plan->handler_name.empty())
+            throw std::runtime_error("assign a handler name to every patch before applying");
+        create_handler_stub(plan, ctx.pinfo);
+    }
+
     ctx.layout.free_handler_bin();
 
     try {
