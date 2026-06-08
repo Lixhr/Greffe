@@ -92,6 +92,10 @@ void greffe_delete_instr(ea_t ea) {
             return static_cast<PatchPlan &>(entry).target_ea == ea;
         return false;
     });
+    if (g_ctx->layout.patch_plans().empty())
+        g_ctx->layout.entries_delete_if([](PatchLayoutEntry &entry) {
+            return entry.type() == PLEType::entry_shstub;
+        });
     save_db(g_ctx);
 }
 
