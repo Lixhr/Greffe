@@ -34,5 +34,6 @@ class PatchPlan : public PatchLayoutEntry {
         ea_t                                trampoline_ret_addr   = 0;
         std::vector<ContextEntry>           relocd_instr          = {};
         ea_t                                handler_ptr_addr = 0;
+        ea_t                                greffe_id_addr   = 0;
         ea_t                                handler_addr = 0;
 };

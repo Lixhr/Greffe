@@ -22,9 +22,10 @@ class IArchStubs {
         virtual std::vector<uint8_t> branch(ea_t from, ea_t to) = 0;
         virtual std::vector<uint8_t> call  (ea_t from, ea_t to) = 0;
         virtual std::vector<uint8_t> build_shared_stub(ea_t at) = 0;
-        virtual std::vector<uint8_t> trampoline_init(ea_t    at,
-                                                     ea_t    shstub_addr,
-                                                     uint8_t **ptr_array) = 0;
+        virtual std::vector<uint8_t> trampoline_init(ea_t     at,
+                                                     ea_t     shstub_addr,
+                                                     uint8_t **ptr_array,
+                                                     uint8_t **id_array) = 0;
         virtual std::vector<uint8_t> relocate_and_branch_back(
                                             const std::vector<ContextEntry>& instrs,
                                             ea_t                             dest_addr,

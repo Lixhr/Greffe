@@ -11,9 +11,10 @@ class ThumbStubs final : public IArchStubs {
         std::vector<uint8_t> call  (ea_t from, ea_t to)             override;
         std::vector<uint8_t> build_shared_stub(ea_t at)             override;
 
-        std::vector<uint8_t> trampoline_init(ea_t at,
-                                             ea_t      shstub_addr,
-                                             uint8_t  **ptr_array)   override;
+        std::vector<uint8_t> trampoline_init(ea_t     at,
+                                             ea_t     shstub_addr,
+                                             uint8_t **ptr_array,
+                                             uint8_t **id_array)     override;
 
         std::vector<uint8_t> relocate_and_branch_back(
                                     const std::vector<ContextEntry>& instrs,

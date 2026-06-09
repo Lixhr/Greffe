@@ -86,7 +86,8 @@ std::vector<uint8_t> Arm32Stubs::call(ea_t from, ea_t to) {
 
 std::vector<uint8_t> Arm32Stubs::trampoline_init(ea_t at,
                                                   ea_t shstub_addr,
-                                                  uint8_t **ptr_array) {
+                                                  uint8_t **ptr_array,
+                                                  uint8_t **id_array) {
     std::vector<uint8_t> buf(128, 0);
     GumArmWriter w;
     gum_arm_writer_init(&w, buf.data());
@@ -100,10 +101,11 @@ std::vector<uint8_t> Arm32Stubs::trampoline_init(ea_t at,
     write_branch(&w, w.pc, shstub_addr);
 
     std::vector<uint8_t> bytes = arm_collect(w, buf, "Arm32Stubs::trampoline_init", is_big_endian());
-    *ptr_array = reinterpret_cast<uint8_t*>(bytes.data() + bytes.size());
 
-    // reserve literal pool slot for handler address
-    bytes.resize(bytes.size() + sizeof_ptr());
+    size_t pool_offset = bytes.size();
+    bytes.resize(bytes.size() + 2 * sizeof_ptr());
+    *ptr_array = bytes.data() + pool_offset;
+    *id_array  = bytes.data() + pool_offset + sizeof_ptr();
     return bytes;
 }
 
@@ -143,11 +145,10 @@ std::vector<uint8_t> Arm32Stubs::build_shared_stub(ea_t at) {
 
     save_ctx(&w);
 
-    gum_arm_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);
-    gum_arm_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_R0, 0x4);
-
-    gum_arm_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, 0x3c);
-
+    gum_arm_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);                      // R1 = funcptr
+    gum_arm_writer_put_add_reg_reg_imm(&w, ARM_REG_R2, ARM_REG_R0, 0x8);             // R2 = ret addr
+    gum_arm_writer_put_str_reg_reg_offset(&w, ARM_REG_R2, ARM_REG_SP, 0x3c);         // store ret addr
+    gum_arm_writer_put_ldr_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_R0, 4);            // R0 = greffe_id
     gum_arm_writer_put_blx_reg(&w, ARM_REG_R1);
 
     restore_ctx(&w);

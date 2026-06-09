@@ -58,11 +58,12 @@ PatchBranch TrampolineBuilder::branch_to_trampoline(PatchPlan& plan) {
 
 size_t  TrampolineBuilder::init_trampoline(PatchPlan &plan,
                                            const SharedStub &shstub) {
-    uint8_t *ptr = nullptr;
+    uint8_t *ptr = nullptr, *id_ptr = nullptr;
     plan.bytes() = plan.stubs->trampoline_init(plan.ea(),
                                                shstub.ea(),
-                                               &ptr);
-    plan.handler_ptr_addr = plan.ea() + static_cast<size_t>(ptr - plan.bytes().data());
+                                               &ptr, &id_ptr);
+    plan.handler_ptr_addr = plan.ea() + static_cast<size_t>(ptr    - plan.bytes().data());
+    plan.greffe_id_addr   = plan.ea() + static_cast<size_t>(id_ptr - plan.bytes().data());
     return plan.bytes().size();
 }
 

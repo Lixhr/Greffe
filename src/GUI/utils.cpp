@@ -53,7 +53,8 @@ void commit_gui(PatchLayout &layout) {
                 PatchPlan &plan = static_cast<PatchPlan&>(e);
                 set_name(plan.ea(), plan.name.c_str());
                 size_t sizeof_ptr = e.stubs->sizeof_ptr();
-                del_items(plan.handler_ptr_addr, DELIT_SIMPLE, sizeof_ptr);
+                size_t pool_sz = plan.greffe_id_addr ? 2 * sizeof_ptr : sizeof_ptr;
+                del_items(plan.handler_ptr_addr, DELIT_SIMPLE, pool_sz);
                 op_plain_offset(plan.handler_ptr_addr, 0, 0);
                 break;
             }

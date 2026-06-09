@@ -102,15 +102,16 @@ std::vector<uint8_t> ThumbStubs::call(ea_t from, ea_t to) {
     return thumb_collect(w, buf, "ThumbStubs::call", is_big_endian());
 }
 
-std::vector<uint8_t> ThumbStubs::trampoline_init(ea_t at, 
-                                                 ea_t shstub_addr, 
-                                                 uint8_t  **ptr_array) {
+std::vector<uint8_t> ThumbStubs::trampoline_init(ea_t at,
+                                                 ea_t shstub_addr,
+                                                 uint8_t **ptr_array,
+                                                 uint8_t **id_array) {
     std::vector<uint8_t> buf(128, 0);
     GumThumbWriter w;
     gum_thumb_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(at);
 
-    // this first item on the stack will hold the 'return' addr 
+    // this first item on the stack will hold the 'return' addr
     if (!gum_thumb_writer_put_add_reg_imm(&w, ARM_REG_SP, -0x4))
         throw std::runtime_error("ThumbStubs::trampoline_init: push R0 failed");
 
@@ -119,18 +120,17 @@ std::vector<uint8_t> ThumbStubs::trampoline_init(ea_t at,
         throw std::runtime_error("ThumbStubs::trampoline_init: push R0 failed");
     }
 
-    // get the literal pool address (pool is 8 bytes after this instruction)
     gum_thumb_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_PC, 4);
     write_branch(&w, w.pc, shstub_addr);
 
-    // trailing NOP keeps the literal pool 8 bytes from the ADD in both alignment cases
     gum_thumb_writer_put_nop(&w);
 
     std::vector<uint8_t> bytes = thumb_collect(w, buf, "ThumbStubs::trampoline_init", is_big_endian());
-    *ptr_array = reinterpret_cast<uint8_t *>(bytes.data() + bytes.size());
 
-    // reserve fake literal pool for handler address
-    bytes.resize(bytes.size() + sizeof_ptr());
+    size_t pool_offset = bytes.size();
+    bytes.resize(bytes.size() + 2 * sizeof_ptr());
+    *ptr_array = bytes.data() + pool_offset;
+    *id_array  = bytes.data() + pool_offset + sizeof_ptr();
     return bytes;
 }
 
@@ -143,7 +143,6 @@ std::vector<uint8_t> ThumbStubs::relocate_and_branch_back(
     gum_thumb_writer_init(&w, buf.data());
     w.pc = static_cast<GumAddress>(dest_addr);
 
-    // Concatenate into one buffer so IT blocks are seen whole by the relocator.
     std::vector<uint8_t> combined;
     for (const auto& e : instrs)
         combined.insert(combined.end(), e.raw.begin(), e.raw.end());
@@ -179,7 +178,6 @@ bool ThumbStubs::at_reloc_boundary(const std::vector<ContextEntry>& collected) c
         uint16_t hw = (uint16_t(e.raw[1]) << 8) | e.raw[0];
         if ((hw >> 8) != 0xBF || (hw & 0x0F) == 0)
             continue;
-        // IT instruction: determine block size from mask (mirrors gum_parse_it_instruction_block_size)
         uint8_t mask = hw & 0x0F;
         if      (mask & 0x1) it_remaining = 4;
         else if (mask & 0x2) it_remaining = 3;
@@ -201,20 +199,14 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(ea_t at) {
 
     save_ctx(&w);
 
+    gum_thumb_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);                    // R1 = funcptr
+    gum_thumb_writer_put_ldr_reg_reg_offset(&w, ARM_REG_R2, ARM_REG_R0, 4);          // R2 = greffe_id
 
-    // get the funcptr
-    gum_thumb_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);
+    gum_thumb_writer_put_add_reg_imm(&w, ARM_REG_R0, 0x8 | 1);                       // R0 = ret addr (pool+9)
+    gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, 0x3c);       // store ret addr
 
-    // get the 'ret' address, ensure the thumb bit is set
-    gum_thumb_writer_put_add_reg_reg_imm(&w, ARM_REG_R0, ARM_REG_R0, 0x4 | 1);
-
-
-    // space is reserved at the bottom of our stack
-    // it stores the 'ret' to be available on POP PC
-    gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, 0x3c);
-
-    // call the handler                                                                                                                                                       
-    gum_thumb_writer_put_blx_reg(&w, ARM_REG_R1);   
+    gum_thumb_writer_put_mov_reg_reg(&w, ARM_REG_R0, ARM_REG_R2);                    // R0 = greffe_id
+    gum_thumb_writer_put_blx_reg(&w, ARM_REG_R1);
 
     restore_ctx(&w);
 

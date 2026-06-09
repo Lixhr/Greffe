@@ -92,7 +92,8 @@ std::vector<uint8_t> Arm64Stubs::call(ea_t from, ea_t to) {
 
 std::vector<uint8_t> Arm64Stubs::trampoline_init(ea_t at,
                                                   ea_t shstub_addr,
-                                                  uint8_t **ptr_array) {
+                                                  uint8_t **ptr_array,
+                                                  uint8_t **id_array) {
     std::vector<uint8_t> buf(64, 0);
     GumArm64Writer w;
     init_writer(w, buf.data(), at, is_big_endian());
@@ -105,8 +106,11 @@ std::vector<uint8_t> Arm64Stubs::trampoline_init(ea_t at,
     gum_arm64_writer_put_br_reg(&w, ARM64_REG_X16);
 
     std::vector<uint8_t> bytes = arm64_collect(w, buf, "Arm64Stubs::trampoline_init");
-    *ptr_array = reinterpret_cast<uint8_t*>(bytes.data() + bytes.size());
-    bytes.resize(bytes.size() + sizeof_ptr());  // 8-byte handler_addr pool slot at at+24
+
+    size_t pool_offset = bytes.size();
+    bytes.resize(bytes.size() + 2 * sizeof_ptr());
+    *ptr_array = bytes.data() + pool_offset;
+    *id_array  = bytes.data() + pool_offset + sizeof_ptr();
     return bytes;
 }
 
@@ -117,11 +121,10 @@ std::vector<uint8_t> Arm64Stubs::build_shared_stub(ea_t at) {
 
     save_ctx(&w);
 
-    gum_arm64_writer_put_ldr_reg_reg(&w, ARM64_REG_X1, ARM64_REG_X0);         // X1 = handler ptr
-    gum_arm64_writer_put_add_reg_reg_imm(&w, ARM64_REG_X0, ARM64_REG_X0, 8);  // X0 = ret addr
-
-    gum_arm64_writer_put_str_reg_reg_offset(&w, ARM64_REG_X0, ARM64_REG_SP, 264);
-
+    gum_arm64_writer_put_ldr_reg_reg(&w, ARM64_REG_X1, ARM64_REG_X0);                     // X1 = funcptr
+    gum_arm64_writer_put_add_reg_reg_imm(&w, ARM64_REG_X2, ARM64_REG_X0, 16);             // X2 = ret addr
+    gum_arm64_writer_put_str_reg_reg_offset(&w, ARM64_REG_X2, ARM64_REG_SP, 264);         // store ret addr
+    gum_arm64_writer_put_ldr_reg_reg_offset(&w, ARM64_REG_X0, ARM64_REG_X0, 8);           // X0 = greffe_id
     gum_arm64_writer_put_blr_reg(&w, ARM64_REG_X1);
 
     restore_ctx(&w);

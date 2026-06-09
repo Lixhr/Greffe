@@ -44,7 +44,7 @@ static void create_handler_stub(const PatchPlan *plan, const ProjectInfo &pinfo)
 
     if (!attr.empty())
         f << attr << '\n';
-    f << "void handler_" << plan->handler_name << "(void)\n{\n}\n";
+    f << "void handler_" << plan->handler_name << "(unsigned int greffe_id)\n{\n}\n";
 }
 
 void greffe_set_region(ea_t start, ea_t end) {
@@ -122,7 +122,7 @@ void greffe_create_named_stub(const std::string &name) {
     std::ofstream f(path);
     if (!f) throw std::runtime_error("cannot create " + path.string());
     if (!attr.empty()) f << attr << '\n';
-    f << "void handler_" << name << "(void)\n{\n}\n";
+    f << "void handler_" << name << "(unsigned int greffe_id)\n{\n}\n";
     greffe_msg("created handler stub: %s.c\n", name.c_str());
 }
 
@@ -189,10 +189,18 @@ void greffe_apply_patches() {
         for (auto &plan : ctx.layout.patch_plans()) {
             std::string sym = "handler_" + plan->handler_name;
             plan->handler_addr = bin->handler_addr(sym);
+
             uint8_t *handler_slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
             plan->stubs->write_ptr(handler_slot, plan->handler_addr);
             write_data_patch(plan->handler_ptr_addr, handler_slot, plan->stubs->sizeof_ptr());
             op_plain_offset(plan->handler_ptr_addr, 0, 0);
+
+            if (plan->greffe_id_addr) {
+                uint8_t *id_slot = plan->bytes().data() + (plan->greffe_id_addr - plan->ea());
+                plan->stubs->write_ptr(id_slot, plan->target_ea);
+                write_data_patch(plan->greffe_id_addr, id_slot, plan->stubs->sizeof_ptr());
+                op_plain_offset(plan->greffe_id_addr, 0, 0);
+            }
         }
 
         commit_gui(ctx.layout);
