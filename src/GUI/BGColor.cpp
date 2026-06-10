@@ -34,9 +34,7 @@ struct RangeColorHooks : public event_listener_t {
         bgcolor_t *color = va_arg(va, bgcolor_t *);
         ea_t       ea    = va_arg(va, ea_t);
 
-        auto *entry = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry& e) {
-            return ea >= e.ea() && ea < e.end_ea();
-        });
+        auto *entry = g_ctx->layout.entry_at(ea);
         if (entry) {
             *color = color_for_entry(*entry, ea);
             return 1;

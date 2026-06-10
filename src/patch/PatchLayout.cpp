@@ -25,29 +25,59 @@ PatchLayout::PatchLayout(ProjectInfo& pinfo)
     , _regions(pinfo.getRegionsSet())
 {}
 
-template <typename T, PLEType Type>
-static std::vector<T*> filter_entries(const std::vector<unique_ple_t>& entries) {
-    std::vector<T*> result;
-    for (const auto& e : entries)
-        if (e->type() == Type)
-            result.push_back(static_cast<T*>(e.get()));
-    return result;
+PatchLayoutEntry* PatchLayout::entry_at(ea_t ea) const {
+    auto it = std::upper_bound(_entries.begin(), _entries.end(), ea,
+        [](ea_t val, const unique_ple_t& e) { return val < e->ea(); });
+    if (it != _entries.begin()) {
+        --it;
+        if (ea < (*it)->end_ea())
+            return it->get();
+    }
+    for (const auto& e : _queue)
+        if (ea >= e->ea() && ea < e->end_ea())
+            return e.get();
+    return nullptr;
 }
 
-const std::vector<SharedStub*>  PatchLayout::shstubs()     const { return filter_entries<SharedStub, entry_shstub>    (_entries); }
-const std::vector<HandlerBin*>  PatchLayout::handlers()    const { return filter_entries<HandlerBin, entry_handlerbin>(_entries); }
+void PatchLayout::add_to_type_idx(PatchLayoutEntry* e) {
+    switch (e->type()) {
+        case entry_branch:    _branches_idx.push_back(static_cast<PatchBranch*>(e)); break;
+        case entry_plan:      _plans_idx.push_back(static_cast<PatchPlan*>(e));      break;
+        case entry_shstub: {
+            auto* ss = static_cast<SharedStub*>(e);
+            _shstubs_idx.push_back(ss);
+            _shstub_by_name[ss->name()] = ss;
+            break;
+        }
+        case entry_handlerbin: _handlers_idx.push_back(static_cast<HandlerBin*>(e)); break;
+    }
+}
 
-const std::vector<PatchBranch*> PatchLayout::branches()    const { return filter_entries<PatchBranch,entry_branch>    (_entries); }
-const std::vector<PatchPlan*>   PatchLayout::patch_plans() const { return filter_entries<PatchPlan,  entry_plan>      (_entries); }
-
+void PatchLayout::remove_from_type_idx(PatchLayoutEntry* e) {
+    auto erase_ptr = [](auto& vec, auto* p) {
+        vec.erase(std::remove(vec.begin(), vec.end(), p), vec.end());
+    };
+    switch (e->type()) {
+        case entry_branch:    erase_ptr(_branches_idx, static_cast<PatchBranch*>(e));  break;
+        case entry_plan:      erase_ptr(_plans_idx,    static_cast<PatchPlan*>(e));    break;
+        case entry_shstub: {
+            auto* ss = static_cast<SharedStub*>(e);
+            erase_ptr(_shstubs_idx, ss);
+            _shstub_by_name.erase(ss->name());
+            break;
+        }
+        case entry_handlerbin: erase_ptr(_handlers_idx, static_cast<HandlerBin*>(e)); break;
+    }
+}
 
 bool PatchLayout::overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_t e) const {
-    for (const auto& entry : vec) {
-        ea_t es = entry->ea();
-        ea_t ee = entry->end_ea();
-        if (s < ee && e > es)
-            return true;
+    auto it = std::upper_bound(vec.begin(), vec.end(), s,
+        [](ea_t val, const unique_ple_t& entry) { return val < entry->ea(); });
+    if (it != vec.begin()) {
+        const auto& prev = *std::prev(it);
+        if (prev->end_ea() > s) return true;
     }
+    if (it != vec.end() && (*it)->ea() < e) return true;
     return false;
 }
 
@@ -56,13 +86,17 @@ bool PatchLayout::overlaps_any(ea_t s, ea_t e) const {
 }
 
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
-    auto* it = entry_find_if([&](PatchLayoutEntry& e) {
-        if (e.type() == entry_shstub)
-            return static_cast<const SharedStub&>(e).name() == plan->stubs->name();
-        return false;
-    }); 
-
-    return static_cast<const SharedStub *>(it);
+    auto it = _shstub_by_name.find(plan->stubs->name());
+    if (it != _shstub_by_name.end())
+        return it->second;
+    for (const auto& e : _queue) {
+        if (e->type() == entry_shstub) {
+            auto* ss = static_cast<SharedStub*>(e.get());
+            if (ss->name() == plan->stubs->name())
+                return ss;
+        }
+    }
+    return nullptr;
 }
 
 const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
@@ -116,6 +150,7 @@ void PatchLayout::sort_queue_by_type() {
 
 void PatchLayout::commit() {
     for (auto& e : _queue) {
+        add_to_type_idx(e.get());
         ea_t addr = e->ea();
         auto pos = std::lower_bound(_entries.begin(), _entries.end(), addr,
             [](const unique_ple_t& x, ea_t val) { return x->ea() < val; });
@@ -390,6 +425,9 @@ void PatchLayout::load_from_db(netnode &node) {
     std::sort(loaded.begin(), loaded.end(),
         [](const unique_ple_t& a, const unique_ple_t& b){ return a->ea() < b->ea(); });
     _entries = std::move(loaded);
+
+    for (const auto& e : _entries)
+        add_to_type_idx(e.get());
 
     qfree(main);
     qfree(plans_v2);

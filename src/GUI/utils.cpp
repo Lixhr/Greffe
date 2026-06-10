@@ -76,12 +76,8 @@ void commit_gui(PatchLayout &layout) {
 
 bool    is_greffed(ea_t ea) {
     if (g_ctx) {
-        auto *e = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry &entry) {
-            return (entry.type() != PLEType::entry_shstub)
-                && (entry.type() != PLEType::entry_handlerbin)
-                && (ea >= entry.ea() && ea < entry.end_ea());
-        });
-        return e != nullptr;            
+        auto *e = g_ctx->layout.entry_at(ea);
+        return e && e->type() != PLEType::entry_shstub && e->type() != PLEType::entry_handlerbin;
     }
     return false;
 }

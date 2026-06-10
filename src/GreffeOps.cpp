@@ -86,9 +86,7 @@ void greffe_add_instr(ea_t ea, const std::string &handler_name) {
 void greffe_delete_instr(ea_t ea) {
     if (!g_ctx) return;
 
-    auto *e = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry &entry) {
-        return ea >= entry.ea() && ea < entry.end_ea();
-    });
+    auto *e = g_ctx->layout.entry_at(ea);
     if (!e) return;
 
     ea_t target_ea;

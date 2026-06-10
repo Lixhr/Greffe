@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 #include "PatchPlan.hpp"
 #include "patch/SharedStub.hpp"
@@ -21,11 +23,12 @@ class PatchLayout {
         HandlerBin *                     place_handler_bin();
         void                             free_handler_bin();
 
+        const std::vector<SharedStub*>&  shstubs()     const { return _shstubs_idx; }
+        const std::vector<PatchPlan*>&   patch_plans() const { return _plans_idx;   }
+        const std::vector<PatchBranch*>& branches()    const { return _branches_idx; }
+        const std::vector<HandlerBin*>&  handlers()    const { return _handlers_idx; }
 
-        const std::vector<SharedStub*>         shstubs()          const;
-        const std::vector<PatchPlan*>          patch_plans()      const;
-        const std::vector<PatchBranch*>        branches()         const;
-        const std::vector<HandlerBin*>         handlers()         const;
+        PatchLayoutEntry*                entry_at(ea_t ea) const;
 
         template <typename F>
         PatchLayoutEntry* entry_find_if(F&& fn) const {
@@ -41,9 +44,12 @@ class PatchLayout {
         template <typename F>
         void entries_delete_if(F&& fn) {
             std::vector<std::pair<ea_t, ea_t>> to_revert;
-            for (const auto& e : _entries)
-                if (fn(*e))
+            for (const auto& e : _entries) {
+                if (fn(*e)) {
                     to_revert.emplace_back(e->ea(), e->end_ea());
+                    remove_from_type_idx(e.get());
+                }
+            }
             _entries.erase(std::remove_if(_entries.begin(), _entries.end(),
                 [&](const unique_ple_t& e) { return fn(*e); }),
                 _entries.end());
@@ -53,16 +59,18 @@ class PatchLayout {
         template <typename F>
         void free_if(F&& fn) {
             std::vector<std::pair<ea_t, ea_t>> freed;
-            for (const auto& e : _entries)
-                if (fn(*e))
+            for (const auto& e : _entries) {
+                if (fn(*e)) {
                     freed.emplace_back(e->ea(), e->end_ea());
+                    remove_from_type_idx(e.get());
+                }
+            }
             _entries.erase(std::remove_if(_entries.begin(), _entries.end(),
                 [&](const unique_ple_t& e) { return fn(*e); }),
                 _entries.end());
 
-            for (auto& [start, end] : freed) {
+            for (auto& [start, end] : freed)
                 free_entry(start, end);
-            }
         }
 
         template <typename F>
@@ -81,6 +89,9 @@ class PatchLayout {
         const SharedStub*  get_shstub(PatchPlan *plan);
         const SharedStub*  create_shstub(PatchPlan *plan);
 
+        void add_to_type_idx(PatchLayoutEntry* e);
+        void remove_from_type_idx(PatchLayoutEntry* e);
+
         bool overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_t e) const;
         void free_entry(ea_t start, ea_t end);
         void revert_entries(const std::vector<std::pair<ea_t, ea_t>>& ranges);
@@ -89,4 +100,10 @@ class PatchLayout {
         PatchRegionSet&           _regions;
         std::vector<unique_ple_t> _entries;
         std::vector<unique_ple_t> _queue;
+
+        std::vector<PatchBranch*>                    _branches_idx;
+        std::vector<PatchPlan*>                      _plans_idx;
+        std::vector<SharedStub*>                     _shstubs_idx;
+        std::vector<HandlerBin*>                     _handlers_idx;
+        std::unordered_map<std::string, SharedStub*> _shstub_by_name;
 };
