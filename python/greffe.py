@@ -11,7 +11,16 @@ Usage:
     greffe.apply_patches()
 """
 
+import json
 import idc
+from dataclasses import dataclass
+
+
+@dataclass
+class Greffe:
+    name: str
+    handler: str
+    ea: int
 
 
 def _idc(expr: str) -> int:
@@ -21,6 +30,15 @@ def _idc(expr: str) -> int:
     if result is None:
         raise RuntimeError(f"IDC call failed: {expr}")
     return int(result)
+
+
+def _idc_str(expr: str) -> str:
+    result = idc.eval_idc(expr)
+    if isinstance(result, str) and result.startswith("IDC_FAILURE"):
+        raise RuntimeError(result)
+    if result is None:
+        raise RuntimeError(f"IDC call failed: {expr}")
+    return result
 
 
 def set_region(start: int, end: int) -> bool:
@@ -41,3 +59,10 @@ def del_instr(ea: int) -> bool:
 def apply_patches() -> bool:
     """Compile all handlers and write patches to the IDB (equivalent of Shift+P)."""
     return bool(_idc("GreffApplyPatches()"))
+
+
+def get_greffes() -> list[Greffe]:
+    """Return all registered greffes."""
+    raw = _idc_str("GreffGetGreffes()")
+    return [Greffe(name=g["name"], handler=g["handler"], ea=int(g["ea"], 16))
+            for g in json.loads(raw)]
