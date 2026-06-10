@@ -49,7 +49,7 @@ static GreffeWindow &get_window() {
     });
 
     s_window->setGreffeDeletedCb([](uint64_t ea) {
-        greffe_delete_instr(static_cast<ea_t>(ea));
+        greffe_delete(static_cast<ea_t>(ea));
         GreffePanel::instance().refresh();
     });
 

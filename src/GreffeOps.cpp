@@ -54,7 +54,7 @@ void greffe_set_region(ea_t start, ea_t end) {
     greffe_msg("patch region added: 0x%llx - 0x%llx\n", (ulonglong)start, (ulonglong)end);
 }
 
-void greffe_add_instr(ea_t ea, const std::string &handler_name) {
+void greffe_add(ea_t ea, const std::string &handler_name) {
     if (!g_ctx || !g_ctx->pinfo.getRegionsSet().has_regions())
         throw std::runtime_error("define a patch region first");
 
@@ -83,7 +83,7 @@ void greffe_add_instr(ea_t ea, const std::string &handler_name) {
     }
 }
 
-void greffe_delete_instr(ea_t ea) {
+void greffe_delete(ea_t ea) {
     if (!g_ctx) return;
 
     auto *e = g_ctx->layout.entry_at(ea);

@@ -16,7 +16,7 @@ struct DeleteActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *) override {
         ea_t ea = get_screen_ea();
         try {
-            greffe_delete_instr(ea);
+            greffe_delete(ea);
             GreffePanel::instance().refresh();
 
         } catch (const std::exception &e) {

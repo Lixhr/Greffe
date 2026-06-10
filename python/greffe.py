@@ -40,28 +40,28 @@ def _idc_str(expr: str) -> str:
 
 def set_region(start: int, end: int) -> bool:
     """Register [start, end) as a patch region."""
-    return bool(_idc(f"GreffSetRegion({start}, {end})"))
+    return bool(_idc(f"GreffeSetRegion({start}, {end})"))
 
 def add_instr(ea: int, handler: str = "") -> bool:
     """Hook the instruction at ea, optionally reusing an existing handler by name."""
     if handler:
-        return bool(_idc(f'GreffAddInstrEx({ea}, "{handler}")'))
-    return bool(_idc(f"GreffAddInstr({ea})"))
+        return bool(_idc(f'GreffeAddEx({ea}, "{handler}")'))
+    return bool(_idc(f"GreffeAdd({ea})"))
 
 def del_instr(ea: int) -> bool:
     """Delete a greffe."""
-    return bool(_idc(f"GreffDelInstr({ea})"))
+    return bool(_idc(f"GreffeDel({ea})"))
 
 def clear() -> bool:
     """Clears all the modifications"""
-    return bool(_idc(f"GreffClear()"))
+    return bool(_idc(f"GreffeClear()"))
 
 def apply_patches() -> bool:
     """Compile all handlers and write patches to the IDB (equivalent of Shift+P)."""
-    return bool(_idc("GreffApplyPatches()"))
+    return bool(_idc("GreffeApplyPatches()"))
 
 def get_greffes() -> list[Greffe]:
     """Return all registered greffes."""
-    raw = _idc_str("GreffGetGreffes()")
+    raw = _idc_str("GreffeGetArray()")
     return [Greffe(name=g["name"], handler=g["handler"], ea=int(g["ea"], 16))
             for g in json.loads(raw)]

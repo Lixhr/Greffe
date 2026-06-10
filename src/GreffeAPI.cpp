@@ -10,41 +10,41 @@ static error_t idaapi idc_set_region(idc_value_t *argv, idc_value_t *res) {
         greffe_set_region((ea_t)argv[0].num, (ea_t)argv[1].num);
         res->set_long(1);
     } catch (const std::exception &e) {
-        greffe_msg("GreffSetRegion error: %s\n", e.what());
+        greffe_msg("GreffeSetRegion error: %s\n", e.what());
         res->set_long(0);
     }
     return eOk;
 }
 
-static error_t idaapi idc_add_instr(idc_value_t *argv, idc_value_t *res) {
+static error_t idaapi idc_add(idc_value_t *argv, idc_value_t *res) {
     try {
-        greffe_add_instr((ea_t)argv[0].num);
+        greffe_add((ea_t)argv[0].num);
         res->set_long(1);
     } catch (const std::exception &e) {
-        greffe_msg("GreffAddInstr error: %s\n", e.what());
+        greffe_msg("GreffeAdd error: %s\n", e.what());
         res->set_long(0);
     }
     return eOk;
 }
 
-static error_t idaapi idc_add_instr_ex(idc_value_t *argv, idc_value_t *res) {
+static error_t idaapi idc_add_ex(idc_value_t *argv, idc_value_t *res) {
     try {
-        greffe_add_instr((ea_t)argv[0].num, argv[1].c_str());
+        greffe_add((ea_t)argv[0].num, argv[1].c_str());
         res->set_long(1);
     } catch (const std::exception &e) {
-        greffe_msg("GreffAddInstrEx error: %s\n", e.what());
+        greffe_msg("GreffeAddEx error: %s\n", e.what());
         res->set_long(0);
     }
     return eOk;
 }
 
-static error_t idaapi idc_del_instr(idc_value_t *argv, idc_value_t *res) {
+static error_t idaapi idc_del(idc_value_t *argv, idc_value_t *res) {
     try {
-        greffe_delete_instr((ea_t)argv[0].num);
+        greffe_delete((ea_t)argv[0].num);
         GreffePanel::instance().refresh();
         res->set_long(1);
     } catch (const std::exception &e) {
-        greffe_msg("GreffDelInstr error: %s\n", e.what());
+        greffe_msg("GreffeDel error: %s\n", e.what());
         res->set_long(0);
     }
     return eOk;
@@ -56,14 +56,13 @@ static error_t idaapi idc_clear(idc_value_t *, idc_value_t *res) {
         GreffePanel::instance().refresh();
         res->set_long(1);
     } catch (const std::exception &e) {
-        greffe_msg("GreffClear error: %s\n", e.what());
+        greffe_msg("GreffeClear error: %s\n", e.what());
         res->set_long(0);
     }
     return eOk;
 }
 
-
-static error_t idaapi idc_get_greffes(idc_value_t *, idc_value_t *res) {
+static error_t idaapi idc_get_array(idc_value_t *, idc_value_t *res) {
     const auto &plans = g_ctx->layout.patch_plans();
     std::string json = "[";
     for (size_t i = 0; i < plans.size(); ++i) {
@@ -87,7 +86,7 @@ static error_t idaapi idc_apply_patches(idc_value_t *, idc_value_t *res) {
         greffe_apply_patches();
         res->set_long(1);
     } catch (const std::exception &e) {
-        greffe_msg("GreffApplyPatches error: %s\n", e.what());
+        greffe_msg("GreffeApplyPatches error: %s\n", e.what());
         res->set_long(0);
     }
     return eOk;
@@ -99,13 +98,13 @@ static const char args_long_str[] = { VT_LONG, VT_STR, 0 };
 static const char args_none[]     = { 0 };
 
 static const ext_idcfunc_t funcs[] = {
-    { "GreffSetRegion",    idc_set_region,    args_2long,    nullptr, 0, 0 },
-    { "GreffAddInstr",     idc_add_instr,     args_1long,    nullptr, 0, 0 },
-    { "GreffDelInstr",     idc_del_instr,     args_1long,    nullptr, 0, 0 },
-    { "GreffAddInstrEx",   idc_add_instr_ex,  args_long_str, nullptr, 0, 0 },
-    { "GreffApplyPatches", idc_apply_patches, args_none,     nullptr, 0, 0 },
-    { "GreffGetGreffes",   idc_get_greffes,   args_none,     nullptr, 0, 0 },
-    { "GreffClear",        idc_clear,         args_none,     nullptr, 0, 0 },
+    { "GreffeSetRegion",    idc_set_region,    args_2long,    nullptr, 0, 0 },
+    { "GreffeAdd",          idc_add,     args_1long,    nullptr, 0, 0 },
+    { "GreffeDel",          idc_del,     args_1long,    nullptr, 0, 0 },
+    { "GreffeAddEx",        idc_add_ex,  args_long_str, nullptr, 0, 0 },
+    { "GreffeApplyPatches", idc_apply_patches, args_none,     nullptr, 0, 0 },
+    { "GreffeGetArray",     idc_get_array,   args_none,     nullptr, 0, 0 },
+    { "GreffeClear",        idc_clear,         args_none,     nullptr, 0, 0 },
 };
 
 void register_greffe_api() {
