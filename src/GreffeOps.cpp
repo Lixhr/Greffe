@@ -85,17 +85,33 @@ void greffe_add_instr(ea_t ea, const std::string &handler_name) {
 
 void greffe_delete_instr(ea_t ea) {
     if (!g_ctx) return;
-    g_ctx->layout.entries_delete_if([ea](PatchLayoutEntry &entry) {
+
+    auto *e = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry &entry) {
+        return ea >= entry.ea() && ea < entry.end_ea();
+    });
+    if (!e) return;
+
+    ea_t target_ea;
+    if (e->type() == PLEType::entry_branch)
+        target_ea = e->ea();
+    else if (e->type() == PLEType::entry_plan)
+        target_ea = static_cast<PatchPlan *>(e)->target_ea;
+    else
+        return;
+
+    g_ctx->layout.entries_delete_if([target_ea](PatchLayoutEntry &entry) {
         if (entry.type() == PLEType::entry_branch)
-            return entry.ea() == ea;
+            return entry.ea() == target_ea;
         if (entry.type() == PLEType::entry_plan)
-            return static_cast<PatchPlan &>(entry).target_ea == ea;
+            return static_cast<PatchPlan &>(entry).target_ea == target_ea;
         return false;
     });
+
     if (g_ctx->layout.patch_plans().empty())
         g_ctx->layout.entries_delete_if([](PatchLayoutEntry &entry) {
             return entry.type() == PLEType::entry_shstub;
         });
+
     save_db(g_ctx);
 }
 

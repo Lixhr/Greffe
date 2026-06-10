@@ -16,23 +16,7 @@ struct DeleteActionHandler : public action_handler_t {
     int idaapi activate(action_activation_ctx_t *) override {
         ea_t ea = get_screen_ea();
         try {
-            auto *e = g_ctx->layout.entry_find_if([ea](PatchLayoutEntry &entry) {
-                return (ea >= entry.ea() && ea < entry.end_ea());
-            });
-            if (!e) return 1;
-
-            ea_t target_ea = BADADDR;
-            switch (e->type()) {
-                case PLEType::entry_branch:
-                    target_ea = e->ea();
-                    break;
-                case PLEType::entry_plan:
-                    target_ea = static_cast<PatchPlan *>(e)->target_ea;
-                    break;
-                default:
-                    return 1;
-            }
-            greffe_delete_instr(target_ea);
+            greffe_delete_instr(ea);
             GreffePanel::instance().refresh();
 
         } catch (const std::exception &e) {

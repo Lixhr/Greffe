@@ -1,6 +1,7 @@
 #include <ida.hpp>
 #include <expr.hpp>
 #include "GreffeOps.hpp"
+#include "GUI/GreffePanel.hpp"
 #include "utils.hpp"
 
 static error_t idaapi idc_set_region(idc_value_t *argv, idc_value_t *res) {
@@ -20,6 +21,18 @@ static error_t idaapi idc_add_instr(idc_value_t *argv, idc_value_t *res) {
         res->set_long(1);
     } catch (const std::exception &e) {
         greffe_msg("GreffAddInstr error: %s\n", e.what());
+        res->set_long(0);
+    }
+    return eOk;
+}
+
+static error_t idaapi idc_del_instr(idc_value_t *argv, idc_value_t *res) {
+    try {
+        greffe_delete_instr((ea_t)argv[0].num);
+        GreffePanel::instance().refresh();
+        res->set_long(1);
+    } catch (const std::exception &e) {
+        greffe_msg("GreffDelInstr error: %s\n", e.what());
         res->set_long(0);
     }
     return eOk;
@@ -55,6 +68,7 @@ static const char args_none[]     = { 0 };
 static const ext_idcfunc_t funcs[] = {
     { "GreffSetRegion",    idc_set_region,    args_2long,    nullptr, 0, 0 },
     { "GreffAddInstr",     idc_add_instr,     args_1long,    nullptr, 0, 0 },
+    { "GreffDelInstr",     idc_del_instr,     args_1long,    nullptr, 0, 0 },
     { "GreffAddInstrEx",   idc_add_instr_ex,  args_long_str, nullptr, 0, 0 },
     { "GreffApplyPatches", idc_apply_patches, args_none,     nullptr, 0, 0 },
 };

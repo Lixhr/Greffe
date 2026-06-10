@@ -34,6 +34,9 @@ def add_instr(ea: int, handler: str = "") -> bool:
         return bool(_idc(f'GreffAddInstrEx({ea}, "{handler}")'))
     return bool(_idc(f"GreffAddInstr({ea})"))
 
+def del_instr(ea: int) -> bool:
+    """Delete a greffe."""
+    return bool(_idc(f"GreffDelInstr({ea})"))
 
 def apply_patches() -> bool:
     """Compile all handlers and write patches to the IDB (equivalent of Shift+P)."""
