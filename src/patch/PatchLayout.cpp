@@ -404,11 +404,11 @@ void PatchLayout::save_db(netnode &node) {
         if (e->type() != entry_handlerbin)
             to_save.push_back(e.get());
 
-    if (to_save.empty()) return;
-
     save_layout_index(node, to_save);
 
     auto plans = patch_plans();
     if (!plans.empty())
         save_plan_metadata(node, plans);
+    else
+        node.delblob(0, DB_IDs::PatchPlans_v2_entry);
 }
