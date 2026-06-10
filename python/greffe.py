@@ -22,7 +22,6 @@ class Greffe:
     handler: str
     ea: int
 
-
 def _idc(expr: str) -> int:
     result = idc.eval_idc(expr)
     if isinstance(result, str) and result.startswith("IDC_FAILURE"):
@@ -30,7 +29,6 @@ def _idc(expr: str) -> int:
     if result is None:
         raise RuntimeError(f"IDC call failed: {expr}")
     return int(result)
-
 
 def _idc_str(expr: str) -> str:
     result = idc.eval_idc(expr)
@@ -40,11 +38,9 @@ def _idc_str(expr: str) -> str:
         raise RuntimeError(f"IDC call failed: {expr}")
     return result
 
-
 def set_region(start: int, end: int) -> bool:
     """Register [start, end) as a patch region."""
     return bool(_idc(f"GreffSetRegion({start}, {end})"))
-
 
 def add_instr(ea: int, handler: str = "") -> bool:
     """Hook the instruction at ea, optionally reusing an existing handler by name."""
@@ -56,10 +52,13 @@ def del_instr(ea: int) -> bool:
     """Delete a greffe."""
     return bool(_idc(f"GreffDelInstr({ea})"))
 
+def clear() -> bool:
+    """Clears all the modifications"""
+    return bool(_idc(f"GreffClear()"))
+
 def apply_patches() -> bool:
     """Compile all handlers and write patches to the IDB (equivalent of Shift+P)."""
     return bool(_idc("GreffApplyPatches()"))
-
 
 def get_greffes() -> list[Greffe]:
     """Return all registered greffes."""

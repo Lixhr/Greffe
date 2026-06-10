@@ -50,6 +50,19 @@ static error_t idaapi idc_del_instr(idc_value_t *argv, idc_value_t *res) {
     return eOk;
 }
 
+static error_t idaapi idc_clear(idc_value_t *, idc_value_t *res) {
+    try {
+        greffe_clear_all();
+        GreffePanel::instance().refresh();
+        res->set_long(1);
+    } catch (const std::exception &e) {
+        greffe_msg("GreffClear error: %s\n", e.what());
+        res->set_long(0);
+    }
+    return eOk;
+}
+
+
 static error_t idaapi idc_get_greffes(idc_value_t *, idc_value_t *res) {
     const auto &plans = g_ctx->layout.patch_plans();
     std::string json = "[";
@@ -92,6 +105,7 @@ static const ext_idcfunc_t funcs[] = {
     { "GreffAddInstrEx",   idc_add_instr_ex,  args_long_str, nullptr, 0, 0 },
     { "GreffApplyPatches", idc_apply_patches, args_none,     nullptr, 0, 0 },
     { "GreffGetGreffes",   idc_get_greffes,   args_none,     nullptr, 0, 0 },
+    { "GreffClear",        idc_clear,         args_none,     nullptr, 0, 0 },
 };
 
 void register_greffe_api() {

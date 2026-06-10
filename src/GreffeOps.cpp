@@ -113,6 +113,14 @@ void greffe_delete_instr(ea_t ea) {
     save_db(g_ctx);
 }
 
+void greffe_clear_all() {
+    if (!g_ctx) return;
+
+    g_ctx->layout.rollback();
+    g_ctx->layout.entries_delete_if([](PatchLayoutEntry &) { return true; });
+    save_db(g_ctx);
+}
+
 void greffe_create_named_stub(const std::string &name) {
     namespace fs = std::filesystem;
     if (!g_ctx) throw std::runtime_error("no context");
