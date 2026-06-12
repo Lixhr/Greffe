@@ -6,8 +6,7 @@ Usage:
 
     ida_auto.auto_wait()
     greffe.set_region(0x08001000, 0x08002000)
-    greffe.add_instr(0x080011A4)
-    greffe.add_instr(0x080011B8)
+    greffe.add_instr([0x080011A4, 0x080011B8])
     greffe.apply_patches()
 """
 
@@ -42,15 +41,17 @@ def set_region(start: int, end: int) -> bool:
     """Register [start, end) as a patch region."""
     return bool(_idc(f"GreffeSetRegion({start}, {end})"))
 
-def add_instr(ea: int, handler: str = "") -> bool:
-    """Hook the instruction at ea, optionally reusing an existing handler by name."""
+def add_instr(eas: list[int], handler: str = "") -> bool:
+    """Hook the instructions at the given addresses, optionally reusing an existing handler by name."""
+    args = ", ".join(str(ea) for ea in eas)
     if handler:
-        return bool(_idc(f'GreffeAddEx({ea}, "{handler}")'))
-    return bool(_idc(f"GreffeAdd({ea})"))
+        return bool(_idc(f'GreffeAddEx("{handler}", {args})'))
+    return bool(_idc(f"GreffeAdd({args})"))
 
-def del_instr(ea: int) -> bool:
-    """Delete a greffe."""
-    return bool(_idc(f"GreffeDel({ea})"))
+def del_instr(eas: list[int]) -> bool:
+    """Delete the greffes at the given addresses."""
+    args = ", ".join(str(ea) for ea in eas)
+    return bool(_idc(f"GreffeDel({args})"))
 
 def clear() -> bool:
     """Clears all the modifications"""

@@ -16,9 +16,20 @@ static error_t idaapi idc_set_region(idc_value_t *argv, idc_value_t *res) {
     return eOk;
 }
 
+// VT_WILD args are not converted by IDA; accept any integral IDC value.
+static ea_t idc_to_ea(const idc_value_t &v) {
+    switch (v.vtype) {
+        case VT_LONG:  return (ea_t)v.num;
+        case VT_INT64: return (ea_t)v.i64;
+        default: throw std::runtime_error("expected an integer address");
+    }
+}
+
 static error_t idaapi idc_add(idc_value_t *argv, idc_value_t *res) {
+    const size_t argc = (size_t)res->num; // VT_WILD: IDA passes argc in res->num
     try {
-        greffe_add((ea_t)argv[0].num);
+        for (size_t i = 0; i < argc; ++i)
+            greffe_add(idc_to_ea(argv[i]));
         res->set_long(1);
     } catch (const std::exception &e) {
         greffe_msg("GreffeAdd error: %s\n", e.what());
@@ -28,8 +39,11 @@ static error_t idaapi idc_add(idc_value_t *argv, idc_value_t *res) {
 }
 
 static error_t idaapi idc_add_ex(idc_value_t *argv, idc_value_t *res) {
+    const size_t argc = (size_t)res->num;
     try {
-        greffe_add((ea_t)argv[0].num, argv[1].c_str());
+        const char *handler = argv[0].c_str();
+        for (size_t i = 1; i < argc; ++i)
+            greffe_add(idc_to_ea(argv[i]), handler);
         res->set_long(1);
     } catch (const std::exception &e) {
         greffe_msg("GreffeAddEx error: %s\n", e.what());
@@ -39,8 +53,11 @@ static error_t idaapi idc_add_ex(idc_value_t *argv, idc_value_t *res) {
 }
 
 static error_t idaapi idc_del(idc_value_t *argv, idc_value_t *res) {
+    const size_t argc = (size_t)res->num;
     try {
-        greffe_delete((ea_t)argv[0].num);
+        for (size_t i = 0; i < argc; ++i)
+            greffe_delete(idc_to_ea(argv[i]));
+
         GreffePanel::instance().refresh();
         res->set_long(1);
     } catch (const std::exception &e) {
@@ -93,15 +110,15 @@ static error_t idaapi idc_apply_patches(idc_value_t *, idc_value_t *res) {
 }
 
 static const char args_2long[]    = { VT_LONG, VT_LONG, 0 };
-static const char args_1long[]    = { VT_LONG, 0 };
-static const char args_long_str[] = { VT_LONG, VT_STR, 0 };
+static const char args_wild[]     = { VT_WILD, 0 };
+static const char args_str_wild[] = { VT_STR, VT_WILD, 0 };
 static const char args_none[]     = { 0 };
 
 static const ext_idcfunc_t funcs[] = {
     { "GreffeSetRegion",    idc_set_region,    args_2long,    nullptr, 0, 0 },
-    { "GreffeAdd",          idc_add,     args_1long,    nullptr, 0, 0 },
-    { "GreffeDel",          idc_del,     args_1long,    nullptr, 0, 0 },
-    { "GreffeAddEx",        idc_add_ex,  args_long_str, nullptr, 0, 0 },
+    { "GreffeAdd",          idc_add,     args_wild,     nullptr, 0, 0 },
+    { "GreffeDel",          idc_del,     args_wild,     nullptr, 0, 0 },
+    { "GreffeAddEx",        idc_add_ex,  args_str_wild, nullptr, 0, 0 },
     { "GreffeApplyPatches", idc_apply_patches, args_none,     nullptr, 0, 0 },
     { "GreffeGetArray",     idc_get_array,   args_none,     nullptr, 0, 0 },
     { "GreffeClear",        idc_clear,         args_none,     nullptr, 0, 0 },
