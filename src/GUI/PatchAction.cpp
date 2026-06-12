@@ -42,8 +42,10 @@ static const action_desc_t s_action = ACTION_DESC_LITERAL(
 
 void register_patch_action() {
     register_action(s_action);
+    attach_action_to_menu("Edit/Plugins/", PATCH_ACTION_NAME, SETMENU_APP);
 }
 
 void unregister_patch_action() {
+    detach_action_from_menu("Edit/Plugins/", PATCH_ACTION_NAME);
     unregister_action(PATCH_ACTION_NAME);
 }

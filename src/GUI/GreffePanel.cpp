@@ -95,7 +95,7 @@ static PanelActionHandler s_panel_handler;
 
 static const action_desc_t s_panel_action = ACTION_DESC_LITERAL(
     PANEL_ACTION_NAME,
-    "Show greffe patches panel",
+    "Show greffe panel",
     &s_panel_handler,
     "Shift+M",
     "Open the patch manager panel",
@@ -104,8 +104,10 @@ static const action_desc_t s_panel_action = ACTION_DESC_LITERAL(
 
 void register_panel_action() {
     register_action(s_panel_action);
+    attach_action_to_menu("Edit/Plugins/", PANEL_ACTION_NAME, SETMENU_APP);
 }
 
 void unregister_panel_action() {
+    detach_action_from_menu("Edit/Plugins/", PANEL_ACTION_NAME);
     unregister_action(PANEL_ACTION_NAME);
 }
