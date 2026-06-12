@@ -2,7 +2,8 @@
 
 > IDA Pro plugin for non-intrusive binary patching. Especially useful on bare-metal targets without debugging capabilities.
 
-Right-click any instruction in IDA's disassembly view. Greffe replaces it with a branch to a user-written C handler, transparently relocating the original instruction so execution continues correctly after the handler returns.
+Right-click any instruction in IDA's disassembly view. Greffe replaces it with a branch to a user-written C handler.
+The original instruction(s) is transparently relocated so execution resumes normally after the handler returns.
 
 Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures (LE / BE): 
 
@@ -74,7 +75,7 @@ The target then appears in the greffe panel. Link it to the desired handler.
 
 ### 5. Apply patches
 
-Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes the patches directly into IDA.
+Press `Shift+P`. All handlers are compiled, addresses resolved, and patches written directly into IDA.
 
 You can add extra `.c` files under `handlers/`; all are compiled and linked into the same blob.
 
