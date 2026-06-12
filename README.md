@@ -3,7 +3,7 @@
 > IDA Pro plugin for non-intrusive binary patching. Especially useful on bare-metal targets without debugging capabilities.
 
 Right-click any instruction in IDA's disassembly view. Greffe replaces it with a branch to a user-written C handler.
-The original instruction(s) is transparently relocated so execution resumes normally after the handler returns.
+The original instruction is transparently relocated so execution resumes normally after the handler returns.
 
 Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures (LE / BE): 
 
@@ -17,7 +17,8 @@ Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-
 
 ### Use cases
 
-Other instrumentation tools shine on OS-hosted targets. Greffe's specialty is bare-metal targets. Use cases include, but are not limited to:
+Other instrumentation tools shine on OS-hosted targets. Greffe focuses on bare-metal firmware instead. 
+Use cases include, but are not limited to:
 
 - Function tracing
 - Exploit development
