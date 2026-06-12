@@ -53,9 +53,7 @@ def instrument_function(func_name, force_arm=False):
         instr_addr.append(ea)
         ea = idc.next_head(ea, func.end_ea)
 
-    for i, ea in enumerate(instr_addr):
-        print(f"============> {i}")
-        greffe.add_instr(ea)
+    greffe.add_instr(instr_addr)
 
 def main():
     # argv[1]: output path
