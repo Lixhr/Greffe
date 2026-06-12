@@ -81,6 +81,8 @@ void PatchRegionSet::merge_regions() {
     }
 }
 
+// Mark an interval as a "patch region":
+// where the patched instructions will be placed
 void PatchRegionSet::add_region(ea_t start, ea_t end) {
     auto it = std::lower_bound(_regions.begin(), _regions.end(), start,
         [](const PatchRegion& p, ea_t val) { return p.base < val; });
@@ -101,6 +103,7 @@ void PatchRegionSet::reclaim(ea_t start, ea_t end) {
     merge_regions();
 }
 
+// Helper for region bounds checks
 bool PatchRegionSet::overlaps_any(ea_t s, ea_t e) const {
     for (const auto& r : _regions)
         if (r.overlaps(s, e) || (s < r.base && e > r.end))
@@ -122,6 +125,8 @@ ea_t PatchRegionSet::split_alloc(std::vector<PatchRegion>::iterator it,
     return aligned;
 }
 
+// Reserve an allocation at a specific address within its region
+// Ensure no exception can occur after it
 void PatchRegionSet::commit_alloc(ea_t addr, uint64_t size) {
     for (auto it = _regions.begin(); it != _regions.end(); ++it) {
         if (it->base <= addr && it->end > addr) {
@@ -132,6 +137,7 @@ void PatchRegionSet::commit_alloc(ea_t addr, uint64_t size) {
     throw std::runtime_error("PatchRegionSet: commit_alloc: region not found");
 }
 
+// Used for shared stub allocation
 ea_t PatchRegionSet::alloc_best_fit(uint8_t alignment, uint64_t size) {
     auto best         = _regions.end();
     ea_t best_aligned = 0;
@@ -154,6 +160,7 @@ ea_t PatchRegionSet::alloc_best_fit(uint8_t alignment, uint64_t size) {
     return split_alloc(best, best_aligned, size);
 }
 
+// Used when placing the HandlerBin (biggest chunk)
 ea_t PatchRegionSet::alloc_largest(uint8_t alignment, uint64_t size) {
     auto best         = _regions.end();
     ea_t best_aligned = 0;
@@ -187,6 +194,7 @@ void PatchRegionSet::load_from_db(netnode &node) {
     qfree(raw);
 }
 
+// Serialize and save PatchRegionSets into the IDB
 void PatchRegionSet::save_db(netnode &node) {
     size_t n        = _regions.size();
     if (!n)

@@ -14,6 +14,7 @@ extern "C" {
 
 extern plugin_t PLUGIN;
 
+// Save the greffe information on IDB save
 struct IDBHooks : public event_listener_t {
     ssize_t idaapi on_event(ssize_t code, va_list) override {
         if (code == idb_event::savebase && g_ctx)
@@ -59,6 +60,7 @@ static bool idaapi run(size_t) {
     return true;
 }
 
+// IDA Plugin descriptor
 plugin_t PLUGIN = {
     IDP_INTERFACE_VERSION,
     PLUGIN_FIX,

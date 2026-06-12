@@ -229,16 +229,22 @@ void PatchLayout::revert_entries(const std::vector<std::pair<ea_t, ea_t>>& range
         patch_revert_range(start, end);
 }
 
+// Frees the handler bin and zeroizes its bytes
 void PatchLayout::free_handler_bin() {
     for (PatchPlan *plan : patch_plans()) {
-        if (!plan->handler_addr) continue;
+        if (!plan->handler_addr) 
+            continue;
+
         size_t n = plan->stubs->sizeof_ptr();
         std::vector<uint8_t> zeroes(n, 0);
+
         uint8_t *slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
         std::fill(slot, slot + n, 0);
+
         write_data_patch(plan->handler_ptr_addr, zeroes.data(), n);
         plan->handler_addr = 0;
     }
+
     for (HandlerBin *bin : handlers()) {
         std::vector<uint8_t> zeroes(bin->size(), 0);
         write_data_patch(bin->ea(), zeroes.data(), bin->size());
@@ -376,11 +382,19 @@ void PatchLayout::load_from_db(netnode &node) {
     _regions.load_from_db(node);
 
     size_t main_sz = 0;
-    auto  *main    = static_cast<DB_PatchLayout *>(node.getblob(nullptr, &main_sz, 0, DB_IDs::PatchLayout_entry));
-    if (!main || main_sz < sizeof(DB_PatchLayout)) { qfree(main); return; }
+    auto  *main    = static_cast<DB_PatchLayout *>(
+        node.getblob(nullptr, &main_sz, 0, DB_IDs::PatchLayout_entry)
+    );
+
+    if (!main || main_sz < sizeof(DB_PatchLayout)) { 
+        qfree(main); 
+        return; 
+    }
 
     size_t plans_sz = 0;
-    auto  *plans_v2 = static_cast<uint8_t *>(node.getblob(nullptr, &plans_sz, 0, DB_IDs::PatchPlans_v2_entry));
+    auto  *plans_v2 = static_cast<uint8_t *>(
+        node.getblob(nullptr, &plans_sz, 0, DB_IDs::PatchPlans_v2_entry)
+    );
     bool   use_v2   = (plans_v2 != nullptr);
 
     uint8_t *plans_v1 = nullptr;
