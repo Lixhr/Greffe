@@ -112,4 +112,8 @@ class PatchLayout {
         std::vector<SharedStub*>                     _shstubs_idx;
         std::vector<HandlerBin*>                     _handlers_idx;
         std::unordered_map<std::string, SharedStub*> _shstub_by_name;
+
+        // True once a handler bin has been placed and its addresses resolved.
+        // Gates free_handler_bin() plan/entry scan on every add
+        bool                                         _handler_resolved = false;
 };

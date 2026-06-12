@@ -236,6 +236,9 @@ void PatchLayout::revert_entries(const std::vector<std::pair<ea_t, ea_t>>& range
 
 // Frees the handler bin and zeroizes its bytes
 void PatchLayout::free_handler_bin() {
+    if (!_handler_resolved)   // nothing resolved yet: no bin, no slots to clear
+        return;
+
     std::vector<uint8_t> zeroes;   // reused scratch buffer, stays all-zero
 
     for (PatchPlan *plan : patch_plans()) {
@@ -258,6 +261,8 @@ void PatchLayout::free_handler_bin() {
         write_data_patch(bin->ea(), zeroes.data(), n);
     }
     free_if([](PatchLayoutEntry& e){ return e.type() == PLEType::entry_handlerbin; });
+
+    _handler_resolved = false;
 }
 
 HandlerBin *PatchLayout::place_handler_bin() {
@@ -267,6 +272,9 @@ HandlerBin *PatchLayout::place_handler_bin() {
     ea_t addr = _regions.alloc_largest(0x10, static_cast<ea_t>(bin.size()));
     bin.set_addr(addr);
     bin.rebase(addr);
+
+    // Re-arms free_handler_bin().
+    _handler_resolved = true;
 
     return static_cast<HandlerBin*>(
            queue_entry(std::make_unique<HandlerBin>(std::move(bin))));
