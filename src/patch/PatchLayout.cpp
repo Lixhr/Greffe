@@ -86,10 +86,12 @@ bool PatchLayout::overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_
     return false;
 }
 
+// Checks for PatchLayout collision on entries AND queued entries
 bool PatchLayout::overlaps_any(ea_t s, ea_t e) const {
     return overlaps_vec(_entries, s, e) || overlaps_vec(_queue, s, e);
 }
 
+// Returns the already built shared stub
 const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
     auto it = _shstub_by_name.find(plan->stubs->name());
     if (it != _shstub_by_name.end())
@@ -104,6 +106,7 @@ const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
     return nullptr;
 }
 
+// Creates the shared stub depending on the cpu context
 const SharedStub *PatchLayout::create_shstub(PatchPlan *plan) {
     auto probe = plan->stubs->build_shared_stub(0);
     ea_t addr  = _regions.alloc_best_fit(plan->stubs->instr_alignment(), probe.size());
@@ -134,6 +137,7 @@ static void check_collision(const std::vector<unique_ple_t>& vec, ea_t addr, ea_
     }
 }
 
+// Add an entry to the waiting list
 PatchLayoutEntry* PatchLayout::queue_entry(unique_ple_t entry) {
     ea_t addr = entry->ea();
 
@@ -150,9 +154,10 @@ void PatchLayout::sort_queue_by_type() {
     std::stable_sort(_queue.begin(), _queue.end(),
         [](const unique_ple_t& a, const unique_ple_t& b) {
             return a->type() < b->type();
-        });
+    });
 }
 
+// Commit the queue, when everything is ok
 void PatchLayout::commit() {
     for (auto& e : _queue) {
         add_to_type_idx(e.get());
@@ -168,6 +173,7 @@ void PatchLayout::commit() {
         r.clear_region();
 }
 
+// Undo the queue. Used when an exception is thrown. 
 void PatchLayout::rollback() {
     for (const auto& e : _queue)
         if (e->type() != PLEType::entry_branch)
@@ -175,21 +181,29 @@ void PatchLayout::rollback() {
     _queue.clear();
 }
 
+// Builds the trampoline and branchs to it
 void PatchLayout::create_patch_entry(PatchPlan *plan) {
     const SharedStub *shstub = get_shstub(plan);
     if (!shstub)
         shstub = create_shstub(plan);
 
     uint8_t alignment = plan->stubs->instr_alignment();
-
-    // best-fit: smallest region first.
     const auto& regions = _regions.regions();
+
+    // Regions are kept sorted by address (for bounds checks), so build an
+    // index over them sorted by size rather than copying them
     std::vector<size_t> order(regions.size());
     std::iota(order.begin(), order.end(), 0);
     std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) {
         return regions[a].size() < regions[b].size();
     });
 
+
+    // Best-fit: try the smallest region first, leaving large chunks for the handler bin. 
+    // We can't know the trampoline size because the frida-relocator needs 
+    // the final address to compute relocations 
+    
+    // so we build the trampoline for each candidate until it fits.
     for (size_t idx : order) {
         const PatchRegion& r = regions[idx];
         ea_t candidate = r.base;
@@ -199,6 +213,9 @@ void PatchLayout::create_patch_entry(PatchPlan *plan) {
             continue;
 
         plan->set_addr(candidate);
+
+        // TODO: Find the smallest greffe size for each architecture
+        //    -> We don't need to build the stub if we already know the chunk is too small
         PatchBranch branch = TrampolineBuilder::branch_to_trampoline(*plan);
         TrampolineBuilder::init_trampoline(*plan, *shstub);
         TrampolineBuilder::relocate_and_branch_back(*plan);
@@ -229,40 +246,36 @@ void PatchLayout::free_entry(ea_t start, ea_t end) {
     _regions.reclaim(start, end);
 }
 
+// Restore original bytes for ranges
 void PatchLayout::revert_entries(const std::vector<std::pair<ea_t, ea_t>>& ranges) {
     for (auto& [start, end] : ranges)
         patch_revert_range(start, end);
 }
 
-// Frees the handler bin and zeroizes its bytes
+// Frees the handler bin: undefines its code and reclassifies the bytes as raw
 void PatchLayout::free_handler_bin() {
     if (!_handler_resolved)   // nothing resolved yet: no bin, no slots to clear
         return;
-
-    std::vector<uint8_t> zeroes;   // reused scratch buffer, stays all-zero
 
     for (PatchPlan *plan : patch_plans()) {
         if (!plan->handler_addr)
             continue;
 
+        // zeroize the handler ptrs, avoids confusions
         size_t n = plan->stubs->sizeof_ptr();
-        if (zeroes.size() < n) zeroes.assign(n, 0);
-
         uint8_t *slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
         std::fill(slot, slot + n, 0);
 
-        write_data_patch(plan->handler_ptr_addr, zeroes.data(), n);
         plan->handler_addr = 0;
     }
 
-    for (HandlerBin *bin : handlers()) {
-        size_t n = bin->size();
-        if (zeroes.size() < n) zeroes.assign(n, 0);
-        write_data_patch(bin->ea(), zeroes.data(), n);
-    }
+    for (HandlerBin *bin : handlers())
+        mark_raw_data(bin->ea(), bin->size());
+
     free_if([](PatchLayoutEntry& e){ return e.type() == PLEType::entry_handlerbin; });
 
     _handler_resolved = false;
+    request_refresh(IWID_DISASM);   // recolor freed bytes via ev_get_bg_color hook
 }
 
 HandlerBin *PatchLayout::place_handler_bin() {
@@ -279,6 +292,10 @@ HandlerBin *PatchLayout::place_handler_bin() {
     return static_cast<HandlerBin*>(
            queue_entry(std::make_unique<HandlerBin>(std::move(bin))));
 }
+
+
+
+/// ===== IDB Related functions =====
 
 static std::shared_ptr<IArchStubs>
 resolve_stubs(const DB_PatchLayout *idx,
