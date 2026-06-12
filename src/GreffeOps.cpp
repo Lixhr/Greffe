@@ -134,7 +134,7 @@ void greffe_create_named_stub(const std::string &name) {
         { "thumb", "__attribute__((target(\"thumb\")))" },
     };
     std::string_view attr;
-    auto plans = g_ctx->layout.patch_plans();
+    const auto &plans = g_ctx->layout.patch_plans();
     if (!plans.empty()) {
         const ArchKey key = g_ctx->pinfo.getArchKeyAt(static_cast<ea_t>(plans[0]->target_ea));
         for (const auto &[m, a] : attr_table)

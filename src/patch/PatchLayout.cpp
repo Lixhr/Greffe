@@ -70,14 +70,19 @@ void PatchLayout::remove_from_type_idx(PatchLayoutEntry* e) {
     }
 }
 
+// Checks for PatchLayout collision
 bool PatchLayout::overlaps_vec(const std::vector<unique_ple_t>& vec, ea_t s, ea_t e) const {
     auto it = std::upper_bound(vec.begin(), vec.end(), s,
         [](ea_t val, const unique_ple_t& entry) { return val < entry->ea(); });
+
     if (it != vec.begin()) {
         const auto& prev = *std::prev(it);
-        if (prev->end_ea() > s) return true;
+        if (prev->end_ea() > s) 
+            return true;
     }
-    if (it != vec.end() && (*it)->ea() < e) return true;
+
+    if (it != vec.end() && (*it)->ea() < e) 
+        return true;
     return false;
 }
 
@@ -231,12 +236,14 @@ void PatchLayout::revert_entries(const std::vector<std::pair<ea_t, ea_t>>& range
 
 // Frees the handler bin and zeroizes its bytes
 void PatchLayout::free_handler_bin() {
+    std::vector<uint8_t> zeroes;   // reused scratch buffer, stays all-zero
+
     for (PatchPlan *plan : patch_plans()) {
-        if (!plan->handler_addr) 
+        if (!plan->handler_addr)
             continue;
 
         size_t n = plan->stubs->sizeof_ptr();
-        std::vector<uint8_t> zeroes(n, 0);
+        if (zeroes.size() < n) zeroes.assign(n, 0);
 
         uint8_t *slot = plan->bytes().data() + (plan->handler_ptr_addr - plan->ea());
         std::fill(slot, slot + n, 0);
@@ -246,8 +253,9 @@ void PatchLayout::free_handler_bin() {
     }
 
     for (HandlerBin *bin : handlers()) {
-        std::vector<uint8_t> zeroes(bin->size(), 0);
-        write_data_patch(bin->ea(), zeroes.data(), bin->size());
+        size_t n = bin->size();
+        if (zeroes.size() < n) zeroes.assign(n, 0);
+        write_data_patch(bin->ea(), zeroes.data(), n);
     }
     free_if([](PatchLayoutEntry& e){ return e.type() == PLEType::entry_handlerbin; });
 }
@@ -281,41 +289,15 @@ resolve_stubs(const DB_PatchLayout *idx,
 }
 
 static unique_ple_t
-load_plan_v1(ea_t base, size_t sz,
+load_plan(ea_t base, size_t sz,
              const uint8_t *&cursor, const uint8_t *end,
              std::shared_ptr<IArchStubs> stubs, ProjectInfo &pinfo)
 {
     if (!cursor || cursor + sizeof(DB_PatchPlan_meta) > end)
         return nullptr;
+
     const auto *meta = reinterpret_cast<const DB_PatchPlan_meta *>(cursor);
-    if (cursor + sizeof(DB_PatchPlan_meta) + meta->name_len > end)
-        return nullptr;
-
-    if (!stubs)
-        stubs = StubsFactory::create(pinfo.getArchKeyAt(meta->target_ea));
-
-    std::string name(meta->name, meta->name_len);
-    auto plan = std::make_unique<PatchPlan>(
-        base, sz,
-        name,
-        name,   // handler_name defaults to name for legacy entries
-        meta->target_ea, meta->target_end_ea,
-        meta->handler_ptr_addr,
-        std::move(stubs));
-
-    cursor += sizeof(DB_PatchPlan_meta) + meta->name_len;
-    return plan;
-}
-
-static unique_ple_t
-load_plan_v2(ea_t base, size_t sz,
-             const uint8_t *&cursor, const uint8_t *end,
-             std::shared_ptr<IArchStubs> stubs, ProjectInfo &pinfo)
-{
-    if (!cursor || cursor + sizeof(DB_PatchPlan_v2_meta) > end)
-        return nullptr;
-    const auto *meta = reinterpret_cast<const DB_PatchPlan_v2_meta *>(cursor);
-    size_t entry_sz = sizeof(DB_PatchPlan_v2_meta) + meta->name_len + meta->handler_name_len;
+    size_t entry_sz = sizeof(DB_PatchPlan_meta) + meta->name_len + meta->handler_name_len;
     if (cursor + entry_sz > end)
         return nullptr;
 
@@ -324,6 +306,7 @@ load_plan_v2(ea_t base, size_t sz,
 
     std::string name(meta->data, meta->name_len);
     std::string handler_name(meta->data + meta->name_len, meta->handler_name_len);
+
     auto plan = std::make_unique<PatchPlan>(
         base, sz,
         std::move(name),
@@ -357,14 +340,14 @@ static void save_plan_metadata(netnode &node, const std::vector<PatchPlan *> &pl
 {
     size_t total = 0;
     for (const PatchPlan *p : plans)
-        total += sizeof(DB_PatchPlan_v2_meta) + p->name.size() + p->handler_name.size();
+        total += sizeof(DB_PatchPlan_meta) + p->name.size() + p->handler_name.size();
 
     auto *buf = static_cast<uint8_t *>(malloc(total));
     if (!buf) return;
 
     uint8_t *cursor = buf;
     for (const PatchPlan *p : plans) {
-        auto *meta              = reinterpret_cast<DB_PatchPlan_v2_meta *>(cursor);
+        auto *meta              = reinterpret_cast<DB_PatchPlan_meta *>(cursor);
         meta->target_ea         = p->target_ea;
         meta->target_end_ea     = p->target_end_ea;
         meta->handler_ptr_addr  = p->handler_ptr_addr;
@@ -372,9 +355,9 @@ static void save_plan_metadata(netnode &node, const std::vector<PatchPlan *> &pl
         meta->handler_name_len  = static_cast<uint32_t>(p->handler_name.size());
         memcpy(meta->data, p->name.data(), p->name.size());
         memcpy(meta->data + p->name.size(), p->handler_name.data(), p->handler_name.size());
-        cursor += sizeof(DB_PatchPlan_v2_meta) + p->name.size() + p->handler_name.size();
+        cursor += sizeof(DB_PatchPlan_meta) + p->name.size() + p->handler_name.size();
     }
-    node.setblob(buf, total, 0, DB_IDs::PatchPlans_v2_entry);
+    node.setblob(buf, total, 0, DB_IDs::PatchPlans_entry);
     free(buf);
 }
 
@@ -392,17 +375,9 @@ void PatchLayout::load_from_db(netnode &node) {
     }
 
     size_t plans_sz = 0;
-    auto  *plans_v2 = static_cast<uint8_t *>(
-        node.getblob(nullptr, &plans_sz, 0, DB_IDs::PatchPlans_v2_entry)
+    auto  *plans_raw = static_cast<uint8_t *>(
+        node.getblob(nullptr, &plans_sz, 0, DB_IDs::PatchPlans_entry)
     );
-    bool   use_v2   = (plans_v2 != nullptr);
-
-    uint8_t *plans_v1 = nullptr;
-    if (!use_v2) {
-        plans_sz = 0;
-        plans_v1 = static_cast<uint8_t *>(node.getblob(nullptr, &plans_sz, 0, DB_IDs::PatchPlans_entry));
-    }
-    uint8_t *plans_raw = use_v2 ? plans_v2 : plans_v1;
 
     auto stubs = resolve_stubs(main, plans_raw, plans_sz, _pinfo);
 
@@ -426,9 +401,7 @@ void PatchLayout::load_from_db(netnode &node) {
                 loaded.push_back(std::make_unique<SharedStub>(stubs, e.base));
             break;
         case entry_plan:
-            if (auto p = use_v2
-                    ? load_plan_v2(e.base, sz, cursor, end, stubs, _pinfo)
-                    : load_plan_v1(e.base, sz, cursor, end, stubs, _pinfo))
+            if (auto p = load_plan(e.base, sz, cursor, end, stubs, _pinfo))
                 loaded.push_back(std::move(p));
             break;
         case entry_handlerbin:
@@ -437,15 +410,16 @@ void PatchLayout::load_from_db(netnode &node) {
     }
 
     std::sort(loaded.begin(), loaded.end(),
-        [](const unique_ple_t& a, const unique_ple_t& b){ return a->ea() < b->ea(); });
+        [](const unique_ple_t& a, const unique_ple_t& b){ 
+            return a->ea() < b->ea(); 
+    });
     _entries = std::move(loaded);
 
     for (const auto& e : _entries)
         add_to_type_idx(e.get());
 
     qfree(main);
-    qfree(plans_v2);
-    qfree(plans_v1);
+    qfree(plans_raw);
 }
 
 void PatchLayout::save_db(netnode &node) {
@@ -462,5 +436,5 @@ void PatchLayout::save_db(netnode &node) {
     if (!plans.empty())
         save_plan_metadata(node, plans);
     else
-        node.delblob(0, DB_IDs::PatchPlans_v2_entry);
+        node.delblob(0, DB_IDs::PatchPlans_entry);
 }

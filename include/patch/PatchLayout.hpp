@@ -44,30 +44,36 @@ class PatchLayout {
         template <typename F>
         void entries_delete_if(F&& fn) {
             std::vector<std::pair<ea_t, ea_t>> to_revert;
-            for (const auto& e : _entries) {
+            size_t w = 0;
+            for (size_t r = 0; r < _entries.size(); ++r) {
+                auto& e = _entries[r];
                 if (fn(*e)) {
                     to_revert.emplace_back(e->ea(), e->end_ea());
                     remove_from_type_idx(e.get());
+                } else {
+                    if (w != r) _entries[w] = std::move(_entries[r]);
+                    ++w;
                 }
             }
-            _entries.erase(std::remove_if(_entries.begin(), _entries.end(),
-                [&](const unique_ple_t& e) { return fn(*e); }),
-                _entries.end());
+            _entries.erase(_entries.begin() + w, _entries.end());
             revert_entries(to_revert);
         }
 
         template <typename F>
         void free_if(F&& fn) {
             std::vector<std::pair<ea_t, ea_t>> freed;
-            for (const auto& e : _entries) {
+            size_t w = 0;
+            for (size_t r = 0; r < _entries.size(); ++r) {
+                auto& e = _entries[r];
                 if (fn(*e)) {
                     freed.emplace_back(e->ea(), e->end_ea());
                     remove_from_type_idx(e.get());
+                } else {
+                    if (w != r) _entries[w] = std::move(_entries[r]);
+                    ++w;
                 }
             }
-            _entries.erase(std::remove_if(_entries.begin(), _entries.end(),
-                [&](const unique_ple_t& e) { return fn(*e); }),
-                _entries.end());
+            _entries.erase(_entries.begin() + w, _entries.end());
 
             for (auto& [start, end] : freed)
                 free_entry(start, end);
