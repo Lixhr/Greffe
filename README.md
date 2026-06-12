@@ -4,23 +4,30 @@
 
 Right-click any instruction in IDA's disassembly view. Greffe replaces it with a branch to a user-written C handler, transparently relocating the original instruction so execution continues correctly after the handler returns.
 
-Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures: 
+Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-gum). Currently supported architectures (LE / BE): 
 
-- ARM32-LE
-- ARM32-BE
-- ARM32-Thumb-LE
-- ARM32-Thumb-BE
-- Aarch64-LE
-- Aarch64-BE
+- ARM32
+- ARM32-Thumb
+- AArch64
 
 > [!NOTE]
-> Supported from IDA 9.2
+> Requires IDA 9.2 or later
+
+
+### Use cases
+
+Other instrumentation tools shine on OS-hosted targets. Greffe's specialty is bare-metal targets. Use cases include, but are not limited to:
+
+- Function tracing
+- Exploit development
+- Code coverage instrumentation
+- ...
 
 ---
 
 ## Build
 
-Get the [IDA Sdk](https://github.com/HexRaysSA/ida-sdk/releases) corresponding to your version.
+Get the [IDA SDK](https://github.com/HexRaysSA/ida-sdk/releases) corresponding to your version.
 
 
 ```sh
@@ -29,7 +36,7 @@ IDA_DIR=/path_to_ida \
 make
 ```
 
-Output: `build/greffe.so`. Move it into your IDA's plugin directory.
+Output: `build/greffe.so`. Move it into IDA's plugins directory.
 
 ---
 
@@ -45,32 +52,36 @@ In the disassembly view, select a range of bytes where trampolines and handlers 
 
 The region must be mapped as executable at runtime. Typical candidates: padding between sections, unused functions, ...
 
-### 3. Add a greffe
+### 3. Create handlers
 
-Right-click any instruction in the disassembly view → **Add a Greffe** (or `Shift+G`).
+Open the panel: **Edit → Plugins → Show greffe panel** (or `Shift+M`).
 
-A C stub is automatically created at `__greffe_workdir/handlers/`:
+Click `Add handler` and give it a name. A **.c** file with a function skeleton is generated in the greffe directory.
 
 ```c
-void handler_my_func(void)
+void handler_myfunc()
 {
+    // { YOUR CODE }
 }
 ```
 
-You can add extra `.c` files under `handlers/`; all are compiled and linked into the same blob.
 
-### 4. Write the handler
+### 4. Add a greffe
 
-Edit the generated stub. Any helper code must be self-contained or reference existing firmware symbols directly.
+Right-click the target instruction in the disassembly view → **Add a Greffe** (or `Shift+G`).
+
+The target then appears in the greffe panel. Link it to the desired handler.
 
 ### 5. Apply patches
 
 Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes the patches directly into IDA.
 
+You can add extra `.c` files under `handlers/`; all are compiled and linked into the same blob.
+
 
 > [!WARNING]
 > Greffe modifies the binary and may break IDA xrefs or labels.  
-> Make sure to back up your project before using it.
+> Make sure to use a copy of your database.
 
 ---
 
@@ -93,13 +104,13 @@ Press `Shift+P`. Greffe compiles all handlers, resolves addresses, and writes th
 ```
 __greffe_workdir/
 ├── Makefile              auto-generated
-├── greffe_active.mk      lists active handler sources
 ├── handlers/
 │   ├── my_func.c         ← edit this
 │   └── usr_utils.c
 └── build/
     ├── handlers.elf
-    └── handlers.bin
+    └── handlers.ld
+    └── ...
 ```
 
 ---
