@@ -18,6 +18,8 @@ Instruction relocation is powered by [frida-gum](https://github.com/frida/frida-
 ### Use cases
 
 Other instrumentation tools shine on OS-hosted targets. Greffe focuses on bare-metal firmware instead. 
+
+
 Use cases include, but are not limited to:
 
 - Function tracing
