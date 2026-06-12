@@ -61,9 +61,9 @@ static std::vector<uint8_t> load_elf_image(const std::filesystem::path& elf_path
     return image;
 }
 
-#ifndef R_ARM_ABS32
-#define R_ARM_ABS32 2
-#endif
+// #ifndef R_ARM_ABS32
+// #define R_ARM_ABS32 2
+// #endif
 
 static std::vector<uint32_t>
 collect_abs32_relocs(const std::filesystem::path& elf_path) {
@@ -161,6 +161,7 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
     pid_t pid = fork();
     if (pid < 0)
         throw std::runtime_error("HandlerCompiler: fork() failed");
+
     if (pid == 0) {
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
@@ -183,6 +184,7 @@ HandlerBin HandlerCompiler::build(const std::vector<PatchPlan *> plans,
     int status;
     if (qwait(&status, pid, 0) != pid)
         throw std::runtime_error("HandlerCompiler: waitpid() failed");
+
     int ret = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
     if (ret != 0) {
         msg("%s\n", build_output.c_str());

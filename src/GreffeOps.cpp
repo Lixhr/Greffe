@@ -19,6 +19,7 @@ static std::string make_target_name(ea_t ea) {
     return ss.str();
 }
 
+// Writes the handler .c skeleton
 static void create_handler_stub(const PatchPlan *plan, const ProjectInfo &pinfo) {
     namespace fs = std::filesystem;
 
@@ -47,6 +48,7 @@ static void create_handler_stub(const PatchPlan *plan, const ProjectInfo &pinfo)
     f << "void handler_" << plan->handler_name << "(unsigned int greffe_id)\n{\n}\n";
 }
 
+// Sets a region as a "Patch region": will host the greffes
 void greffe_set_region(ea_t start, ea_t end) {
     if (!g_ctx)
         g_ctx = std::make_unique<GreffeCTX>();
@@ -54,6 +56,7 @@ void greffe_set_region(ea_t start, ea_t end) {
     greffe_msg("patch region added: 0x%llx - 0x%llx\n", (ulonglong)start, (ulonglong)end);
 }
 
+// Instrument this instruction
 void greffe_add(ea_t ea, const std::string &handler_name) {
     if (!g_ctx || !g_ctx->pinfo.getRegionsSet().has_regions())
         throw std::runtime_error("define a patch region first");
@@ -83,6 +86,7 @@ void greffe_add(ea_t ea, const std::string &handler_name) {
     }
 }
 
+// Delete this instrumentation point and restore the original bytes
 void greffe_delete(ea_t ea) {
     if (!g_ctx) return;
 

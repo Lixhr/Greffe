@@ -32,11 +32,19 @@ void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size) {
     patch_bytes(addr, bytes, size);
 }
 
+// Reclassify a range as raw data bytes without touching IDA's patched-bytes
+void mark_raw_data(ea_t addr, size_t size) {
+    del_items(addr, DELIT_SIMPLE, size);
+    create_byte(addr, size, true);
+}
+
+// Revert ida patched bytes from start to end
 void patch_revert_range(ea_t start, ea_t end) {
       for (ea_t ea = start; ea < end; ++ea)
           revert_byte(ea);
 }
 
+// Apply the bg colors to ida GUI. Used only when no exception can be thrown
 void commit_gui(PatchLayout &layout) {
     layout.sort_queue_by_type();
 
@@ -63,7 +71,7 @@ void commit_gui(PatchLayout &layout) {
     });
 
     // plans are already in _entries: committed at add
-    // handler_addr is define on patch
+    // handler_addr is defined on patch
     for (PatchPlan *plan : layout.patch_plans()) {
         if (plan->handler_addr) {
             add_func(plan->handler_addr);
@@ -74,6 +82,8 @@ void commit_gui(PatchLayout &layout) {
     request_refresh(IWID_DISASM);
 }
 
+// Checks if an address points to a greffe, or a branch to a greffe.
+// Used when right click on an instruction
 bool    is_greffed(ea_t ea) {
     if (g_ctx) {
         auto *e = g_ctx->layout.entry_at(ea);

@@ -3,6 +3,7 @@
 #include <spawn.h>
 #include "kernwin.hpp"
 
+// Informs the user of the workdir path
 void workdir_popup(const std::filesystem::path absolute, const std::string relative) {
     if (!is_idaq()) // avoids vscode popup during tests
         return;

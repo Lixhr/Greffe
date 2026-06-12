@@ -28,17 +28,21 @@ PatchLayout::PatchLayout(ProjectInfo& pinfo)
 PatchLayoutEntry* PatchLayout::entry_at(ea_t ea) const {
     auto it = std::upper_bound(_entries.begin(), _entries.end(), ea,
         [](ea_t val, const unique_ple_t& e) { return val < e->ea(); });
+
     if (it != _entries.begin()) {
         --it;
         if (ea < (*it)->end_ea())
             return it->get();
     }
+
     for (const auto& e : _queue)
         if (ea >= e->ea() && ea < e->end_ea())
             return e.get();
+
     return nullptr;
 }
 
+// Add a PatchLayoutEntry in its concrete type vector
 void PatchLayout::add_to_type_idx(PatchLayoutEntry* e) {
     switch (e->type()) {
         case entry_branch:    _branches_idx.push_back(static_cast<PatchBranch*>(e)); break;
@@ -53,10 +57,12 @@ void PatchLayout::add_to_type_idx(PatchLayoutEntry* e) {
     }
 }
 
+// Delete a PatchLayoutEntry from its concrete type vector
 void PatchLayout::remove_from_type_idx(PatchLayoutEntry* e) {
     auto erase_ptr = [](auto& vec, auto* p) {
         vec.erase(std::remove(vec.begin(), vec.end(), p), vec.end());
     };
+
     switch (e->type()) {
         case entry_branch:    erase_ptr(_branches_idx, static_cast<PatchBranch*>(e));  break;
         case entry_plan:      erase_ptr(_plans_idx,    static_cast<PatchPlan*>(e));    break;
@@ -96,6 +102,7 @@ const SharedStub *PatchLayout::get_shstub(PatchPlan *plan) {
     auto it = _shstub_by_name.find(plan->stubs->name());
     if (it != _shstub_by_name.end())
         return it->second;
+
     for (const auto& e : _queue) {
         if (e->type() == entry_shstub) {
             auto* ss = static_cast<SharedStub*>(e.get());
@@ -162,8 +169,10 @@ void PatchLayout::commit() {
     for (auto& e : _queue) {
         add_to_type_idx(e.get());
         ea_t addr = e->ea();
+
         auto pos = std::lower_bound(_entries.begin(), _entries.end(), addr,
             [](const unique_ple_t& x, ea_t val) { return x->ea() < val; });
+
         _entries.insert(pos, std::move(e));
     }
 

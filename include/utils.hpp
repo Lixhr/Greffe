@@ -10,6 +10,7 @@
 
 #define greffe_msg(fmt, ...) msg("[greffe] " fmt, ##__VA_ARGS__)
 
+// TODO: define colors depending on the IDA color theme
 namespace Color {
     constexpr bgcolor_t RELOCATED    = 0xff0595ff;
     constexpr bgcolor_t PATCHED      = 0xff27b6ff;
@@ -25,6 +26,7 @@ bool is_greffed(ea_t ea);
 
 void write_code_patch(ea_t ea, const uint8_t *bytes, ea_t end_ea);
 void write_data_patch(ea_t addr, const uint8_t *bytes, size_t size);
+void mark_raw_data(ea_t addr, size_t size);
 void patch_revert_range(ea_t start, ea_t end);
 void commit_gui(PatchLayout &layout);
 

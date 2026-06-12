@@ -12,6 +12,7 @@ static std::string arm_detect_mode(ea_t ea) {
     return (t_reg >= 0 && get_sreg(ea, t_reg) == 1) ? "thumb" : "arm32";
 }
 
+
 static const ArchDescriptor descriptors[] = {
     {
         32, "arm", "le",
@@ -71,6 +72,7 @@ ArchKey StubsFactory::buildKey(int bits, const std::string& arch,
 }
 
 std::shared_ptr<IArchStubs> StubsFactory::create(const ArchKey& key) {
+    // multiple IArchStubs can coexist (eg: arm / thumb)
     static std::map<ArchKey, std::shared_ptr<IArchStubs>> cache;
 
     auto it = cache.find(key);
