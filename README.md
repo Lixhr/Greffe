@@ -70,7 +70,7 @@ void handler_myfunc(unsigned int greffe_id, uint32_t *sp)
 ```
 
 > [!TIP]
-> Context registers can be restored from the helpers defined in `helpers/`.
+> Saved registers can be restored from the helpers defined in `helpers/`.
 
 
 ### 4. Add a greffe
