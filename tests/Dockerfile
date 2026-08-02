@@ -1,6 +1,6 @@
 # Usage:
 #   docker build -t greffe-tests tests/
-#   docker run --rm -v "$(pwd)/tests":/workspace greffe-tests        # `make re`, writes into tests/*/build on host
+#   docker run --rm -v "$(pwd)/tests":/workspace greffe-tests        # `make re`, writes into tests/build on host
 #   docker run --rm -v "$(pwd)/tests":/workspace greffe-tests clean  # overrides CMD
 
 FROM debian@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
