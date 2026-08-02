@@ -45,7 +45,8 @@ static void create_handler_stub(const PatchPlan *plan, const ProjectInfo &pinfo)
 
     if (!attr.empty())
         f << attr << '\n';
-    f << "void handler_" << plan->handler_name << "(unsigned int greffe_id)\n{\n}\n";
+    f << "#include <stdint.h>\n";
+    f << "void handler_" << plan->handler_name << "(unsigned int greffe_id, void *sp)\n{\n}\n";
 }
 
 // Sets a region as a "Patch region": will host the greffes
@@ -148,7 +149,8 @@ void greffe_create_named_stub(const std::string &name) {
     std::ofstream f(path);
     if (!f) throw std::runtime_error("cannot create " + path.string());
     if (!attr.empty()) f << attr << '\n';
-    f << "void handler_" << name << "(unsigned int greffe_id)\n{\n}\n";
+    f << "#include <stdint.h>\n";
+    f << "void handler_" << name << "(unsigned int greffe_id, uint32_t *sp)\n{\n}\n";
     greffe_msg("created handler stub: %s.c\n", name.c_str());
 }
 

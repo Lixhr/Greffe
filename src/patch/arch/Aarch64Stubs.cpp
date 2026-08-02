@@ -121,11 +121,12 @@ std::vector<uint8_t> Arm64Stubs::build_shared_stub(ea_t at) {
 
     save_ctx(&w);
 
-    gum_arm64_writer_put_ldr_reg_reg(&w, ARM64_REG_X1, ARM64_REG_X0);                     // X1 = funcptr
-    gum_arm64_writer_put_add_reg_reg_imm(&w, ARM64_REG_X2, ARM64_REG_X0, 16);             // X2 = ret addr
-    gum_arm64_writer_put_str_reg_reg_offset(&w, ARM64_REG_X2, ARM64_REG_SP, 264);         // store ret addr
+    gum_arm64_writer_put_ldr_reg_reg(&w, ARM64_REG_X2, ARM64_REG_X0);                     // X2 = funcptr
+    gum_arm64_writer_put_add_reg_reg_imm(&w, ARM64_REG_X3, ARM64_REG_X0, 16);             // X3 = ret addr
+    gum_arm64_writer_put_str_reg_reg_offset(&w, ARM64_REG_X3, ARM64_REG_SP, 264);         // store ret addr
     gum_arm64_writer_put_ldr_reg_reg_offset(&w, ARM64_REG_X0, ARM64_REG_X0, 8);           // X0 = greffe_id
-    gum_arm64_writer_put_blr_reg(&w, ARM64_REG_X1);
+    gum_arm64_writer_put_mov_reg_reg(&w, ARM64_REG_X1, ARM64_REG_SP);                     // X1 = sp (ctx ptr)
+    gum_arm64_writer_put_blr_reg(&w, ARM64_REG_X2);
 
     restore_ctx(&w);
 

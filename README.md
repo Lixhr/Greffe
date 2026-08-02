@@ -63,11 +63,14 @@ Open the panel: **Edit → Plugins → Show greffe panel** (or `Shift+M`).
 Click `Add handler` and give it a name. A **.c** file with a function skeleton is generated in the greffe directory.
 
 ```c
-void handler_myfunc()
+void handler_myfunc(unsigned int greffe_id, uint32_t *sp)
 {
     // { YOUR CODE }
 }
 ```
+
+> [!TIP]
+> Context registers can be restored from the helpers defined in `helpers/`.
 
 
 ### 4. Add a greffe
