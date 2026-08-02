@@ -21,3 +21,4 @@ third_party/frida-gum/build/
 CLAUDE.md
 .gitignore
 tests/build/
+tests/toolchains

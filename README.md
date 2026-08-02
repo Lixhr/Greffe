@@ -106,7 +106,7 @@ You can add extra `.c` files under `handlers/`; all are compiled and linked into
 ## Workdir layout
 
 ```
-__greffe_workdir/
+greffe_<binary_name>/
 ├── Makefile              auto-generated
 ├── handlers/
 │   ├── my_func.c         ← edit this
