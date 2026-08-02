@@ -199,14 +199,15 @@ std::vector<uint8_t> ThumbStubs::build_shared_stub(ea_t at) {
 
     save_ctx(&w);
 
-    gum_thumb_writer_put_ldr_reg_reg(&w, ARM_REG_R1, ARM_REG_R0);                    // R1 = funcptr
+    gum_thumb_writer_put_ldr_reg_reg(&w, ARM_REG_R3, ARM_REG_R0);                    // R3 = funcptr
     gum_thumb_writer_put_ldr_reg_reg_offset(&w, ARM_REG_R2, ARM_REG_R0, 4);          // R2 = greffe_id
 
     gum_thumb_writer_put_add_reg_imm(&w, ARM_REG_R0, 0x8 | 1);                       // R0 = ret addr (pool+9)
     gum_thumb_writer_put_str_reg_reg_offset(&w, ARM_REG_R0, ARM_REG_SP, 0x3c);       // store ret addr
 
     gum_thumb_writer_put_mov_reg_reg(&w, ARM_REG_R0, ARM_REG_R2);                    // R0 = greffe_id
-    gum_thumb_writer_put_blx_reg(&w, ARM_REG_R1);
+    gum_thumb_writer_put_mov_reg_reg(&w, ARM_REG_R1, ARM_REG_SP);                    // R1 = sp (ctx ptr)
+    gum_thumb_writer_put_blx_reg(&w, ARM_REG_R3);
 
     restore_ctx(&w);
 
