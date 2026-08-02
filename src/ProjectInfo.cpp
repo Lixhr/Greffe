@@ -9,9 +9,9 @@
 #include "utils.hpp"
 #include <idp.hpp>
 
-// Creates the project's __greffe_workdir
+// Creates the project's workdir, one per binary: <bin_dir>/greffe_<bin_filename>
 void ProjectInfo::setupProjectDir() {
-    project_dir = bin_path.parent_path() / "__greffe_workdir";
+    project_dir = bin_path.parent_path() / ("greffe_" + bin_path.filename().string());
 
     if (!std::filesystem::exists(project_dir))
         std::filesystem::create_directory(project_dir);

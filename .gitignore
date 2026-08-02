@@ -20,5 +20,5 @@ third_party/frida-gum/build/
 *.greffe
 CLAUDE.md
 .gitignore
+tests/build/
 tests/toolchains
-tests/*/build
